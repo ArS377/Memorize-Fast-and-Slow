@@ -6,9 +6,11 @@ import json
 import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from eval.longbench_loader import load_examples
+from eval.official_scorer_adapter import write_official_scorer_input
+from eval.official_scorer_runner import run_official_scorer, write_scorer_summary
 from eval.vanilla_rag import run_vanilla_rag, write_predictions
 
 
@@ -27,9 +29,23 @@ class RagConfig:
     top_k: int
     temperature: float
     max_tokens: int
+    use_official_scorer: bool
+    official_scorer_script: Optional[Path]
+    official_scorer_working_dir: Optional[Path]
+
+def _parse_official_stdout(stdout: str) -> Dict[str, object]:
+    lines = [line.strip() for line in stdout.splitlines() if line.strip()]
+    for line in reversed(lines):
+        try:
+            parsed = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return {}
 
 
-def run_rag(config: RagConfig) -> Path:
+def run_rag(config: RagConfig) -> Dict[str, Path]:
     examples = load_examples(
         dataset_path=config.dataset_path,
         dataset_name=config.dataset_name,
@@ -51,8 +67,31 @@ def run_rag(config: RagConfig) -> Path:
     pred_path = config.output_dir / f"{config.output_name}.predictions.jsonl"
     meta_path = config.output_dir / f"{config.output_name}.run_config.json"
     write_predictions(pred_path, rows)
+    artifacts: Dict[str, Path] = {"predictions": pred_path, "run_config": meta_path}
+
+    if config.use_official_scorer:
+        if config.official_scorer_script is None:
+            raise ValueError("--use-official-scorer requires --official-scorer-script.")
+        official_input_path = config.output_dir / f"{config.output_name}.official_input.jsonl"
+        official_result_path = config.output_dir / f"{config.output_name}.official_result.json"
+        scorer_log_path = config.output_dir / f"{config.output_name}.official_scorer_log.json"
+        write_official_scorer_input(official_input_path, rows)
+        scorer_payload = run_official_scorer(
+            config.official_scorer_script,
+            official_input_path,
+            output_json_path=official_result_path,
+            cwd=config.official_scorer_working_dir,
+        )
+        parsed_stdout = _parse_official_stdout(str(scorer_payload.get("stdout", "")))
+        if parsed_stdout:
+            scorer_payload["parsed_stdout_json"] = parsed_stdout
+        write_scorer_summary(scorer_log_path, scorer_payload)
+        artifacts["official_input"] = official_input_path
+        artifacts["official_result"] = official_result_path
+        artifacts["official_log"] = scorer_log_path
+
     meta_path.write_text(json.dumps(asdict(config), indent=2, default=str), encoding="utf-8")
-    return pred_path
+    return artifacts
 
 
 def parse_args() -> RagConfig:
@@ -70,6 +109,9 @@ def parse_args() -> RagConfig:
     parser.add_argument("--top-k", type=int, default=4)
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=256)
+    parser.add_argument("--use-official-scorer", action="store_true")
+    parser.add_argument("--official-scorer-script", type=Path, default=None)
+    parser.add_argument("--official-scorer-working-dir", type=Path, default=None)
     args = parser.parse_args()
 
     if not args.dataset_path and not args.dataset_name:
@@ -91,13 +133,18 @@ def parse_args() -> RagConfig:
         top_k=args.top_k,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
+        use_official_scorer=args.use_official_scorer,
+        official_scorer_script=args.official_scorer_script,
+        official_scorer_working_dir=args.official_scorer_working_dir,
     )
 
 
 def main() -> None:
     config = parse_args()
-    path = run_rag(config)
-    print(f"Wrote RAG predictions to {path}")
+    paths = run_rag(config)
+    print(f"Wrote RAG predictions to {paths['predictions']}")
+    if "official_result" in paths:
+        print(f"Wrote official scorer output to {paths['official_result']}")
 
 
 if __name__ == "__main__":

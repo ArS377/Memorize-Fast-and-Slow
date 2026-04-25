@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -11,7 +12,7 @@ from longbench_kg_pipeline import chunk_sentence_records, flatten_context_to_sen
 
 
 def _tokenize(text: str) -> List[str]:
-    return [t for t in text.lower().split() if t]
+    return re.findall(r"[a-z0-9]+", text.lower())
 
 
 def build_chunks(example: Dict[str, Any], chunk_chars: int) -> List[Dict[str, Any]]:
@@ -119,6 +120,7 @@ def run_vanilla_rag(
                 "answers": example.get("answers", []),
                 "prediction": prediction,
                 "retrieved_chunks": retrieved,
+                "raw_example": example.get("raw_example", {}),
             }
         )
     return rows
