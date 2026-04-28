@@ -33,3 +33,5 @@ Thumbs.db
 # Testing outputs
 smoke_output.jsonl
 verified_facts_test.jsonl
+
+vllm/
