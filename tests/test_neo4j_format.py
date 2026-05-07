@@ -50,6 +50,12 @@ def test_neo4j_query_generation():
     # Mock Neo4j driver to capture queries
     queries_executed = []
     
+    class MockResult:
+        def __iter__(self):
+            return iter([])
+        def single(self):
+            return {"c": 0}
+
     class MockSession:
         def __enter__(self):
             return self
@@ -59,11 +65,13 @@ def test_neo4j_query_generation():
         
         def run(self, query, **kwargs):
             queries_executed.append((query, kwargs))
-            return None
+            return MockResult()
     
     class MockDriver:
-        def session(self):
+        def session(self, **kwargs):
             return MockSession()
+        def close(self):
+            pass
     
     # Create pipeline config with Neo4j
     config = pipe.PipelineConfig(
@@ -90,10 +98,12 @@ def test_neo4j_query_generation():
     # Test insertion
     pipeline.insert_facts_neo4j(facts)
     
-    # Validate queries
-    assert len(queries_executed) == len(facts), f"Expected {len(facts)} queries, got {len(queries_executed)}"
+    # insert_facts now also issues propose lookups (count + find_conflicts);
+    # filter down to the MERGE writes for the structural assertions below.
+    write_queries = [(q, k) for q, k in queries_executed if "MERGE (s:Entity" in q]
+    assert len(write_queries) == len(facts), f"Expected {len(facts)} MERGE queries, got {len(write_queries)}"
     
-    for i, (query, kwargs) in enumerate(queries_executed):
+    for i, (query, kwargs) in enumerate(write_queries):
         fact = facts[i]
         
         # Check query structure

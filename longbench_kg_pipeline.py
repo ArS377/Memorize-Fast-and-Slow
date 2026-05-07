@@ -47,10 +47,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from openai import OpenAI
 
-try:
-    from neo4j import GraphDatabase
-except ImportError:  # Neo4j is optional unless --neo4j-uri is supplied.
-    GraphDatabase = None
+from neo4j_graph import Neo4jGraph
 
 
 Fact = Dict[str, Any]
@@ -74,27 +71,46 @@ class PipelineConfig:
     neo4j_uri: Optional[str]
     neo4j_user: Optional[str]
     neo4j_password: Optional[str]
+    neo4j_database: Optional[str] = None
+    neo4j_session_id: Optional[str] = None
+    neo4j_stateless: bool = False
+    verify_batch_size: int = 20
 
 
 class LongBenchKGPipeline:
     def __init__(self, config: PipelineConfig) -> None:
         self.config = config
         self.client = OpenAI(base_url=config.vllm_base_url, api_key=config.api_key)
-        self.neo4j_driver = None
+        self.graph: Optional[Neo4jGraph] = None
 
         if config.neo4j_uri:
-            if GraphDatabase is None:
-                raise RuntimeError("neo4j package not installed. Run: pip install neo4j")
             if not config.neo4j_user or not config.neo4j_password:
                 raise ValueError("Neo4j URI provided, but user/password missing.")
-            self.neo4j_driver = GraphDatabase.driver(
-                config.neo4j_uri,
-                auth=(config.neo4j_user, config.neo4j_password),
+            self.graph = Neo4jGraph(
+                uri=config.neo4j_uri,
+                user=config.neo4j_user,
+                password=config.neo4j_password,
+                database=config.neo4j_database,
+                session_id=config.neo4j_session_id,
+                stateless=config.neo4j_stateless,
             )
 
+    @property
+    def neo4j_driver(self):
+        """Back-compat: legacy code/tests access pipeline.neo4j_driver directly.
+        Reads/writes the underlying driver on self.graph.
+        """
+        return self.graph._driver if self.graph is not None else None
+
+    @neo4j_driver.setter
+    def neo4j_driver(self, value) -> None:
+        if self.graph is not None:
+            self.graph._driver = value
+
     def close(self) -> None:
-        if self.neo4j_driver:
-            self.neo4j_driver.close()
+        if self.graph is not None:
+            self.graph.close()
+            self.graph = None
 
     def run(self) -> None:
         examples = load_longbench_examples(self.config.input_path)
@@ -133,7 +149,7 @@ class LongBenchKGPipeline:
                     fact["question"] = str(example.get("question", ""))
                     out.write(json.dumps(fact, ensure_ascii=False) + "\n")
 
-                if self.neo4j_driver and supported:
+                if self.graph is not None and supported:
                     self.insert_facts_neo4j(supported)
 
                 total_supported += len(supported)
@@ -168,7 +184,7 @@ class LongBenchKGPipeline:
 
         # Verify in small batches to keep prompts manageable.
         verified: List[Fact] = []
-        batch_size = 20
+        batch_size = max(1, self.config.verify_batch_size)
         for start in range(0, len(facts), batch_size):
             batch = facts[start : start + batch_size]
             for idx, fact in enumerate(batch):
@@ -240,39 +256,12 @@ class LongBenchKGPipeline:
         return parse_json_object(content)
 
     def insert_facts_neo4j(self, facts: List[Fact]) -> None:
-        assert self.neo4j_driver is not None
-        with self.neo4j_driver.session() as session:
-            for fact in facts:
-                rel_type = sanitize_predicate(str(fact["predicate"]))
-                query = f"""
-                MERGE (s:Entity {{name: $subject}})
-                MERGE (o:Entity {{name: $object}})
-                MERGE (s)-[r:`{rel_type}` {{fact_id: $fact_id}}]->(o)
-                SET r.example_id = $example_id,
-                    r.question = $question,
-                    r.support_text = $support_text,
-                    r.provenance_json = $provenance_json,
-                    r.qualifiers_json = $qualifiers_json,
-                    r.question_relevance = $question_relevance,
-                    r.confidence = $confidence,
-                    r.normalization_notes = $normalization_notes,
-                    r.verification_reason = $verification_reason
-                """
-                session.run(
-                    query,
-                    subject=str(fact["subject"]),
-                    object=str(fact["object"]),
-                    fact_id=str(fact["fact_id"]),
-                    example_id=str(fact.get("example_id", "")),
-                    question=str(fact.get("question", "")),
-                    support_text=str(fact.get("support_text", "")),
-                    provenance_json=json.dumps(fact.get("provenance", []), ensure_ascii=False),
-                    qualifiers_json=json.dumps(fact.get("qualifiers", {}), ensure_ascii=False),
-                    question_relevance=str(fact.get("question_relevance", "")),
-                    confidence=str(fact.get("confidence", fact.get("status", "supported"))),
-                    normalization_notes=str(fact.get("normalization_notes", "")),
-                    verification_reason=str(fact.get("verification_reason", "")),
-                )
+        """Delegate to Neo4jGraph.insert_facts. Preserved as a method for
+        back-compat with existing tests and external callers.
+        """
+        if self.graph is None:
+            raise RuntimeError("Neo4j is not configured for this pipeline.")
+        self.graph.insert_facts(facts)
 
 
 def load_longbench_examples(path: Path) -> List[Dict[str, Any]]:
@@ -616,9 +605,13 @@ def parse_args() -> PipelineConfig:
     parser.add_argument("--limit", type=int, default=None, help="Debug option to cap number of examples.")
     parser.add_argument("--sleep-seconds", type=float, default=0.0, help="Optional delay between model calls.")
     parser.add_argument("--use-json-mode", action="store_true", help="Try OpenAI JSON mode; fallback if unsupported.")
+    parser.add_argument("--verify-batch-size", type=int, default=20, help="Number of facts verified per LLM call. Lower this when running with a small --max-model-len.")
     parser.add_argument("--neo4j-uri", default=os.getenv("NEO4J_URI"), help="Optional, e.g. bolt://localhost:7687")
     parser.add_argument("--neo4j-user", default=os.getenv("NEO4J_USER"))
     parser.add_argument("--neo4j-password", default=os.getenv("NEO4J_PASSWORD"))
+    parser.add_argument("--neo4j-database", default=os.getenv("NEO4J_DATABASE"), help="Optional Neo4j database name.")
+    parser.add_argument("--session-id", default=os.getenv("NEO4J_SESSION_ID"), help="Tag writes/queries with this session id (defaults to 'default').")
+    parser.add_argument("--stateless", action="store_true", help="Wipe the session_id subgraph on close. Requires --session-id.")
 
     args = parser.parse_args()
     return PipelineConfig(
@@ -634,9 +627,13 @@ def parse_args() -> PipelineConfig:
         limit=args.limit,
         sleep_seconds=args.sleep_seconds,
         use_json_mode=args.use_json_mode,
+        verify_batch_size=args.verify_batch_size,
         neo4j_uri=args.neo4j_uri,
         neo4j_user=args.neo4j_user,
         neo4j_password=args.neo4j_password,
+        neo4j_database=args.neo4j_database,
+        neo4j_session_id=args.session_id,
+        neo4j_stateless=args.stateless,
     )
 
 
