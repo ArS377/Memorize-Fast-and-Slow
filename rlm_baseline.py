@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 """
-P3 Baseline: RLM answering LongBench-v2 questions over raw contexts.
-
-Establishes baseline behavior before swapping in graph-based context (Week 2).
-
 Usage (ollama):
     python rlm_baseline.py \
         --input data.jsonl \
