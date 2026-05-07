@@ -118,6 +118,22 @@ No live Neo4j is required — all tests use a mock driver and the checked-in fix
 - **Contradiction detection** — Symbolic constraints veto conflicting writes (today `find_conflicts` surfaces them; next they get rejected)
 - **Recursive context updates** — Treat context as constrained symbolic state transitions
 
+## Scallop Validation Rules (`scallop_validator.py`)
+
+`validate_update(existing_facts, new_fact)` gates every proposed fact before it is committed to Neo4j. Returns `(True, "Valid")` or `(False, reason)`.
+
+| Rule | Type | What it prevents |
+|------|------|-----------------|
+| Functional predicate constraint | Scallop | Storing two different values for a single-valued predicate (e.g. two capitals for one country) |
+| Circular containment | Scallop | `A PART_OF B` and `B PART_OF A` simultaneously |
+| Alive/dead conflict | Scallop | Entity marked both `IS_ALIVE true` and `IS_ALIVE false` |
+| Self-referential fact | Python | `Jakarta LOCATED_IN Jakarta` — subject equals object |
+| Generic object | Python | Objects like `"unknown"`, `"various"`, `"multiple"` that carry no information |
+| Exact redundancy | Python | Identical triple already exists in the graph |
+
+**Functional predicates** (one value per subject):
+`CAPITAL_IS`, `BORN_IN`, `BIRTH_DATE`, `DEATH_DATE`, `DIED_IN`, `FOUNDED_IN`, `LOCATED_IN`, `HAS_ISO_CODE`, `HAS_GLOTTOCODE`
+
 ### Future: Recursive LLM Integration
 - **RLM-style retrieval** — Recursive language model queries the graph via `query_context` instead of reading raw long contexts
 - **Benchmarks** — LongBench-v2, HotpotQA / MuSiQue (multi-hop), and the contradiction probe
