@@ -29,6 +29,7 @@ Notes for live data:
 """
 
 from __future__ import annotations
+from scallop_validator import validate_update
 
 import json
 import re
@@ -280,7 +281,23 @@ class Neo4jGraph:
         exist (Scallop will gate this in P2). Returns {"committed", "conflicts"}.
         """
         proposal = self.propose_facts(facts, session_id=session_id)
-        committed = self.commit_facts(facts, session_id=session_id)
+
+        existing_triples = [
+            (f["subject"], f["predicate"], f["object"])
+            for f in proposal["existing"]
+        ]
+
+        valid_facts = []
+        for fact in proposal["new"]:
+            triple = (fact["subject"], fact["predicate"], fact["object"])
+            is_valid, reason = validate_update(existing_triples, triple)
+            if is_valid:
+                valid_facts.append(fact)
+                existing_triples.append(triple)
+            else:
+                proposal["conflicts"].append({"candidate": fact, "reason": reason})
+
+        committed = self.commit_facts(valid_facts, session_id=session_id)
         return {"committed": committed, "conflicts": proposal["conflicts"]}
 
     # ------------------------------------------------------------------ reads
