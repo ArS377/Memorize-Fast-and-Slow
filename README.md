@@ -105,6 +105,86 @@ python tests/test_neo4j_graph.py     # Neo4jGraph: insert/query/propose/format (
 
 No live Neo4j is required — all tests use a mock driver and the checked-in fixture `tests/fixtures/verified_facts.sample.jsonl`.
 
+## Ablation Studies (2x3 Grid)
+
+The `experiments/` package runs a six-cell ablation on a fixed 50-example LongBench-v2 slice so the contribution of (a) KG memory and (b) Scallop validation can be read off independently for both flat-LLM and RLM regimes.
+
+| Cell | label | retrieval | validator | recursion | runner |
+|------|-------|-----------|-----------|-----------|--------|
+| 1 | `flat_raw` | raw context | n/a | flat | `experiments.cells.cell1_flat_raw` |
+| 2 | `flat_kg_noscallop` | KG (no validator) | none | flat | `experiments.cells.cell2_flat_kg_noscallop` |
+| 3 | `flat_kg_scallop` | KG (Scallop-validated) | scallop | flat | `experiments.cells.cell3_flat_kg_scallop` |
+| 4 | `rlm_raw` | raw context | n/a | RLM | `experiments.cells.cell4_rlm_raw` |
+| 5 | `rlm_kg_noscallop` | KG (no validator) | none | RLM | `experiments.cells.cell5_rlm_kg_noscallop` |
+| 6 | `rlm_kg_scallop` | KG (Scallop-validated) | scallop | RLM | `experiments.cells.cell6_rlm_kg_scallop` |
+
+### Run all six (one command)
+
+```bash
+python -m experiments.run_all --limit 50 \
+    --model Qwen/Qwen3.5-4B \
+    --vllm-base-url http://localhost:8000/v1 \
+    --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password $NEO4J_PASSWORD
+```
+
+Produces `results/cell{1..6}_*/results.jsonl`, `results/summary.csv`, `results/figures/accuracy_grid.png`, and `results/run_metadata.json`.
+
+### Run any single cell standalone
+
+Each cell exposes the same CLI flags. Each run auto-refreshes `results/summary.csv` and `results/figures/accuracy_grid.png` reflecting whichever cells have ever been run (pass `--no-aggregate` to suppress).
+
+```bash
+# Cell 1: Flat LLM, raw context (no Neo4j needed)
+python -m experiments.cells.cell1_flat_raw --limit 50 --model Qwen/Qwen3.5-4B
+
+# Cell 2: Flat LLM, KG memory, validator OFF
+python -m experiments.build_kg --session pilot_noscallop --limit 50 \
+    --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password $NEO4J_PASSWORD
+python -m experiments.cells.cell2_flat_kg_noscallop --limit 50
+
+# Cell 3: Flat LLM, KG memory, Scallop validator ON
+python -m experiments.build_kg --session pilot_scallop --validate --limit 50 \
+    --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password $NEO4J_PASSWORD
+python -m experiments.cells.cell3_flat_kg_scallop --limit 50
+
+# Cell 4: RLM, raw context
+python -m experiments.cells.cell4_rlm_raw --limit 50 --max-depth 2
+
+# Cell 5: RLM over Scallop-OFF KG  (reuses pilot_noscallop session)
+python -m experiments.cells.cell5_rlm_kg_noscallop --limit 50 --max-depth 2
+
+# Cell 6: RLM over Scallop-validated KG (reuses pilot_scallop session)
+python -m experiments.cells.cell6_rlm_kg_scallop --limit 50 --max-depth 2
+```
+
+KG cells (2, 3, 5, 6) need either a reachable Neo4j with the relevant session populated, **or** `--facts-file results/kg_builds/<session>_facts.jsonl` (auto-written by `build_kg`).
+
+### Output structure
+
+```
+results/
+  run_metadata.json
+  kg_builds/
+    pilot_noscallop_facts.jsonl
+    pilot_scallop_facts.jsonl
+  cell1_flat_raw/results.jsonl
+  cell2_flat_kg_noscallop/results.jsonl
+  cell3_flat_kg_scallop/results.jsonl
+  cell4_rlm_raw/results.jsonl
+  cell5_rlm_kg_noscallop/results.jsonl
+  cell6_rlm_kg_scallop/results.jsonl
+  summary.csv
+  figures/accuracy_grid.png
+```
+
+### Re-aggregate without re-running cells
+
+```bash
+python -m experiments.aggregate
+```
+
+`aggregate.py` is robust to partial runs: missing cells become blank rows in the CSV and muted "n/a" bars in the figure, so a researcher debugging a single cell still gets a publishable-shape figure.
+
 ## Architecture Roadmap
 
 ### Current: Baseline Extraction + Dynamic KG (✓ Implemented)

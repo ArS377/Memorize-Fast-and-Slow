@@ -276,11 +276,18 @@ class Neo4jGraph:
         self,
         facts: List[Fact],
         session_id: Optional[str] = None,
+        validate: bool = True,
     ) -> Dict[str, Any]:
-        """Convenience: propose + commit. Commit proceeds even when conflicts
-        exist (Scallop will gate this in P2). Returns {"committed", "conflicts"}.
+        """Convenience: propose + commit. When validate=True (default), each
+        new fact is run through the Scallop validator; when False, the
+        validator is skipped and all proposed-new facts are committed directly.
+        Returns {"committed", "conflicts"}.
         """
         proposal = self.propose_facts(facts, session_id=session_id)
+
+        if not validate:
+            committed = self.commit_facts(proposal["new"], session_id=session_id)
+            return {"committed": committed, "conflicts": proposal["conflicts"]}
 
         existing_triples = [
             (f["subject"], f["predicate"], f["object"])
