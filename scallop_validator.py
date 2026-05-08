@@ -1,10 +1,9 @@
 import scallopy
 
 # Predicates where a subject can only have one value.
-# e.g. a country has one capital, a person has one birthplace.
 FUNCTIONAL_PREDICATES = {
     "CAPITAL_IS", "BORN_IN", "BIRTH_DATE", "DEATH_DATE",
-    "DIED_IN", "FOUNDED_IN", "LOCATED_IN", "SPOKEN_IN",
+    "DIED_IN", "FOUNDED_IN", "LOCATED_IN",
     "HAS_ISO_CODE", "HAS_GLOTTOCODE",
 }
 
@@ -15,36 +14,62 @@ GENERIC_OBJECTS = {
 }
 
 
+def confidence_score(fact):
+    """
+    Numeric score for a fact dict. Higher = more trustworthy.
+    Primary: confidence level (supported > uncertain > rejected).
+    Tiebreaker: provenance count (more source citations = more reliable).
+    """
+    level = {"supported": 3, "uncertain": 2, "rejected": 1}.get(
+        str(fact.get("confidence", "")).lower(), 0
+    )
+    provenance_count = len(fact.get("provenance", []))
+    return level * 10 + provenance_count
+
+
+def _to_triple(fact):
+    """Extract (subject, predicate, object) tuple from a fact dict."""
+    return (str(fact["subject"]), str(fact["predicate"]), str(fact["object"]))
+
+
 def validate_update(existing_facts, new_fact):
     """
-    existing_facts: list of (subject, predicate, object) tuples already in the KG
-    new_fact: (subject, predicate, object) tuple being proposed
-    returns: (bool, str) — (is_valid, reason)
+    existing_facts: list of fact dicts already in the KG
+    new_fact: fact dict being proposed
+    returns: (decision, reason, replace_fact_id)
+        decision        — "accept", "reject", or "replace"
+        reason          — human-readable explanation
+        replace_fact_id — fact_id of the existing fact to remove when
+                          decision == "replace", otherwise None
     """
-    subj, pred, obj = new_fact
+    subj = str(new_fact["subject"])
+    pred = str(new_fact["predicate"])
+    obj  = str(new_fact["object"])
 
     # --- Python-side checks (fast, no Scallop needed) ---
 
     if not subj or not obj or not pred:
-        return (False, "Rejected: subject, predicate, or object is empty")
+        return ("reject", "Rejected: subject, predicate, or object is empty", None)
 
     if subj.strip().lower() == obj.strip().lower():
-        return (False, f"Rejected: self-referential fact ({subj} -> {obj})")
+        return ("reject", f"Rejected: self-referential fact ({subj} -> {obj})", None)
 
     if obj.strip().lower() in GENERIC_OBJECTS:
-        return (False, f"Rejected: object '{obj}' is too generic to be useful")
+        return ("reject", f"Rejected: object '{obj}' is too generic to be useful", None)
 
-    if new_fact in existing_facts:
-        return (False, f"Redundancy: {new_fact} already exists")
+    new_triple = _to_triple(new_fact)
+    if any(_to_triple(e) == new_triple for e in existing_facts):
+        return ("reject", f"Redundancy: {new_triple} already exists", None)
 
     # --- Scallop-side checks (symbolic reasoning) ---
+
+    existing_triples = [_to_triple(e) for e in existing_facts]
 
     ctx = scallopy.ScallopContext()
     ctx.add_relation("triple", (str, str, str))
     ctx.add_relation("functional_pred", (str,))
 
-    all_facts = existing_facts + [new_fact]
-    ctx.add_facts("triple", all_facts)
+    ctx.add_facts("triple", existing_triples + [new_triple])
     ctx.add_facts("functional_pred", [(p,) for p in FUNCTIONAL_PREDICATES])
 
     # Contradiction: same subject + functional predicate, different object
@@ -68,60 +93,105 @@ def validate_update(existing_facts, new_fact):
 
     ctx.run()
 
+    # --- Contradiction: confidence-based resolution ---
     contradictions = list(ctx.relation("contradiction"))
     if contradictions:
         s, p, o1, o2 = contradictions[0]
-        return (False, f"Contradiction: '{s}' has conflicting '{p}': '{o1}' vs '{o2}'")
+        # Find the existing fact that conflicts with the new one
+        conflicting = next(
+            (e for e in existing_facts
+             if str(e["subject"]) == s
+             and str(e["predicate"]) == p
+             and str(e["object"]) != obj),
+            None,
+        )
+        if conflicting is not None:
+            new_score = confidence_score(new_fact)
+            old_score = confidence_score(conflicting)
+            if new_score > old_score:
+                return (
+                    "replace",
+                    f"Replace: '{s}' {p} '{conflicting['object']}' "
+                    f"(score {old_score}) → '{obj}' (score {new_score})",
+                    conflicting.get("fact_id"),
+                )
+        return (
+            "reject",
+            f"Contradiction: '{s}' has conflicting '{p}': '{o1}' vs '{o2}'",
+            None,
+        )
 
     circular = list(ctx.relation("circular_containment"))
     if circular:
         a, b = circular[0]
-        return (False, f"Circular containment: '{a}' PART_OF '{b}' and '{b}' PART_OF '{a}'")
+        return (
+            "reject",
+            f"Circular containment: '{a}' PART_OF '{b}' and '{b}' PART_OF '{a}'",
+            None,
+        )
 
     alive_dead = list(ctx.relation("alive_dead_conflict"))
     if alive_dead:
-        return (False, f"Conflict: '{alive_dead[0][0]}' is both alive and dead")
+        return ("reject", f"Conflict: '{alive_dead[0][0]}' is both alive and dead", None)
 
-    return (True, "Valid")
+    return ("accept", "Valid", None)
 
 
 if __name__ == "__main__":
     existing = [
-        ("Indonesia", "CAPITAL_IS", "Jakarta"),
-        ("East Indonesia", "PART_OF", "Indonesia"),
-        ("Kalamang", "SPOKEN_IN", "East Indonesia"),
-        ("Kalamang", "HAS_ISO_CODE", "kgv"),
-        ("John", "IS_ALIVE", "true"),
+        {"subject": "Indonesia",      "predicate": "CAPITAL_IS", "object": "Jakarta",
+         "confidence": "uncertain", "provenance": [{"title": "doc1", "sent_id": 0}],
+         "fact_id": "f001"},
+        {"subject": "East Indonesia", "predicate": "PART_OF",    "object": "Indonesia",
+         "confidence": "supported", "provenance": [{"title": "doc1", "sent_id": 1}],
+         "fact_id": "f002"},
+        {"subject": "Kalamang",       "predicate": "HAS_ISO_CODE", "object": "kgv",
+         "confidence": "supported", "provenance": [{"title": "doc1", "sent_id": 2}],
+         "fact_id": "f003"},
+        {"subject": "John",           "predicate": "IS_ALIVE",   "object": "true",
+         "confidence": "supported", "provenance": [],
+         "fact_id": "f004"},
     ]
 
-    # Test 1: functional predicate contradiction (False)
-    result = validate_update(existing, ("Indonesia", "CAPITAL_IS", "Bandung"))
-    print("Test 1 (functional contradiction):", result)
+    # Test 1: contradiction — new fact has HIGHER confidence → replace
+    new = {"subject": "Indonesia", "predicate": "CAPITAL_IS", "object": "Bandung",
+           "confidence": "supported",
+           "provenance": [{"title": "doc2", "sent_id": 0}, {"title": "doc3", "sent_id": 1}],
+           "fact_id": "f005"}
+    print("Test 1 (replace — new wins):", validate_update(existing, new))
 
-    # Test 2: redundant fact (False)
-    result = validate_update(existing, ("Kalamang", "HAS_ISO_CODE", "kgv"))
-    print("Test 2 (redundant):", result)
+    # Test 2: contradiction — new fact has LOWER confidence → reject
+    new = {"subject": "Indonesia", "predicate": "CAPITAL_IS", "object": "Bandung",
+           "confidence": "rejected", "provenance": [],
+           "fact_id": "f006"}
+    print("Test 2 (reject — old wins):", validate_update(existing, new))
 
-    # Test 3: circular containment (False)
-    result = validate_update(existing, ("Indonesia", "PART_OF", "East Indonesia"))
-    print("Test 3 (circular containment):", result)
+    # Test 3: redundant
+    new = {"subject": "Kalamang", "predicate": "HAS_ISO_CODE", "object": "kgv",
+           "confidence": "supported", "provenance": [],
+           "fact_id": "f007"}
+    print("Test 3 (redundant):", validate_update(existing, new))
 
-    # Test 4: self-referential (False)
-    result = validate_update(existing, ("Jakarta", "LOCATED_IN", "Jakarta"))
-    print("Test 4 (self-referential):", result)
+    # Test 4: circular containment
+    new = {"subject": "Indonesia", "predicate": "PART_OF", "object": "East Indonesia",
+           "confidence": "supported", "provenance": [],
+           "fact_id": "f008"}
+    print("Test 4 (circular containment):", validate_update(existing, new))
 
-    # Test 5: generic object (False)
-    result = validate_update(existing, ("Kalamang", "SPOKEN_IN", "various"))
-    print("Test 5 (generic object):", result)
+    # Test 5: self-referential
+    new = {"subject": "Jakarta", "predicate": "LOCATED_IN", "object": "Jakarta",
+           "confidence": "supported", "provenance": [],
+           "fact_id": "f009"}
+    print("Test 5 (self-referential):", validate_update(existing, new))
 
-    # Test 6: alive/dead conflict (False)
-    result = validate_update(existing, ("John", "IS_ALIVE", "false"))
-    print("Test 6 (alive/dead conflict):", result)
+    # Test 6: alive/dead conflict
+    new = {"subject": "John", "predicate": "IS_ALIVE", "object": "false",
+           "confidence": "supported", "provenance": [],
+           "fact_id": "f010"}
+    print("Test 6 (alive/dead):", validate_update(existing, new))
 
-    # Test 7: valid new fact (True)
-    result = validate_update(existing, ("Indonesia", "LOCATED_IN", "Southeast Asia"))
-    print("Test 7 (valid):", result)
-
-    # Test 8: non-functional predicate with multiple values (True)
-    result = validate_update(existing, ("Kalamang", "SPOKEN_IN", "West Papua"))
-    print("Test 8 (non-functional multi-value):", result)
+    # Test 7: valid new fact
+    new = {"subject": "Indonesia", "predicate": "LOCATED_IN", "object": "Southeast Asia",
+           "confidence": "supported", "provenance": [{"title": "doc1", "sent_id": 3}],
+           "fact_id": "f011"}
+    print("Test 7 (valid):", validate_update(existing, new))

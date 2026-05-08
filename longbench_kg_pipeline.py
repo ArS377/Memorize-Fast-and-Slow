@@ -150,7 +150,7 @@ class LongBenchKGPipeline:
                     out.write(json.dumps(fact, ensure_ascii=False) + "\n")
 
                 if self.graph is not None and supported:
-                    self.insert_facts_neo4j(supported)
+                    self.graph.insert_facts(supported)
 
                 total_supported += len(supported)
                 print(

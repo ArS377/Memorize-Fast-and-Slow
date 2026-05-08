@@ -230,6 +230,12 @@ class Neo4jGraph:
             )
             return [dict(record) for record in result]
 
+    def _delete_fact(self, fact_id: str) -> None:
+        """Remove a relationship by fact_id. Used when a higher-confidence fact replaces it."""
+        query = "MATCH ()-[r]-() WHERE r.fact_id = $fact_id DELETE r"
+        with self._session() as session:
+            session.run(query, fact_id=str(fact_id))
+
     def _fact_id_exists(self, fact_id: str) -> bool:
         query = (
             "MATCH ()-[r]-() WHERE r.fact_id = $fact_id "
@@ -282,23 +288,37 @@ class Neo4jGraph:
         """
         proposal = self.propose_facts(facts, session_id=session_id)
 
-        existing_triples = [
-            (f["subject"], f["predicate"], f["object"])
-            for f in proposal["existing"]
-        ]
+        # Seed the validator with facts already committed in this batch
+        # plus facts whose fact_id already exists in the graph.
+        existing_fact_dicts = list(proposal["existing"])
 
         valid_facts = []
+        replaced = []
         for fact in proposal["new"]:
-            triple = (fact["subject"], fact["predicate"], fact["object"])
-            is_valid, reason = validate_update(existing_triples, triple)
-            if is_valid:
+            decision, reason, replace_id = validate_update(existing_fact_dicts, fact)
+
+            if decision == "accept":
                 valid_facts.append(fact)
-                existing_triples.append(triple)
-            else:
+                existing_fact_dicts.append(fact)
+
+            elif decision == "replace":
+                # Delete the lower-confidence existing fact, then commit the new one.
+                if replace_id:
+                    self._delete_fact(replace_id)
+                    replaced.append({"removed_fact_id": replace_id, "reason": reason})
+                    # Remove from local cache so subsequent facts see the updated state.
+                    existing_fact_dicts = [
+                        e for e in existing_fact_dicts
+                        if e.get("fact_id") != replace_id
+                    ]
+                valid_facts.append(fact)
+                existing_fact_dicts.append(fact)
+
+            else:  # reject
                 proposal["conflicts"].append({"candidate": fact, "reason": reason})
 
         committed = self.commit_facts(valid_facts, session_id=session_id)
-        return {"committed": committed, "conflicts": proposal["conflicts"]}
+        return {"committed": committed, "conflicts": proposal["conflicts"], "replaced": replaced}
 
     # ------------------------------------------------------------------ reads
 
