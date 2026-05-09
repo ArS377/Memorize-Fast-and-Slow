@@ -65,7 +65,11 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--backend", default="openai")
         p.add_argument("--max-depth", type=int, default=2)
         p.add_argument("--max-iterations", type=int, default=10)
-        p.add_argument("--max-tokens", type=int, default=32000)
+        # RLM total token budget (summed across all sub-LM calls per example).
+        # 32000 was too tight for Qwen3 with <think> reasoning blocks: a
+        # 6-iteration trajectory routinely overshoots ~33k tokens. Match
+        # rlm_baseline.py default of 64000.
+        p.add_argument("--max-tokens", type=int, default=64000)
         p.add_argument("--log-dir", type=Path, default=Path("rlm_logs_ablation"))
         p.add_argument("--verbose", action="store_true")
 
