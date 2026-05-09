@@ -53,7 +53,14 @@ def rlm_answer(
     """Run RLM completion. Returns ``(letter, raw_answer, error_or_none)``."""
     try:
         result = rlm.completion(prompt=context, root_prompt=question)
-        raw = str(result) if result else ""
+        # rlms 0.1.x returns an RLMChatCompletion whose .response holds the
+        # final answer text. Falling back to str(result) would emit the repr
+        # (class name + dict), which never contains A/B/C/D and so was
+        # producing pred='' on otherwise-successful completions.
+        if result is None:
+            raw = ""
+        else:
+            raw = getattr(result, "response", None) or str(result)
         return extract_letter(raw), raw, None
     except Exception as e:
         msg = str(e)
