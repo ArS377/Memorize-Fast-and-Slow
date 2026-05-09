@@ -59,7 +59,10 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
 
     # RLM cells
     if kind == "rlm":
-        p.add_argument("--backend", default="vllm")
+        # rlms 0.1.x: backend="vllm" tries to spawn vLLM via the python `vllm`
+        # package (ignores base_url). To talk to an already-running vLLM HTTP
+        # server use backend="openai" (vLLM is OpenAI-API compatible).
+        p.add_argument("--backend", default="openai")
         p.add_argument("--max-depth", type=int, default=2)
         p.add_argument("--max-iterations", type=int, default=10)
         p.add_argument("--max-tokens", type=int, default=32000)
@@ -177,7 +180,11 @@ def run_cell(
                         predicted, _raw, error = rlm_answer(rlm, context, question)
                 except Exception as e:
                     error = str(e)
-                    predicted = extract_letter(error)
+                    predicted = ""
+                    print(
+                        f"  [{i}/{len(examples)}] EXC {example_id}: {error[:200]}",
+                        file=sys.stderr,
+                    )
 
                 elapsed = round(time.time() - t0, 2)
                 correct = bool(predicted) and predicted == gold and not error

@@ -57,4 +57,7 @@ def rlm_answer(
         return extract_letter(raw), raw, None
     except Exception as e:
         msg = str(e)
-        return extract_letter(msg), msg, msg
+        # Do NOT run extract_letter on an error string: many error messages
+        # contain stray A/B/C/D characters and would silently fabricate a
+        # prediction (this is what caused cell 4 to collapse to pred='D').
+        return "", msg, msg
