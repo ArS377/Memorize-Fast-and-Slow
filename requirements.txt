@@ -22,3 +22,4 @@ typing_extensions==4.15.0
 # FIX 2: neo4j==6.1.0 does not exist; the driver is on the 5.x line.
 neo4j>=5.0.0,<6.0.0
 rlms
+scallopy @ https://github.com/scallop-lang/scallop/releases/download/0.2.4/scallopy-0.2.4-cp310-cp310-manylinux_2_31_x86_64.whl
