@@ -26,11 +26,16 @@ def flat_answer(
         {"role": "system", "content": "Answer with only the letter A, B, C, or D."},
         {"role": "user", "content": f"Context:\n{context}\n\n{question}"},
     ]
+    # Qwen3 enables <think> reasoning by default, which eats the entire
+    # max_tokens budget before emitting the answer letter. For a single-token
+    # multiple-choice answer we don't want hidden reasoning at all -- disable
+    # via chat_template_kwargs (vLLM passes this through to the chat template).
     resp = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens,
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
     )
     raw = resp.choices[0].message.content or ""
     return extract_letter(raw), raw

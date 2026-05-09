@@ -82,13 +82,35 @@ def format_question(ex: Dict[str, Any]) -> str:
 
 
 def extract_letter(text: str) -> str:
-    """Pull the first A/B/C/D out of the model output."""
+    """Pull the answer letter (A/B/C/D) out of the model output.
+
+    Order of preference, strongest signal first:
+      1. Explicit pattern like ``Answer: X`` / ``Final answer: X`` (case-insensitive).
+      2. Strip Qwen3 ``<think>...</think>`` block, then a *standalone* A/B/C/D
+         token (e.g. line that is just ``A`` or ``A.``) -- the model's actual
+         answer typically sits at the end of the response.
+      3. Last standalone A/B/C/D anywhere in the (post-think) text.
+      4. Last ``A``/``B``/``C``/``D`` character anywhere.
+
+    Old behaviour returned the *first* A/B/C/D character in the entire string,
+    which on Qwen3 caused phantom ``A`` predictions because the word
+    ``Answer`` (or ``Analyze``, ``About``, ...) appears very early in the
+    chain-of-thought.
+    """
     if not text:
         return ""
-    m = re.search(r"(?:final\s+answer|answer)\s*[:\-]\s*([ABCD])", text, re.IGNORECASE)
+    m = re.search(r"(?:final\s+answer|answer)\s*[:\-]?\s*\(?([ABCD])\)?", text, re.IGNORECASE)
     if m:
         return m.group(1).upper()
-    for ch in text.upper():
+    # Strip any <think>...</think> block (Qwen3) before further parsing.
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    cleaned = cleaned.strip() or text  # if nothing left, fall back to original
+    # Look for a standalone letter token (e.g. line "A" or "A." or "(A)").
+    standalones = re.findall(r"(?:^|\W)([ABCD])(?:\W|$)", cleaned)
+    if standalones:
+        return standalones[-1].upper()
+    # Fallback: last A/B/C/D character anywhere.
+    for ch in reversed(cleaned.upper()):
         if ch in "ABCD":
             return ch
     return ""
