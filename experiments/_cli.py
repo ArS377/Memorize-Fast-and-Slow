@@ -32,7 +32,7 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
     p.add_argument("--input", type=Path, default=Path("data.jsonl"))
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--model", default="Qwen/Qwen3.5-4B")
+    p.add_argument("--model", default="Qwen/Qwen3-4B")
     p.add_argument("--vllm-base-url", default="http://localhost:8000/v1")
     p.add_argument("--api-key", default=os.getenv("VLLM_API_KEY", "EMPTY"))
     p.add_argument("--output", type=Path, default=None,

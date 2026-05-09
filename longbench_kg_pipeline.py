@@ -13,20 +13,20 @@ Install:
     pip install openai neo4j
 
 Example vLLM server:
-    vllm serve Qwen/Qwen3.5-4B --host 0.0.0.0 --port 8000
+    vllm serve Qwen/Qwen3-4B --host 0.0.0.0 --port 8000
 
 Example run:
     python longbench_kg_pipeline.py \
         --input longbench_v2_sample.jsonl \
         --output verified_facts.jsonl \
-        --model Qwen/Qwen3.5-4B \
+        --model Qwen/Qwen3-4B \
         --vllm-base-url http://localhost:8000/v1
 
 Example with Neo4j:
     python longbench_kg_pipeline.py \
         --input longbench_v2_sample.jsonl \
         --output verified_facts.jsonl \
-        --model Qwen/Qwen3.5-4B \
+        --model Qwen/Qwen3-4B \
         --neo4j-uri bolt://localhost:7687 \
         --neo4j-user neo4j \
         --neo4j-password password
@@ -595,7 +595,7 @@ def parse_args() -> PipelineConfig:
     parser = argparse.ArgumentParser(description="Extract verified KG facts from LongBench-v2-style data.")
     parser.add_argument("--input", required=True, type=Path, help="Path to LongBench-v2 JSON or JSONL file.")
     parser.add_argument("--output", required=True, type=Path, help="Output JSONL path for supported facts.")
-    parser.add_argument("--model", required=True, help="Model name served by vLLM, e.g. Qwen/Qwen3.5-4B.")
+    parser.add_argument("--model", required=True, help="Model name served by vLLM, e.g. Qwen/Qwen3-4B.")
     parser.add_argument("--vllm-base-url", default="http://localhost:8000/v1", help="vLLM OpenAI-compatible base URL.")
     parser.add_argument("--api-key", default=os.getenv("VLLM_API_KEY", "EMPTY"), help="API key for vLLM server; often EMPTY locally.")
     parser.add_argument("--temperature", type=float, default=0.0)

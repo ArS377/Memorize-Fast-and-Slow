@@ -198,7 +198,7 @@ def _add_cli(parser: argparse.ArgumentParser) -> None:
                         help="Run Scallop validator on each fact (cells 3/6 setting)")
     parser.add_argument("--input", type=Path, default=Path("data.jsonl"))
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--model", default="Qwen/Qwen3.5-4B")
+    parser.add_argument("--model", default="Qwen/Qwen3-4B")
     parser.add_argument("--vllm-base-url", default="http://localhost:8000/v1")
     parser.add_argument("--api-key", default=os.getenv("VLLM_API_KEY", "EMPTY"))
     parser.add_argument("--neo4j-uri", default=os.getenv("NEO4J_URI", "bolt://localhost:7687"))

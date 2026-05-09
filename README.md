@@ -8,7 +8,7 @@ This repository implements the **baseline extraction pipeline** for converting L
 
 ### What's Implemented
 
-**LLM-Powered Fact Extraction** — Uses Qwen 3.5 (4B) via vLLM to extract atomic facts from long-context documents
+**LLM-Powered Fact Extraction** — Uses Qwen 3 (4B) via vLLM to extract atomic facts from long-context documents
 
 **Self-Reflection Validation** — 6-question verification ensures each fact is explicitly supported, atomic, and relevant
 
@@ -51,20 +51,20 @@ pip install datasets
 python download_longbench.py
 
 # Start vLLM server (separate terminal)
-vllm serve Qwen/Qwen3.5-4B --host 0.0.0.0 --port 8000
+vllm serve Qwen/Qwen3-4B --host 0.0.0.0 --port 8000
 
 # Run extraction pipeline (extraction + validation only)
 python longbench_kg_pipeline.py \
     --input data.jsonl \
     --output verified_facts.jsonl \
-    --model Qwen/Qwen3.5-4B
+    --model Qwen/Qwen3-4B
 ```
 
 ### Stateful run (persistent graph across sessions)
 
 ```bash
 python longbench_kg_pipeline.py \
-    --input data.jsonl --output verified_facts.jsonl --model Qwen/Qwen3.5-4B \
+    --input data.jsonl --output verified_facts.jsonl --model Qwen/Qwen3-4B \
     --neo4j-uri bolt://localhost:7687 \
     --neo4j-user neo4j --neo4j-password yourpass
 ```
@@ -73,7 +73,7 @@ python longbench_kg_pipeline.py \
 
 ```bash
 python longbench_kg_pipeline.py \
-    --input data.jsonl --output verified_facts.jsonl --model Qwen/Qwen3.5-4B \
+    --input data.jsonl --output verified_facts.jsonl --model Qwen/Qwen3-4B \
     --neo4j-uri bolt://localhost:7687 \
     --neo4j-user neo4j --neo4j-password yourpass \
     --session-id run_2026_04_27 --stateless
@@ -122,7 +122,7 @@ The `experiments/` package runs a six-cell ablation on a fixed 50-example LongBe
 
 ```bash
 python -m experiments.run_all --limit 50 \
-    --model Qwen/Qwen3.5-4B \
+    --model Qwen/Qwen3-4B \
     --vllm-base-url http://localhost:8000/v1 \
     --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password $NEO4J_PASSWORD
 ```
@@ -135,7 +135,7 @@ Each cell exposes the same CLI flags. Each run auto-refreshes `results/summary.c
 
 ```bash
 # Cell 1: Flat LLM, raw context (no Neo4j needed)
-python -m experiments.cells.cell1_flat_raw --limit 50 --model Qwen/Qwen3.5-4B
+python -m experiments.cells.cell1_flat_raw --limit 50 --model Qwen/Qwen3-4B
 
 # Cell 2: Flat LLM, KG memory, validator OFF
 python -m experiments.build_kg --session pilot_noscallop --limit 50 \
