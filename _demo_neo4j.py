@@ -4,7 +4,7 @@ from neo4j_graph import Neo4jGraph
 with Neo4jGraph(
     "neo4j://127.0.0.1:7687",
     "neo4j",
-    "acmaisf2026",
+    "yourpassword",
     session_id="demo_run",
 ) as g:
     print("--- find_conflicts(Indonesia, CAPITAL_IS, Jakarta) ---")
