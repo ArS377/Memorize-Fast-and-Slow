@@ -36,6 +36,8 @@ from typing import Any, Dict, List, Optional
 from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
+from experiments.common import extract_letter
+
 
 # ------------------------------------------------------------------ helpers
 
@@ -72,17 +74,6 @@ def format_question(ex: Dict[str, Any]) -> str:
         f"\nAnswer with only the letter A, B, C, or D."
     )
 
-
-def extract_letter(text: str) -> str:
-    if not text:
-        return ""
-    match = re.search(r"(?:final\s+answer|answer)\s*[:\-]\s*([ABCD])", text, re.IGNORECASE)
-    if match:
-        return match.group(1).upper()
-    for ch in text.upper():
-        if ch in "ABCD":
-            return ch
-    return ""
 
 
 def extract_seed_entities(ex: Dict[str, Any]) -> List[str]:
@@ -176,7 +167,7 @@ def main():
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--max-depth", type=int, default=1)
     parser.add_argument("--max-iterations", type=int, default=10)
-    parser.add_argument("--max-tokens", type=int, default=32000)
+    parser.add_argument("--max-tokens", type=int, default=64000)
     parser.add_argument("--log-dir", default="./rlm_logs_graph")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
@@ -285,7 +276,7 @@ def main():
                         prompt=context,       # graph triples instead of raw text
                         root_prompt=question,
                     )
-                    raw_answer = str(result) if result else ""
+                    raw_answer = (getattr(result, "response", None) or str(result)) if result else ""
                     predicted = extract_letter(raw_answer)
 
                 except Exception as e:

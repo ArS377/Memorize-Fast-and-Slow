@@ -30,6 +30,8 @@ from pathlib import Path
 from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
+from experiments.common import extract_letter
+
 
 def load_examples(path: Path, limit: int | None) -> list[dict]:
     examples = []
@@ -54,15 +56,6 @@ def format_question(ex: dict) -> str:
         f"\nAnswer with only the letter A, B, C, or D."
     )
 
-
-def extract_letter(text: str) -> str:
-    """Pull the first A/B/C/D out of whatever the RLM returns."""
-    if not text:
-        return ""
-    for ch in text.upper():
-        if ch in "ABCD":
-            return ch
-    return text.strip()[:1].upper()
 
 
 def main():
@@ -137,7 +130,7 @@ def main():
                     root_prompt=question,  # the question the RLM must answer
                 )
                 # RLMChatCompletion — extract the answer string
-                raw_answer = str(result) if result else ""
+                raw_answer = (getattr(result, "response", None) or str(result)) if result else ""
                 predicted = extract_letter(raw_answer)
                 error = None
             except Exception as e:

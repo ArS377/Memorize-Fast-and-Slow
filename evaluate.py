@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 import time
 from collections import defaultdict
@@ -28,6 +27,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from openai import OpenAI
+
+from experiments.common import extract_letter
 
 
 def load_jsonl(path: Path) -> List[Dict]:
@@ -83,15 +84,6 @@ D) {d}
 Answer:"""
 
 
-def extract_answer(text: str) -> Optional[str]:
-    """Extract A/B/C/D from model output."""
-    text = text.strip()
-    match = re.search(r'\b([ABCD])\b', text)
-    if match:
-        return match.group(1)
-    if text and text[0] in "ABCD":
-        return text[0]
-    return None
 
 
 def evaluate(
@@ -151,7 +143,7 @@ def evaluate(
             skipped += 1
             continue
 
-        predicted = extract_answer(raw_output)
+        predicted = extract_letter(raw_output)
         is_correct = predicted == ground_truth
         if predicted:
             total += 1

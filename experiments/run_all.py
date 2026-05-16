@@ -113,7 +113,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--limit-triples", type=int, default=50)
     parser.add_argument("--max-depth", type=int, default=2)
     parser.add_argument("--max-iterations", type=int, default=10)
-    parser.add_argument("--max-tokens", type=int, default=32000)
+    parser.add_argument("--max-tokens", type=int, default=64000)
     args = parser.parse_args(argv)
 
     cells = _parse_cells(args.cells)
