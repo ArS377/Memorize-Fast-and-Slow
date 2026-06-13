@@ -184,7 +184,8 @@ class Neo4jGraph:
                 query = (
                     "MERGE (s:Entity {name: $subject})\n"
                     "MERGE (o:Entity {name: $object})\n"
-                    f"MERGE (s)-[r:`{rel_type}` {{fact_id: $fact_id}}]->(o)\n"
+                    f"MERGE (s)-[r:`{rel_type}` "
+                    "{fact_id: $fact_id, session_id: $session_id}]->(o)\n"
                     "SET r.example_id = $example_id,\n"
                     "    r.session_id = $session_id,\n"
                     "    r.question = $question,\n"
@@ -230,19 +231,34 @@ class Neo4jGraph:
             )
             return [dict(record) for record in result]
 
-    def _delete_fact(self, fact_id: str) -> None:
-        """Remove a relationship by fact_id. Used when a higher-confidence fact replaces it."""
-        query = "MATCH ()-[r]-() WHERE r.fact_id = $fact_id DELETE r"
-        with self._session() as session:
-            session.run(query, fact_id=str(fact_id))
+    def _delete_fact(self, fact_id: str, session_id: Optional[str] = None) -> None:
+        """Remove a relationship by its composite (fact_id, session_id) identity.
 
-    def _fact_id_exists(self, fact_id: str) -> bool:
+        Used when a higher-confidence fact replaces it. Scoped to one session so
+        a replace in one session never deletes the same fact_id in another (the
+        same triple in two sessions is two distinct relationships).
+        """
+        sid = session_id or self.session_id
         query = (
             "MATCH ()-[r]-() WHERE r.fact_id = $fact_id "
-            "RETURN count(r) AS c"
+            "AND r.session_id = $session_id DELETE r"
         )
         with self._session() as session:
-            result = session.run(query, fact_id=str(fact_id))
+            session.run(query, fact_id=str(fact_id), session_id=sid)
+
+    def _fact_id_exists(self, fact_id: str, session_id: Optional[str] = None) -> bool:
+        """True iff this (fact_id, session_id) relationship already exists.
+
+        Scoped to one session so the same fact present in another session is not
+        mistaken for an idempotent re-insert (which would drop it from this one).
+        """
+        sid = session_id or self.session_id
+        query = (
+            "MATCH ()-[r]-() WHERE r.fact_id = $fact_id "
+            "AND r.session_id = $session_id RETURN count(r) AS c"
+        )
+        with self._session() as session:
+            result = session.run(query, fact_id=str(fact_id), session_id=sid)
             record = result.single()
             return bool(record and record.get("c", 0) > 0)
 
@@ -264,7 +280,7 @@ class Neo4jGraph:
         conflicts: List[Dict[str, Any]] = []
         for fact in facts:
             fact_id = str(fact.get("fact_id", ""))
-            if fact_id and self._fact_id_exists(fact_id):
+            if fact_id and self._fact_id_exists(fact_id, session_id=sid):
                 existing_facts.append(fact)
             else:
                 new_facts.append(fact)
@@ -315,7 +331,7 @@ class Neo4jGraph:
             elif decision == "replace":
                 # Delete the lower-confidence existing fact, then commit the new one.
                 if replace_id:
-                    self._delete_fact(replace_id)
+                    self._delete_fact(replace_id, session_id=session_id)
                     replaced.append({"removed_fact_id": replace_id, "reason": reason})
                     # Remove from local cache so subsequent facts see the updated state.
                     existing_fact_dicts = [

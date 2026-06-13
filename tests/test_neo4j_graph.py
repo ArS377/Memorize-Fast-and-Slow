@@ -143,7 +143,9 @@ def test_commit_facts_emits_expected_cypher_with_session_tag() -> None:
         rel_type = ng.sanitize_predicate(fact["predicate"])
         assert "MERGE (s:Entity {name: $subject})" in query
         assert "MERGE (o:Entity {name: $object})" in query
-        assert f"[r:`{rel_type}` {{fact_id: $fact_id}}]" in query
+        # Composite (fact_id, session_id) identity prevents one session from
+        # overwriting another's relationship (session-isolation fix).
+        assert f"[r:`{rel_type}` {{fact_id: $fact_id, session_id: $session_id}}]" in query
         assert "r.session_id = $session_id" in query
         assert "r.example_id = $example_id" in query
         assert "r.support_text = $support_text" in query
@@ -237,6 +239,37 @@ def test_insert_facts_idempotent_on_repeated_call() -> None:
         assert p1["fact_id"] == p2["fact_id"]
         assert p1["session_id"] == p2["session_id"] == "sess_test"
     print("PASS test_insert_facts_idempotent_on_repeated_call")
+
+
+def test_same_fact_id_coexists_across_sessions() -> None:
+    graph = make_graph(session_id="session_a")
+    fact = load_fixture()[0]
+    stored = set()
+
+    def provider(query: str, params: Dict[str, Any]):
+        key = (params.get("fact_id"), params.get("session_id"))
+        if "RETURN count(r)" in query:
+            return MockResult([{"c": int(key in stored)}])
+        if "MERGE (s:Entity" in query:
+            stored.add(key)
+        elif "DELETE r" in query:
+            stored.discard(key)
+        return MockResult([])
+
+    graph._driver.result_provider = provider
+
+    first = graph.insert_facts([fact], session_id="session_a", validate=False)
+    second = graph.insert_facts([fact], session_id="session_b", validate=False)
+
+    assert first["committed"] == 1
+    assert second["committed"] == 1
+    assert (fact["fact_id"], "session_a") in stored
+    assert (fact["fact_id"], "session_b") in stored
+
+    graph._delete_fact(fact["fact_id"], session_id="session_a")
+    assert (fact["fact_id"], "session_a") not in stored
+    assert (fact["fact_id"], "session_b") in stored
+    print("PASS test_same_fact_id_coexists_across_sessions")
 
 
 def test_query_context_one_hop_filters_by_example_and_session() -> None:
@@ -366,6 +399,7 @@ def main() -> int:
         test_commit_facts_emits_expected_cypher_with_session_tag,
         test_propose_facts_classifies_new_existing_conflict,
         test_insert_facts_idempotent_on_repeated_call,
+        test_same_fact_id_coexists_across_sessions,
         test_query_context_one_hop_filters_by_example_and_session,
         test_query_context_multi_hop_uses_bounded_path,
         test_format_context_for_llm_is_deterministic_and_truncates,
