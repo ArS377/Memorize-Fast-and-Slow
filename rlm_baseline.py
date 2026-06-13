@@ -30,7 +30,7 @@ from pathlib import Path
 from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
-from experiments.common import extract_letter
+from experiments.rlm_answerer import rlm_answer
 
 
 def load_examples(path: Path, limit: int | None) -> list[dict]:
@@ -124,21 +124,9 @@ def main():
             )
 
             t0 = time.time()
-            try:
-                result = rlm.completion(
-                    prompt=context,        # raw LongBench context as the RLM's working memory
-                    root_prompt=question,  # the question the RLM must answer
-                )
-                # RLMChatCompletion — extract the answer string
-                raw_answer = (getattr(result, "response", None) or str(result)) if result else ""
-                predicted = extract_letter(raw_answer)
-                error = None
-            except Exception as e:
-                error_str = str(e)
-                raw_answer = error_str
-                predicted = extract_letter(error_str)
-                error = error_str
-                print(f"  ERROR: {e}", file=sys.stderr)
+            predicted, raw_answer, error = rlm_answer(rlm, context, question)
+            if error:
+                print(f"  ERROR: {error}", file=sys.stderr)
 
             elapsed = time.time() - t0
             correct = (predicted == gold) if predicted and gold else False

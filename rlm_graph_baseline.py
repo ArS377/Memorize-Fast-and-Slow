@@ -36,7 +36,7 @@ from typing import Any, Dict, List, Optional
 from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
-from experiments.common import extract_letter
+from experiments.rlm_answerer import rlm_answer
 
 
 # ------------------------------------------------------------------ helpers
@@ -267,27 +267,9 @@ def main():
                 )
 
                 t0 = time.time()
-                raw_answer = ""
-                predicted = ""
-                error = None
-
-                try:
-                    result = rlm.completion(
-                        prompt=context,       # graph triples instead of raw text
-                        root_prompt=question,
-                    )
-                    raw_answer = (getattr(result, "response", None) or str(result)) if result else ""
-                    predicted = extract_letter(raw_answer)
-
-                except Exception as e:
-                    error_str = str(e)
-                    error = error_str
-                    raw_answer = error_str
-                    predicted = extract_letter(error_str)
-                    if predicted:
-                        print(f"  PARTIAL (from error): {predicted!r}", file=sys.stderr)
-                    else:
-                        print(f"  ERROR: {e}", file=sys.stderr)
+                predicted, raw_answer, error = rlm_answer(rlm, context, question)
+                if error:
+                    print(f"  ERROR: {error}", file=sys.stderr)
 
                 elapsed = time.time() - t0
                 correct = (predicted == gold) if predicted and gold else False
