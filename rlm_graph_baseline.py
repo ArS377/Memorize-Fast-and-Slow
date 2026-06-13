@@ -108,9 +108,6 @@ def format_facts_from_jsonl(
     Filters to facts from the current example, mirrors Neo4jGraph.format_context_for_llm().
     """
     relevant = [f for f in facts if f.get("example_id") == example_id]
-    if not relevant:
-        # Fall back to all facts if none match this example
-        relevant = facts
 
     lines = []
     used = 0

@@ -49,8 +49,6 @@ def format_facts_from_jsonl(
 ) -> str:
     """Mirrors ``rlm_graph_baseline.format_facts_from_jsonl``."""
     relevant = [f for f in facts if f.get("example_id") == example_id]
-    if not relevant:
-        relevant = facts
     lines: List[str] = []
     used = 0
     for i, fact in enumerate(relevant, start=1):
