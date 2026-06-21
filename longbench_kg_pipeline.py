@@ -47,6 +47,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from openai import OpenAI
 
+from compiled_memory import fact_to_compiled_fact
 from neo4j_graph import Neo4jGraph
 
 
@@ -147,6 +148,7 @@ class LongBenchKGPipeline:
                     # insert_facts_neo4j can store it on the relationship.
                     # Without this, fact.get("question") is always "" in Neo4j.
                     fact["question"] = str(example.get("question", ""))
+                    fact.update(fact_to_compiled_fact(fact))
                     out.write(json.dumps(fact, ensure_ascii=False) + "\n")
 
                 if self.graph is not None and supported:

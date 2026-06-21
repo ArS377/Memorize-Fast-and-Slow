@@ -1,4 +1,7 @@
-import scallopy
+try:
+    import scallopy
+except ImportError:  # Keep non-Scallop tests/imports usable.
+    scallopy = None
 
 # Predicates where a subject can only have one value.
 FUNCTIONAL_PREDICATES = {
@@ -30,6 +33,68 @@ def confidence_score(fact):
 def _to_triple(fact):
     """Extract (subject, predicate, object) tuple from a fact dict."""
     return (str(fact["subject"]), str(fact["predicate"]), str(fact["object"]))
+
+
+def _python_symbolic_checks(existing_facts, new_fact, existing_triples, new_triple):
+    """Fallback implementation of the current Scallop rules.
+
+    This keeps the pipeline importable in environments that do not have the
+    Scallop Python wheel installed. It intentionally mirrors only the rules
+    below, not arbitrary Scallop programs.
+    """
+    all_triples = existing_triples + [new_triple]
+    subj, pred, obj = new_triple
+
+    if pred in FUNCTIONAL_PREDICATES:
+        for s, p, o in all_triples:
+            if s == subj and p == pred and o != obj:
+                conflicting = next(
+                    (
+                        e for e in existing_facts
+                        if str(e["subject"]) == subj
+                        and str(e["predicate"]) == pred
+                        and str(e["object"]) != obj
+                    ),
+                    None,
+                )
+                if conflicting is not None:
+                    new_score = confidence_score(new_fact)
+                    old_score = confidence_score(conflicting)
+                    if new_score > old_score:
+                        return (
+                            "replace",
+                            f"Replace: '{subj}' {pred} '{conflicting['object']}' "
+                            f"(score {old_score}) → '{obj}' (score {new_score})",
+                            conflicting.get("fact_id"),
+                        )
+                return (
+                    "reject",
+                    f"Contradiction: '{subj}' has conflicting '{pred}': '{o}' vs '{obj}'",
+                    None,
+                )
+
+    triple_set = set(all_triples)
+    for a, p, b in all_triples:
+        if p == "PART_OF" and (b, "PART_OF", a) in triple_set:
+            return (
+                "reject",
+                f"Circular containment: '{a}' PART_OF '{b}' and '{b}' PART_OF '{a}'",
+                None,
+            )
+
+    alive = set()
+    dead = set()
+    for s, p, o in all_triples:
+        if p == "IS_ALIVE" and o == "true":
+            alive.add(s)
+        if p == "IS_ALIVE" and o == "false":
+            dead.add(s)
+    conflict = alive & dead
+    if conflict:
+        name = sorted(conflict)[0]
+        return ("reject", f"Conflict: '{name}' is both alive and dead", None)
+
+    return ("accept", "Valid", None)
 
 
 def validate_update(existing_facts, new_fact):
@@ -64,6 +129,14 @@ def validate_update(existing_facts, new_fact):
     # --- Scallop-side checks (symbolic reasoning) ---
 
     existing_triples = [_to_triple(e) for e in existing_facts]
+
+    if scallopy is None:
+        return _python_symbolic_checks(
+            existing_facts=existing_facts,
+            new_fact=new_fact,
+            existing_triples=existing_triples,
+            new_triple=new_triple,
+        )
 
     ctx = scallopy.ScallopContext()
     ctx.add_relation("triple", (str, str, str))

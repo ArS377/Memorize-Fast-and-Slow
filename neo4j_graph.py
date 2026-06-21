@@ -29,6 +29,10 @@ Notes for live data:
 """
 
 from __future__ import annotations
+from compiled_memory import (
+    compiled_memory_to_neo4j_properties,
+    fact_to_compiled_memory,
+)
 from scallop_validator import validate_update
 
 import json
@@ -56,7 +60,9 @@ def sanitize_predicate(predicate: str) -> str:
 
 
 def _fact_to_params(fact: Fact, session_id: str) -> Dict[str, Any]:
-    return {
+    memory = fact_to_compiled_memory(fact)
+    compiled_props = compiled_memory_to_neo4j_properties(memory)
+    params = {
         "subject": str(fact["subject"]),
         "object": str(fact["object"]),
         "fact_id": str(fact["fact_id"]),
@@ -71,6 +77,10 @@ def _fact_to_params(fact: Fact, session_id: str) -> Dict[str, Any]:
         "normalization_notes": str(fact.get("normalization_notes", "")),
         "verification_reason": str(fact.get("verification_reason", "")),
     }
+    params.update(compiled_props)
+    # Preserve the public fact_id contract when callers pass an existing ID.
+    params["fact_id"] = str(fact["fact_id"])
+    return params
 
 
 class Neo4jGraph:
@@ -195,7 +205,27 @@ class Neo4jGraph:
                     "    r.question_relevance = $question_relevance,\n"
                     "    r.confidence = $confidence,\n"
                     "    r.normalization_notes = $normalization_notes,\n"
-                    "    r.verification_reason = $verification_reason"
+                    "    r.verification_reason = $verification_reason,\n"
+                    "    r.memory_id = $memory_id,\n"
+                    "    r.kind = $kind,\n"
+                    "    r.subject_id = $subject_id,\n"
+                    "    r.subject_type = $subject_type,\n"
+                    "    r.subject_aliases_json = $subject_aliases_json,\n"
+                    "    r.object_id = $object_id,\n"
+                    "    r.object_type = $object_type,\n"
+                    "    r.object_aliases_json = $object_aliases_json,\n"
+                    "    r.valid_from = $valid_from,\n"
+                    "    r.valid_to = $valid_to,\n"
+                    "    r.observed_at = $observed_at,\n"
+                    "    r.confidence_level = $confidence_level,\n"
+                    "    r.confidence_score = $confidence_score,\n"
+                    "    r.confidence_method = $confidence_method,\n"
+                    "    r.decision_status = $decision_status,\n"
+                    "    r.decision_validator = $decision_validator,\n"
+                    "    r.decision_reason = $decision_reason,\n"
+                    "    r.replaces_memory_id = $replaces_memory_id,\n"
+                    "    r.constraints_json = $constraints_json,\n"
+                    "    r.compiled_memory_json = $compiled_memory_json"
                 )
                 session.run(query, **params)
                 count += 1
