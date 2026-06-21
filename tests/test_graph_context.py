@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from experiments.graph_context import GraphSource, format_facts_from_jsonl
 
 
