@@ -89,6 +89,11 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             "--max-iterations", str(args.max_iterations),
             "--max-tokens", str(args.max_tokens),
         ]
+        if cell_id in (5, 6) and args.rlm_retrieval:
+            base += [
+                "--rlm-retrieval",
+                "--rlm-retrieval-steps", str(args.rlm_retrieval_steps),
+            ]
     return base
 
 
@@ -114,6 +119,9 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--max-depth", type=int, default=2)
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
+    parser.add_argument("--rlm-retrieval", action="store_true",
+                        help="Enable RLM-planned iterative KG retrieval for cells 5/6")
+    parser.add_argument("--rlm-retrieval-steps", type=int, default=3)
     args = parser.parse_args(argv)
 
     cells = _parse_cells(args.cells)
@@ -135,6 +143,8 @@ def main(argv: Optional[List[str]] = None) -> None:
         "max_depth": args.max_depth,
         "max_iterations": args.max_iterations,
         "max_tokens": args.max_tokens,
+        "rlm_retrieval": args.rlm_retrieval,
+        "rlm_retrieval_steps": args.rlm_retrieval_steps,
     }
     (args.results_dir / "run_metadata.json").write_text(
         json.dumps(metadata, indent=2), encoding="utf-8"

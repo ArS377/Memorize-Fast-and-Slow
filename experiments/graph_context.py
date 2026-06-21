@@ -75,6 +75,78 @@ def format_facts_from_jsonl(
     return "\n".join(lines)
 
 
+def _row_key(row: Dict[str, Any]) -> str:
+    fact_id = str(row.get("fact_id", ""))
+    if fact_id:
+        return fact_id
+    return "|".join(
+        str(row.get(k, ""))
+        for k in ("example_id", "subject", "predicate", "object", "support_text")
+    )
+
+
+def format_fact_rows(
+    rows: List[Dict[str, Any]],
+    max_chars: int = 4000,
+) -> str:
+    """Format already-selected fact rows for LLM ingestion."""
+    if not rows:
+        return ""
+    sorted_rows = sorted(
+        rows,
+        key=lambda row: (str(row.get("example_id", "")), str(row.get("fact_id", ""))),
+    )
+    lines: List[str] = []
+    used = 0
+    rendered = 0
+    for i, row in enumerate(sorted_rows, start=1):
+        subject = str(row.get("subject", ""))
+        predicate = str(row.get("predicate", ""))
+        obj = str(row.get("object", ""))
+        support = str(row.get("support_text", "")).strip()
+        example_id = str(row.get("example_id", ""))
+        prov = row.get("provenance") or []
+        sent_ids = [
+            str(p.get("sent_id"))
+            for p in prov
+            if isinstance(p, dict) and "sent_id" in p
+        ] if isinstance(prov, list) else []
+        sent_part = f"sent_id={','.join(sent_ids)}" if sent_ids else "sent_id=?"
+        head = f"[F{i}] {subject} -{predicate}-> {obj}"
+        evidence = (
+            f"     evidence: \"{support}\" ({example_id}, {sent_part})"
+            if support else
+            f"     evidence: ({example_id}, {sent_part})"
+        )
+        block = head + "\n" + evidence
+        block_len = len(block) + 1
+        if used + block_len > max_chars:
+            remaining = len(sorted_rows) - rendered
+            if remaining > 0:
+                lines.append(f"... [truncated, {remaining} more facts]")
+            break
+        lines.append(block)
+        used += block_len
+        rendered += 1
+    return "\n".join(lines)
+
+
+def filter_rows_by_predicates(
+    rows: List[Dict[str, Any]],
+    predicates: Optional[List[str]],
+) -> List[Dict[str, Any]]:
+    if not predicates:
+        return rows
+    wanted = {
+        re.sub(r"_+", "_", re.sub(r"[^A-Z0-9_]+", "_", str(p).strip().upper())).strip("_")
+        for p in predicates
+        if str(p).strip()
+    }
+    if not wanted:
+        return rows
+    return [r for r in rows if str(r.get("predicate", "")).upper() in wanted]
+
+
 class GraphSource:
     """Either a live Neo4jGraph or a JSONL fact-file fallback."""
 
@@ -114,6 +186,54 @@ class GraphSource:
         )
         n_triples = context.count("[F") if context else 0
         return context, n_triples
+
+    def rows_for(
+        self,
+        *,
+        seed_entities: List[str],
+        example_id: str,
+        hops: int = 2,
+        limit_triples: int = 50,
+        predicates: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Return raw fact rows for explicit retrieval seeds.
+
+        This is the lower-level hook used by RLM-controlled retrieval. It keeps
+        the same example/session isolation as ``context_for`` while allowing a
+        planner to choose seeds and optional predicate filters.
+        """
+        if not seed_entities:
+            return []
+        if self.graph is not None:
+            rows = self.graph.query_context(
+                seed_entities=seed_entities,
+                hops=hops,
+                limit=limit_triples,
+                example_id=example_id,
+                session_id=self.session_id,
+            )
+            return filter_rows_by_predicates(rows, predicates)
+
+        facts = self.fallback_facts or []
+        seeds_lower = [s.lower() for s in seed_entities if str(s).strip()]
+        rows: List[Dict[str, Any]] = []
+        for fact in facts:
+            if str(fact.get("example_id", "")) != example_id:
+                continue
+            subject = str(fact.get("subject", "")).lower()
+            obj = str(fact.get("object", "")).lower()
+            if any(seed in subject or seed in obj for seed in seeds_lower):
+                rows.append(fact)
+                if len(rows) >= limit_triples:
+                    break
+        return filter_rows_by_predicates(rows, predicates)
+
+    def format_rows(
+        self,
+        rows: List[Dict[str, Any]],
+        max_chars: int = 4000,
+    ) -> str:
+        return format_fact_rows(rows, max_chars=max_chars)
 
     def close(self) -> None:
         if self.graph is not None:
