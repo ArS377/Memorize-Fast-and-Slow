@@ -56,6 +56,15 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--hops", type=int, default=2)
         p.add_argument("--limit-triples", type=int, default=50)
         p.add_argument("--context-max-chars", type=int, default=4000)
+        p.add_argument(
+            "--memory-scope",
+            choices=["example", "session"],
+            default="example",
+            help=(
+                "example=only retrieve facts for the current example; "
+                "session=retrieve accumulated facts across the KG session"
+            ),
+        )
 
     # RLM cells
     if kind == "rlm":
@@ -139,6 +148,7 @@ def run_cell(
                 neo4j_password=args.neo4j_password,
                 session_id=session_id,
                 facts_file=args.facts_file,
+                memory_scope=args.memory_scope,
             )
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)

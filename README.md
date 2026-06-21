@@ -117,6 +117,31 @@ python3 longbench_kg_pipeline.py \
     --session-id run_001 --stateless
 ```
 
+### Run the six-cell ablation grid
+```bash
+python3 -m experiments.run_all \
+    --input data.jsonl \
+    --limit 10 \
+    --model Qwen/Qwen3-4B \
+    --vllm-base-url http://localhost:8000/v1 \
+    --neo4j-password yourpassword
+```
+
+KG cells support two memory scopes:
+
+| Scope | Behavior |
+|-------|----------|
+| `--memory-scope example` | Default. Retrieve only facts tagged with the current example ID. Prevents cross-example leakage. |
+| `--memory-scope session` | Retrieve accumulated facts across the current KG session. Enables cross-session memory experiments. |
+
+Example:
+```bash
+python3 -m experiments.run_all \
+    --cells 2,3,5,6 \
+    --memory-scope session \
+    --neo4j-password yourpassword
+```
+
 ---
 
 ## Pipeline Architecture

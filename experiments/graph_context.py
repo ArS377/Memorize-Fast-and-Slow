@@ -45,10 +45,23 @@ def load_facts_from_jsonl(path: Path) -> List[Dict[str, Any]]:
 def format_facts_from_jsonl(
     facts: List[Dict[str, Any]],
     example_id: str,
+    memory_scope: str = "example",
+    seed_entities: Optional[List[str]] = None,
     max_chars: int = 4000,
 ) -> str:
     """Mirrors ``rlm_graph_baseline.format_facts_from_jsonl``."""
-    relevant = [f for f in facts if f.get("example_id") == example_id]
+    scope = normalize_memory_scope(memory_scope)
+    if scope == "session":
+        relevant = list(facts)
+        seeds = {str(s).strip().lower() for s in (seed_entities or []) if str(s).strip()}
+        if seeds:
+            relevant = [
+                f for f in relevant
+                if str(f.get("subject", "")).strip().lower() in seeds
+                or str(f.get("object", "")).strip().lower() in seeds
+            ]
+    else:
+        relevant = [f for f in facts if f.get("example_id") == example_id]
     lines: List[str] = []
     used = 0
     for i, fact in enumerate(relevant, start=1):
@@ -147,14 +160,22 @@ def filter_rows_by_predicates(
     return [r for r in rows if str(r.get("predicate", "")).upper() in wanted]
 
 
+def normalize_memory_scope(memory_scope: str) -> str:
+    scope = str(memory_scope or "example").strip().lower()
+    if scope not in {"example", "session"}:
+        raise ValueError("memory_scope must be 'example' or 'session'")
+    return scope
+
+
 class GraphSource:
     """Either a live Neo4jGraph or a JSONL fact-file fallback."""
 
     def __init__(self, graph=None, fallback_facts: Optional[List[Dict[str, Any]]] = None,
-                 session_id: Optional[str] = None):
+                 session_id: Optional[str] = None, memory_scope: str = "example"):
         self.graph = graph
         self.fallback_facts = fallback_facts
         self.session_id = session_id
+        self.memory_scope = normalize_memory_scope(memory_scope)
 
     @property
     def is_live(self) -> bool:
@@ -169,20 +190,25 @@ class GraphSource:
     ) -> Tuple[str, int]:
         """Return ``(formatted_context, n_triples)`` for one example."""
         example_id = str(ex.get("_id", ""))
+        query_example_id = example_id if self.memory_scope == "example" else None
+        seeds = extract_seed_entities(ex)
         if self.graph is not None:
-            seeds = extract_seed_entities(ex)
             rows = self.graph.query_context(
                 seed_entities=seeds,
                 hops=hops,
                 limit=limit_triples,
-                example_id=example_id,
+                example_id=query_example_id,
                 session_id=self.session_id,
             )
             context = self.graph.format_context_for_llm(rows, max_chars=max_chars)
             return context, len(rows)
         # JSONL fallback
         context = format_facts_from_jsonl(
-            self.fallback_facts or [], example_id, max_chars=max_chars
+            self.fallback_facts or [],
+            example_id,
+            memory_scope=self.memory_scope,
+            seed_entities=seeds,
+            max_chars=max_chars,
         )
         n_triples = context.count("[F") if context else 0
         return context, n_triples
@@ -204,12 +230,13 @@ class GraphSource:
         """
         if not seed_entities:
             return []
+        query_example_id = example_id if self.memory_scope == "example" else None
         if self.graph is not None:
             rows = self.graph.query_context(
                 seed_entities=seed_entities,
                 hops=hops,
                 limit=limit_triples,
-                example_id=example_id,
+                example_id=query_example_id,
                 session_id=self.session_id,
             )
             return filter_rows_by_predicates(rows, predicates)
@@ -218,7 +245,7 @@ class GraphSource:
         seeds_lower = [s.lower() for s in seed_entities if str(s).strip()]
         rows: List[Dict[str, Any]] = []
         for fact in facts:
-            if str(fact.get("example_id", "")) != example_id:
+            if query_example_id is not None and str(fact.get("example_id", "")) != query_example_id:
                 continue
             subject = str(fact.get("subject", "")).lower()
             obj = str(fact.get("object", "")).lower()
@@ -250,6 +277,7 @@ def open_graph_source(
     neo4j_password: Optional[str],
     session_id: str,
     facts_file: Optional[Path],
+    memory_scope: str = "example",
 ) -> GraphSource:
     """Open a graph source preferring Neo4j; fall back to facts-file.
 
@@ -266,7 +294,7 @@ def open_graph_source(
                 session_id=session_id,
             )
             print(f"Connected to Neo4j at {neo4j_uri} (session={session_id})", file=sys.stderr)
-            return GraphSource(graph=graph, session_id=session_id)
+            return GraphSource(graph=graph, session_id=session_id, memory_scope=memory_scope)
         except Exception as e:
             print(f"Neo4j connection failed: {e}; trying --facts-file", file=sys.stderr)
             graph = None
@@ -274,7 +302,11 @@ def open_graph_source(
     if facts_file and Path(facts_file).exists():
         facts = load_facts_from_jsonl(Path(facts_file))
         print(f"Loaded {len(facts)} facts from {facts_file}", file=sys.stderr)
-        return GraphSource(fallback_facts=facts, session_id=session_id)
+        return GraphSource(
+            fallback_facts=facts,
+            session_id=session_id,
+            memory_scope=memory_scope,
+        )
 
     raise RuntimeError(
         "No graph source available. Provide either reachable --neo4j-uri/--neo4j-password, "

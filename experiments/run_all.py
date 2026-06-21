@@ -80,6 +80,7 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             base += ["--hops", str(args.hops)]
         if args.limit_triples is not None:
             base += ["--limit-triples", str(args.limit_triples)]
+        base += ["--memory-scope", args.memory_scope]
     else:
         if args.raw_max_chars is not None:
             base += ["--raw-max-chars", str(args.raw_max_chars)]
@@ -116,6 +117,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--raw-max-chars", type=int, default=32000)
     parser.add_argument("--hops", type=int, default=2)
     parser.add_argument("--limit-triples", type=int, default=50)
+    parser.add_argument("--memory-scope", choices=["example", "session"], default="example")
     parser.add_argument("--max-depth", type=int, default=2)
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
@@ -140,6 +142,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         "raw_max_chars": args.raw_max_chars,
         "hops": args.hops,
         "limit_triples": args.limit_triples,
+        "memory_scope": args.memory_scope,
         "max_depth": args.max_depth,
         "max_iterations": args.max_iterations,
         "max_tokens": args.max_tokens,
