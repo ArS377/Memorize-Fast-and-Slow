@@ -83,6 +83,44 @@ def _fact_to_params(fact: Fact, session_id: str) -> Dict[str, Any]:
     return params
 
 
+def _json_property(value: Any, fallback: Any) -> Any:
+    if isinstance(value, str) and value:
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return fallback
+    return fallback
+
+
+def _record_to_fact(record: Dict[str, Any]) -> Fact:
+    """Hydrate a Neo4j relationship row back into the fact dict shape."""
+    fact: Fact = {
+        "subject": str(record.get("subject", "")),
+        "predicate": str(record.get("predicate", "")),
+        "object": str(record.get("object", "")),
+        "fact_id": str(record.get("fact_id", "")),
+        "example_id": str(record.get("example_id", "")),
+        "session_id": str(record.get("session_id", "")),
+        "question": str(record.get("question", "")),
+        "support_text": str(record.get("support_text", "")),
+        "provenance": _json_property(record.get("provenance_json"), []),
+        "qualifiers": _json_property(record.get("qualifiers_json"), {}),
+        "question_relevance": str(record.get("question_relevance", "")),
+        "confidence": str(
+            record.get("confidence")
+            or record.get("confidence_level")
+            or record.get("status")
+            or "supported"
+        ),
+        "normalization_notes": str(record.get("normalization_notes", "")),
+        "verification_reason": str(record.get("verification_reason", "")),
+    }
+    compiled = _json_property(record.get("compiled_memory_json"), None)
+    if isinstance(compiled, dict):
+        fact["compiled_memory"] = compiled
+    return fact
+
+
 class Neo4jGraph:
     """Thin wrapper around the official neo4j driver for our fact schema.
 
@@ -261,6 +299,91 @@ class Neo4jGraph:
             )
             return [dict(record) for record in result]
 
+    def validation_context_for_facts(
+        self,
+        facts: List[Fact],
+        session_id: Optional[str] = None,
+    ) -> List[Fact]:
+        """Hydrate committed graph facts relevant to validating candidates.
+
+        Scallop validation needs the persisted session state, not just facts
+        accepted earlier in the same batch. This pulls the smallest useful
+        state slice for the current rule set:
+
+        - same subject + predicate facts, including exact duplicates and
+          functional-predicate rivals
+        - inverse PART_OF edges that can create circular containment
+        - same-subject IS_ALIVE facts
+        """
+        if not facts:
+            return []
+
+        sid = session_id or self.session_id
+        subject_pred_pairs = []
+        part_of_subjects = set()
+        part_of_objects = set()
+        alive_subjects = set()
+
+        for fact in facts:
+            subj = str(fact.get("subject", ""))
+            pred = sanitize_predicate(str(fact.get("predicate", "")))
+            obj = str(fact.get("object", ""))
+            if subj and pred:
+                subject_pred_pairs.append({"subject": subj, "predicate": pred})
+            if pred == "PART_OF" and subj and obj:
+                part_of_subjects.add(subj)
+                part_of_objects.add(obj)
+            if pred == "IS_ALIVE" and subj:
+                alive_subjects.add(subj)
+
+        query = (
+            "MATCH (s:Entity)-[r]->(o:Entity)\n"
+            "WHERE r.session_id = $session_id\n"
+            "  AND (\n"
+            "    any(pair IN $subject_pred_pairs "
+            "WHERE s.name = pair.subject AND type(r) = pair.predicate)\n"
+            "    OR (type(r) = 'PART_OF' "
+            "AND s.name IN $part_of_objects AND o.name IN $part_of_subjects)\n"
+            "    OR (type(r) = 'IS_ALIVE' AND s.name IN $alive_subjects)\n"
+            "  )\n"
+            "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
+            "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
+            "       r.example_id AS example_id, r.question AS question,\n"
+            "       r.support_text AS support_text,\n"
+            "       r.provenance_json AS provenance_json,\n"
+            "       r.qualifiers_json AS qualifiers_json,\n"
+            "       r.question_relevance AS question_relevance,\n"
+            "       r.confidence AS confidence,\n"
+            "       r.confidence_level AS confidence_level,\n"
+            "       r.normalization_notes AS normalization_notes,\n"
+            "       r.verification_reason AS verification_reason,\n"
+            "       r.compiled_memory_json AS compiled_memory_json"
+        )
+        with self._session() as session:
+            result = session.run(
+                query,
+                session_id=sid,
+                subject_pred_pairs=subject_pred_pairs,
+                part_of_subjects=list(part_of_subjects),
+                part_of_objects=list(part_of_objects),
+                alive_subjects=list(alive_subjects),
+            )
+            hydrated: List[Fact] = []
+            seen = set()
+            for record in result:
+                fact = _record_to_fact(dict(record))
+                key = (
+                    fact.get("fact_id"),
+                    fact.get("session_id"),
+                    fact.get("subject"),
+                    fact.get("predicate"),
+                    fact.get("object"),
+                )
+                if key not in seen:
+                    seen.add(key)
+                    hydrated.append(fact)
+            return hydrated
+
     def _delete_fact(self, fact_id: str, session_id: Optional[str] = None) -> None:
         """Remove a relationship by its composite (fact_id, session_id) identity.
 
@@ -345,9 +468,27 @@ class Neo4jGraph:
                 "replaced": [],
             }
 
-        # Seed the validator with facts already committed in this batch
-        # plus facts whose fact_id already exists in the graph.
-        existing_fact_dicts = list(proposal["existing"])
+        # Seed the validator with relevant committed session facts, plus facts
+        # accepted earlier in this batch. This makes Scallop gate against the
+        # persistent graph state instead of only the current insert batch.
+        existing_fact_dicts = self.validation_context_for_facts(
+            proposal["new"], session_id=session_id
+        )
+        known_keys = {
+            (
+                str(f.get("fact_id", "")),
+                str(f.get("session_id", session_id or self.session_id)),
+            )
+            for f in existing_fact_dicts
+        }
+        for fact in proposal["existing"]:
+            key = (
+                str(fact.get("fact_id", "")),
+                str(fact.get("session_id", session_id or self.session_id)),
+            )
+            if key not in known_keys:
+                existing_fact_dicts.append(fact)
+                known_keys.add(key)
 
         valid_facts = []
         replaced = []

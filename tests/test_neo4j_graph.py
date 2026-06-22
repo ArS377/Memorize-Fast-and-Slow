@@ -272,6 +272,186 @@ def test_same_fact_id_coexists_across_sessions() -> None:
     print("PASS test_same_fact_id_coexists_across_sessions")
 
 
+def _stored_row(fact: Dict[str, Any], session_id: str = "sess_test") -> Dict[str, Any]:
+    return {
+        "subject": fact["subject"],
+        "predicate": ng.sanitize_predicate(fact["predicate"]),
+        "object": fact["object"],
+        "fact_id": fact["fact_id"],
+        "session_id": session_id,
+        "example_id": fact.get("example_id", ""),
+        "question": fact.get("question", ""),
+        "support_text": fact.get("support_text", ""),
+        "provenance_json": json.dumps(fact.get("provenance", [])),
+        "qualifiers_json": json.dumps(fact.get("qualifiers", {})),
+        "question_relevance": fact.get("question_relevance", ""),
+        "confidence": fact.get("confidence", "supported"),
+        "normalization_notes": fact.get("normalization_notes", ""),
+        "verification_reason": fact.get("verification_reason", ""),
+        "compiled_memory_json": json.dumps(fact.get("compiled_memory", {})),
+    }
+
+
+def _validation_context_provider(stored_rows: List[Dict[str, Any]]):
+    def provider(query: str, params: Dict[str, Any]):
+        if "RETURN count(r)" in query:
+            return MockResult([{"c": 0}])
+        if "AND o.name <> $object" in query:
+            return MockResult([])
+        if "subject_pred_pairs" in query:
+            sid = params.get("session_id")
+            subject_pred_pairs = {
+                (p.get("subject"), p.get("predicate"))
+                for p in params.get("subject_pred_pairs", [])
+            }
+            part_of_subjects = set(params.get("part_of_subjects", []))
+            part_of_objects = set(params.get("part_of_objects", []))
+            alive_subjects = set(params.get("alive_subjects", []))
+            rows = []
+            for row in stored_rows:
+                if row.get("session_id") != sid:
+                    continue
+                key = (row.get("subject"), row.get("predicate"))
+                inverse_part_of = (
+                    row.get("predicate") == "PART_OF"
+                    and row.get("subject") in part_of_objects
+                    and row.get("object") in part_of_subjects
+                )
+                alive_match = (
+                    row.get("predicate") == "IS_ALIVE"
+                    and row.get("subject") in alive_subjects
+                )
+                if key in subject_pred_pairs or inverse_part_of or alive_match:
+                    rows.append(row)
+            return MockResult(rows)
+        return MockResult([])
+
+    return provider
+
+
+def test_insert_facts_rejects_conflict_from_persistent_graph_state() -> None:
+    graph = make_graph(session_id="sess_test")
+    facts = load_fixture()
+    existing = dict(facts[7])  # Indonesia CAPITAL_IS Bandung
+    candidate = dict(facts[6])  # Indonesia CAPITAL_IS Jakarta
+    candidate["confidence"] = "uncertain"
+
+    graph._driver.result_provider = _validation_context_provider([
+        _stored_row(existing, session_id="sess_test")
+    ])
+
+    result = graph.insert_facts([candidate], validate=True)
+
+    assert result["committed"] == 0
+    assert result["conflicts"], "persistent graph contradiction must be reported"
+    assert "Contradiction" in result["conflicts"][-1]["reason"]
+    write_queries = [q for q, _ in graph._driver.queries if "MERGE (s:Entity" in q]
+    assert not write_queries
+    print("PASS test_insert_facts_rejects_conflict_from_persistent_graph_state")
+
+
+def test_insert_facts_replaces_lower_confidence_persistent_fact() -> None:
+    graph = make_graph(session_id="sess_test")
+    facts = load_fixture()
+    existing = dict(facts[7])  # Indonesia CAPITAL_IS Bandung
+    existing["confidence"] = "uncertain"
+    existing["provenance"] = []
+    candidate = dict(facts[6])  # Indonesia CAPITAL_IS Jakarta
+    candidate["confidence"] = "supported"
+    candidate["provenance"] = [{"title": "ex_geo", "sent_id": 4}]
+
+    graph._driver.result_provider = _validation_context_provider([
+        _stored_row(existing, session_id="sess_test")
+    ])
+
+    result = graph.insert_facts([candidate], validate=True)
+
+    assert result["committed"] == 1
+    assert result["replaced"]
+    assert result["replaced"][0]["removed_fact_id"] == existing["fact_id"]
+    delete_queries = [p for q, p in graph._driver.queries if "DELETE r" in q]
+    assert delete_queries and delete_queries[0]["fact_id"] == existing["fact_id"]
+    write_queries = [p for q, p in graph._driver.queries if "MERGE (s:Entity" in q]
+    assert write_queries and write_queries[0]["fact_id"] == candidate["fact_id"]
+    print("PASS test_insert_facts_replaces_lower_confidence_persistent_fact")
+
+
+def test_insert_facts_rejects_circular_containment_from_persistent_state() -> None:
+    graph = make_graph(session_id="sess_test")
+    facts = load_fixture()
+    existing = dict(facts[4])  # East Indonesia PART_OF Indonesia
+    candidate = {
+        **existing,
+        "subject": "Indonesia",
+        "predicate": "PART_OF",
+        "object": "East Indonesia",
+        "fact_id": "fact_geo_circular",
+        "support_text": "Bad circular containment candidate.",
+    }
+
+    graph._driver.result_provider = _validation_context_provider([
+        _stored_row(existing, session_id="sess_test")
+    ])
+
+    result = graph.insert_facts([candidate], validate=True)
+
+    assert result["committed"] == 0
+    assert "Circular containment" in result["conflicts"][-1]["reason"]
+    print("PASS test_insert_facts_rejects_circular_containment_from_persistent_state")
+
+
+def test_insert_facts_rejects_alive_dead_conflict_from_persistent_state() -> None:
+    graph = make_graph(session_id="sess_test")
+    existing = {
+        "subject": "John",
+        "predicate": "IS_ALIVE",
+        "object": "true",
+        "fact_id": "john_alive",
+        "example_id": "ex_people",
+        "confidence": "supported",
+        "provenance": [{"title": "ex_people", "sent_id": 1}],
+    }
+    candidate = {
+        "subject": "John",
+        "predicate": "IS_ALIVE",
+        "object": "false",
+        "fact_id": "john_dead",
+        "example_id": "ex_people",
+        "confidence": "supported",
+        "provenance": [{"title": "ex_people", "sent_id": 2}],
+    }
+
+    graph._driver.result_provider = _validation_context_provider([
+        _stored_row(existing, session_id="sess_test")
+    ])
+
+    result = graph.insert_facts([candidate], validate=True)
+
+    assert result["committed"] == 0
+    assert "both alive and dead" in result["conflicts"][-1]["reason"]
+    print("PASS test_insert_facts_rejects_alive_dead_conflict_from_persistent_state")
+
+
+def test_persistent_validation_context_is_session_scoped() -> None:
+    graph = make_graph(session_id="session_a")
+    facts = load_fixture()
+    other_session_conflict = dict(facts[7])  # Indonesia CAPITAL_IS Bandung
+    candidate = dict(facts[6])  # Indonesia CAPITAL_IS Jakarta
+    candidate["confidence"] = "uncertain"
+
+    graph._driver.result_provider = _validation_context_provider([
+        _stored_row(other_session_conflict, session_id="session_b")
+    ])
+
+    result = graph.insert_facts([candidate], session_id="session_a", validate=True)
+
+    assert result["committed"] == 1
+    assert not any("reason" in c for c in result["conflicts"])
+    write_queries = [p for q, p in graph._driver.queries if "MERGE (s:Entity" in q]
+    assert write_queries and write_queries[0]["session_id"] == "session_a"
+    print("PASS test_persistent_validation_context_is_session_scoped")
+
+
 def test_query_context_one_hop_filters_by_example_and_session() -> None:
     graph = make_graph(session_id="sess_test")
     canned = MockResult([
@@ -400,6 +580,11 @@ def main() -> int:
         test_propose_facts_classifies_new_existing_conflict,
         test_insert_facts_idempotent_on_repeated_call,
         test_same_fact_id_coexists_across_sessions,
+        test_insert_facts_rejects_conflict_from_persistent_graph_state,
+        test_insert_facts_replaces_lower_confidence_persistent_fact,
+        test_insert_facts_rejects_circular_containment_from_persistent_state,
+        test_insert_facts_rejects_alive_dead_conflict_from_persistent_state,
+        test_persistent_validation_context_is_session_scoped,
         test_query_context_one_hop_filters_by_example_and_session,
         test_query_context_multi_hop_uses_bounded_path,
         test_format_context_for_llm_is_deterministic_and_truncates,
