@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import neo4j_graph as ng
 from neo4j_graph import Neo4jGraph
+from scallop_validator import RuleParameters, validate_update_detailed
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "verified_facts.sample.jsonl"
@@ -345,6 +346,15 @@ def test_insert_facts_rejects_conflict_from_persistent_graph_state() -> None:
     assert result["committed"] == 0
     assert result["conflicts"], "persistent graph contradiction must be reported"
     assert "Contradiction" in result["conflicts"][-1]["reason"]
+    assert result["conflicts"][-1]["rejection_label"]["code"] == "functional_conflict"
+    assert result["conflicts"][-1]["rule_params_version"] == "rules.v1"
+    ledger_writes = [
+        p for q, p in graph._driver.queries if "CREATE (d:DecisionLedger" in q
+    ]
+    assert ledger_writes, "rejected updates must be persisted to the ledger"
+    assert ledger_writes[-1]["decision"] == "reject"
+    assert ledger_writes[-1]["rejection_label_code"] == "functional_conflict"
+    assert ledger_writes[-1]["rule_params_version"] == "rules.v1"
     write_queries = [q for q, _ in graph._driver.queries if "MERGE (s:Entity" in q]
     assert not write_queries
     print("PASS test_insert_facts_rejects_conflict_from_persistent_graph_state")
@@ -450,6 +460,109 @@ def test_persistent_validation_context_is_session_scoped() -> None:
     write_queries = [p for q, p in graph._driver.queries if "MERGE (s:Entity" in q]
     assert write_queries and write_queries[0]["session_id"] == "session_a"
     print("PASS test_persistent_validation_context_is_session_scoped")
+
+
+def test_validate_update_detailed_exposes_rejection_label_and_rule_version() -> None:
+    candidate = {
+        "subject": "Kalamang",
+        "predicate": "LOCATED_IN",
+        "object": "unknown",
+        "fact_id": "generic_object_candidate",
+        "confidence": "supported",
+        "provenance": [],
+    }
+    decision = validate_update_detailed([], candidate)
+
+    assert decision.decision == "reject"
+    assert decision.rejection_label is not None
+    assert decision.rejection_label.code == "generic_object"
+    assert decision.rejection_label.rule_id == "object_not_generic"
+    assert decision.rule_params_version == "rules.v1"
+    # Legacy tuple API remains intact for existing callers.
+    assert decision.as_legacy_tuple()[0] == "reject"
+    print("PASS test_validate_update_detailed_exposes_rejection_label_and_rule_version")
+
+
+def test_create_derived_session_replays_prior_rejections_with_new_rules() -> None:
+    graph = make_graph(session_id="source_sess")
+    approved = {
+        "subject": "Kalamang",
+        "predicate": "SPOKEN_IN",
+        "object": "East Indonesia",
+        "fact_id": "approved_fact",
+        "example_id": "ex_lang",
+        "confidence": "supported",
+        "provenance": [{"title": "ex_lang", "sent_id": 3}],
+    }
+    rejected_candidate = {
+        "subject": "Kalamang",
+        "predicate": "LOCATED_IN",
+        "object": "unknown",
+        "fact_id": "rejected_fact",
+        "example_id": "ex_lang",
+        "confidence": "supported",
+        "provenance": [{"title": "ex_lang", "sent_id": 4}],
+    }
+
+    def provider(query: str, params: Dict[str, Any]):
+        if "RETURN count(r)" in query:
+            return MockResult([{"c": 0}])
+        if "AND o.name <> $object" in query:
+            return MockResult([])
+        if "subject_pred_pairs" in query:
+            return MockResult([])
+        if "RETURN d.decision_id AS decision_id" in query:
+            return MockResult([
+                {
+                    "decision_id": "ledger_reject_1",
+                    "session_id": "source_sess",
+                    "derived_from_session_id": "",
+                    "candidate_fact_id": rejected_candidate["fact_id"],
+                    "decision": "reject",
+                    "reason": "Rejected: object 'unknown' is too generic to be useful",
+                    "rejection_label_json": json.dumps({
+                        "code": "generic_object",
+                        "category": "quality",
+                        "rule_id": "object_not_generic",
+                        "severity": "reject",
+                    }),
+                    "replace_fact_id": "",
+                    "committed": False,
+                    "rule_params_version": "rules.v1",
+                    "rule_params_json": json.dumps({"version": "rules.v1"}),
+                    "candidate_json": json.dumps(rejected_candidate),
+                }
+            ])
+        if (
+            "MATCH (s:Entity)-[r]->(o:Entity)" in query
+            and "WHERE r.session_id = $session_id" in query
+            and "subject_pred_pairs" not in query
+        ):
+            return MockResult([_stored_row(approved, session_id="source_sess")])
+        return MockResult([])
+
+    graph._driver.result_provider = provider
+    rules_v2 = RuleParameters(version="rules.v2", generic_objects=())
+
+    result = graph.create_derived_session(
+        source_session_id="source_sess",
+        derived_session_id="derived_sess",
+        rule_params=rules_v2,
+        include_rejection_labels=["generic_object"],
+    )
+
+    assert result["copied_approvals"] == 1
+    assert result["replayed_rejections"] == 1
+    assert result["replay_result"]["committed"] == 1
+    ledger_writes = [
+        p for q, p in graph._driver.queries if "CREATE (d:DecisionLedger" in q
+    ]
+    assert ledger_writes
+    assert ledger_writes[-1]["session_id"] == "derived_sess"
+    assert ledger_writes[-1]["derived_from_session_id"] == "source_sess"
+    assert ledger_writes[-1]["rule_params_version"] == "rules.v2"
+    assert ledger_writes[-1]["decision"] == "accept"
+    print("PASS test_create_derived_session_replays_prior_rejections_with_new_rules")
 
 
 def test_query_context_one_hop_filters_by_example_and_session() -> None:
@@ -585,6 +698,8 @@ def main() -> int:
         test_insert_facts_rejects_circular_containment_from_persistent_state,
         test_insert_facts_rejects_alive_dead_conflict_from_persistent_state,
         test_persistent_validation_context_is_session_scoped,
+        test_validate_update_detailed_exposes_rejection_label_and_rule_version,
+        test_create_derived_session_replays_prior_rejections_with_new_rules,
         test_query_context_one_hop_filters_by_example_and_session,
         test_query_context_multi_hop_uses_bounded_path,
         test_format_context_for_llm_is_deterministic_and_truncates,

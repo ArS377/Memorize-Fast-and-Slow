@@ -33,11 +33,12 @@ from compiled_memory import (
     compiled_memory_to_neo4j_properties,
     fact_to_compiled_memory,
 )
-from scallop_validator import validate_update
+from scallop_validator import DEFAULT_RULE_PARAMETERS, RuleParameters, validate_update_detailed
 
 import json
 import re
-from typing import Any, Dict, List, Optional
+import uuid
+from typing import Any, Dict, Iterable, List, Optional
 
 try:
     from neo4j import GraphDatabase
@@ -196,6 +197,14 @@ class Neo4jGraph:
         "FOR ()-[r]-() ON (r.example_id)",
         "CREATE INDEX rel_session_id IF NOT EXISTS "
         "FOR ()-[r]-() ON (r.session_id)",
+        "CREATE CONSTRAINT decision_ledger_id_unique IF NOT EXISTS "
+        "FOR (d:DecisionLedger) REQUIRE d.decision_id IS UNIQUE",
+        "CREATE INDEX decision_ledger_session_id IF NOT EXISTS "
+        "FOR (d:DecisionLedger) ON (d.session_id)",
+        "CREATE INDEX decision_ledger_label_code IF NOT EXISTS "
+        "FOR (d:DecisionLedger) ON (d.rejection_label_code)",
+        "CREATE CONSTRAINT derived_session_id_unique IF NOT EXISTS "
+        "FOR (d:DerivedSession) REQUIRE d.session_id IS UNIQUE",
         "CREATE FULLTEXT INDEX entity_name_fulltext IF NOT EXISTS "
         "FOR (e:Entity) ON EACH [e.name]",
     ]
@@ -268,6 +277,120 @@ class Neo4jGraph:
                 session.run(query, **params)
                 count += 1
         return count
+
+    def _record_decision_ledger(
+        self,
+        *,
+        candidate: Fact,
+        session_id: str,
+        decision: str,
+        reason: str,
+        rule_params: RuleParameters,
+        rejection_label: Optional[Dict[str, str]] = None,
+        replace_fact_id: Optional[str] = None,
+        committed: bool = False,
+        derived_from_session_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Persist one validation decision, including rejected candidates.
+
+        Accepted facts already live as relationships. Rejected facts do not, so
+        this ledger is the auditable source for why an update was denied and
+        the exact rule-parameter version that denied it.
+        """
+        self.ensure_schema()
+        label = rejection_label or {}
+        entry = {
+            "decision_id": str(uuid.uuid4()),
+            "session_id": session_id,
+            "derived_from_session_id": derived_from_session_id or "",
+            "candidate_fact_id": str(candidate.get("fact_id", "")),
+            "decision": decision,
+            "reason": reason,
+            "rejection_label": rejection_label,
+            "rejection_label_code": str(label.get("code", "")),
+            "rejection_label_category": str(label.get("category", "")),
+            "rejection_label_rule_id": str(label.get("rule_id", "")),
+            "replace_fact_id": str(replace_fact_id or ""),
+            "committed": bool(committed),
+            "rule_params_version": rule_params.version,
+            "rule_params": rule_params.to_dict(),
+            "candidate": dict(candidate),
+        }
+        params = {
+            **entry,
+            "rejection_label_json": json.dumps(rejection_label, ensure_ascii=False),
+            "rule_params_json": json.dumps(rule_params.to_dict(), ensure_ascii=False),
+            "candidate_json": json.dumps(candidate, ensure_ascii=False),
+        }
+        query = (
+            "CREATE (d:DecisionLedger {decision_id: $decision_id})\n"
+            "SET d.session_id = $session_id,\n"
+            "    d.derived_from_session_id = $derived_from_session_id,\n"
+            "    d.candidate_fact_id = $candidate_fact_id,\n"
+            "    d.decision = $decision,\n"
+            "    d.reason = $reason,\n"
+            "    d.rejection_label_code = $rejection_label_code,\n"
+            "    d.rejection_label_category = $rejection_label_category,\n"
+            "    d.rejection_label_rule_id = $rejection_label_rule_id,\n"
+            "    d.rejection_label_json = $rejection_label_json,\n"
+            "    d.replace_fact_id = $replace_fact_id,\n"
+            "    d.committed = $committed,\n"
+            "    d.rule_params_version = $rule_params_version,\n"
+            "    d.rule_params_json = $rule_params_json,\n"
+            "    d.candidate_json = $candidate_json"
+        )
+        with self._session() as session:
+            session.run(query, **params)
+        return entry
+
+    def decision_ledger(
+        self,
+        session_id: Optional[str] = None,
+        decisions: Optional[Iterable[str]] = None,
+        rejection_label_codes: Optional[Iterable[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Read ledger entries for approvals, replacements, and rejections."""
+        decision_values = list(decisions or [])
+        label_values = list(rejection_label_codes or [])
+        query = (
+            "MATCH (d:DecisionLedger)\n"
+            "WHERE ($session_id IS NULL OR d.session_id = $session_id)\n"
+            "  AND (size($decisions) = 0 OR d.decision IN $decisions)\n"
+            "  AND (size($label_codes) = 0 "
+            "OR d.rejection_label_code IN $label_codes)\n"
+            "RETURN d.decision_id AS decision_id,\n"
+            "       d.session_id AS session_id,\n"
+            "       d.derived_from_session_id AS derived_from_session_id,\n"
+            "       d.candidate_fact_id AS candidate_fact_id,\n"
+            "       d.decision AS decision,\n"
+            "       d.reason AS reason,\n"
+            "       d.rejection_label_json AS rejection_label_json,\n"
+            "       d.replace_fact_id AS replace_fact_id,\n"
+            "       d.committed AS committed,\n"
+            "       d.rule_params_version AS rule_params_version,\n"
+            "       d.rule_params_json AS rule_params_json,\n"
+            "       d.candidate_json AS candidate_json"
+        )
+        sid = session_id if session_id is not None else None
+        with self._session() as session:
+            result = session.run(
+                query,
+                session_id=sid,
+                decisions=decision_values,
+                label_codes=label_values,
+            )
+            entries: List[Dict[str, Any]] = []
+            for record in result:
+                row = dict(record)
+                row["rejection_label"] = _json_property(
+                    row.pop("rejection_label_json", None), None
+                )
+                row["rule_params"] = _json_property(
+                    row.pop("rule_params_json", None), {}
+                )
+                row["candidate"] = _json_property(row.pop("candidate_json", None), {})
+                entries.append(row)
+            return entries
 
     def find_conflicts(
         self,
@@ -452,20 +575,37 @@ class Neo4jGraph:
         facts: List[Fact],
         session_id: Optional[str] = None,
         validate: bool = True,
+        rule_params: Optional[RuleParameters] = None,
+        derived_from_session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Convenience: propose + commit. When validate=True (default), each
         new fact is run through the Scallop validator; when False, the
         validator is skipped and all proposed-new facts are committed directly.
         Returns {"committed", "conflicts"}.
         """
+        params = rule_params or DEFAULT_RULE_PARAMETERS
+        sid = session_id or self.session_id
         proposal = self.propose_facts(facts, session_id=session_id)
 
         if not validate:
             committed = self.commit_facts(proposal["new"], session_id=session_id)
+            ledger = [
+                self._record_decision_ledger(
+                    candidate=fact,
+                    session_id=sid,
+                    decision="accept",
+                    reason="Accepted without validation",
+                    rule_params=params,
+                    committed=True,
+                    derived_from_session_id=derived_from_session_id,
+                )
+                for fact in proposal["new"]
+            ]
             return {
                 "committed": committed,
                 "conflicts": proposal["conflicts"],
                 "replaced": [],
+                "ledger": ledger,
             }
 
         # Seed the validator with relevant committed session facts, plus facts
@@ -492,12 +632,27 @@ class Neo4jGraph:
 
         valid_facts = []
         replaced = []
+        ledger = []
         for fact in proposal["new"]:
-            decision, reason, replace_id = validate_update(existing_fact_dicts, fact)
+            validation = validate_update_detailed(
+                existing_fact_dicts, fact, rule_params=params
+            )
+            decision = validation.decision
+            reason = validation.reason
+            replace_id = validation.replace_fact_id
 
             if decision == "accept":
                 valid_facts.append(fact)
                 existing_fact_dicts.append(fact)
+                ledger.append(
+                    {
+                        "candidate": fact,
+                        "decision": decision,
+                        "reason": reason,
+                        "replace_fact_id": replace_id,
+                        "rejection_label": None,
+                    }
+                )
 
             elif decision == "replace":
                 # Delete the lower-confidence existing fact, then commit the new one.
@@ -511,12 +666,172 @@ class Neo4jGraph:
                     ]
                 valid_facts.append(fact)
                 existing_fact_dicts.append(fact)
+                ledger.append(
+                    {
+                        "candidate": fact,
+                        "decision": decision,
+                        "reason": reason,
+                        "replace_fact_id": replace_id,
+                        "rejection_label": None,
+                    }
+                )
 
             else:  # reject
-                proposal["conflicts"].append({"candidate": fact, "reason": reason})
+                label = (
+                    validation.rejection_label.to_dict()
+                    if validation.rejection_label
+                    else None
+                )
+                proposal["conflicts"].append({
+                    "candidate": fact,
+                    "reason": reason,
+                    "rejection_label": label,
+                    "rule_params_version": validation.rule_params_version,
+                })
+                ledger.append(
+                    {
+                        "candidate": fact,
+                        "decision": decision,
+                        "reason": reason,
+                        "replace_fact_id": replace_id,
+                        "rejection_label": label,
+                    }
+                )
 
         committed = self.commit_facts(valid_facts, session_id=session_id)
-        return {"committed": committed, "conflicts": proposal["conflicts"], "replaced": replaced}
+        persisted_ledger = [
+            self._record_decision_ledger(
+                candidate=entry["candidate"],
+                session_id=sid,
+                decision=entry["decision"],
+                reason=entry["reason"],
+                rule_params=params,
+                rejection_label=entry["rejection_label"],
+                replace_fact_id=entry["replace_fact_id"],
+                committed=entry["decision"] in {"accept", "replace"},
+                derived_from_session_id=derived_from_session_id,
+            )
+            for entry in ledger
+        ]
+        return {
+            "committed": committed,
+            "conflicts": proposal["conflicts"],
+            "replaced": replaced,
+            "ledger": persisted_ledger,
+        }
+
+    def session_facts(self, session_id: Optional[str] = None) -> List[Fact]:
+        """Return all committed facts in one session."""
+        sid = session_id or self.session_id
+        query = (
+            "MATCH (s:Entity)-[r]->(o:Entity)\n"
+            "WHERE r.session_id = $session_id\n"
+            "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
+            "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
+            "       r.example_id AS example_id, r.question AS question,\n"
+            "       r.support_text AS support_text,\n"
+            "       r.provenance_json AS provenance_json,\n"
+            "       r.qualifiers_json AS qualifiers_json,\n"
+            "       r.question_relevance AS question_relevance,\n"
+            "       r.confidence AS confidence,\n"
+            "       r.confidence_level AS confidence_level,\n"
+            "       r.normalization_notes AS normalization_notes,\n"
+            "       r.verification_reason AS verification_reason,\n"
+            "       r.compiled_memory_json AS compiled_memory_json"
+        )
+        with self._session() as session:
+            result = session.run(query, session_id=sid)
+            return [_record_to_fact(dict(record)) for record in result]
+
+    def create_derived_session(
+        self,
+        *,
+        source_session_id: str,
+        derived_session_id: str,
+        rule_params: Optional[RuleParameters] = None,
+        include_rejection_labels: Optional[Iterable[str]] = None,
+        exclude_rejection_labels: Optional[Iterable[str]] = None,
+        copy_accepted: bool = True,
+        replay_rejections: bool = True,
+        validate: bool = True,
+    ) -> Dict[str, Any]:
+        """Create a controlled learning run from a prior session.
+
+        The derived session can copy prior approvals, then selectively replay
+        rejected candidate updates through a chosen rule-parameter version. This
+        makes rule evolution auditable: the original rejection stays in the
+        source ledger while the derived session records its own new decisions.
+        """
+        params = rule_params or DEFAULT_RULE_PARAMETERS
+        self.ensure_schema()
+        include = set(include_rejection_labels or [])
+        exclude = set(exclude_rejection_labels or [])
+
+        with self._session() as session:
+            session.run(
+                "MERGE (d:DerivedSession {session_id: $derived_session_id})\n"
+                "SET d.source_session_id = $source_session_id,\n"
+                "    d.rule_params_version = $rule_params_version,\n"
+                "    d.rule_params_json = $rule_params_json,\n"
+                "    d.copy_accepted = $copy_accepted,\n"
+                "    d.replay_rejections = $replay_rejections,\n"
+                "    d.include_rejection_labels_json = $include_json,\n"
+                "    d.exclude_rejection_labels_json = $exclude_json",
+                derived_session_id=str(derived_session_id),
+                source_session_id=str(source_session_id),
+                rule_params_version=params.version,
+                rule_params_json=json.dumps(params.to_dict(), ensure_ascii=False),
+                copy_accepted=bool(copy_accepted),
+                replay_rejections=bool(replay_rejections),
+                include_json=json.dumps(sorted(include), ensure_ascii=False),
+                exclude_json=json.dumps(sorted(exclude), ensure_ascii=False),
+            )
+
+        copied = 0
+        if copy_accepted:
+            source_facts = self.session_facts(source_session_id)
+            copied = self.commit_facts(source_facts, session_id=derived_session_id)
+
+        replay_candidates: List[Fact] = []
+        if replay_rejections:
+            rejected_entries = self.decision_ledger(
+                session_id=source_session_id,
+                decisions=["reject"],
+            )
+            for entry in rejected_entries:
+                label = entry.get("rejection_label") or {}
+                code = str(label.get("code", ""))
+                if include and code not in include:
+                    continue
+                if exclude and code in exclude:
+                    continue
+                candidate = entry.get("candidate")
+                if isinstance(candidate, dict) and candidate:
+                    replay_candidates.append(candidate)
+
+        replay_result = {
+            "committed": 0,
+            "conflicts": [],
+            "replaced": [],
+            "ledger": [],
+        }
+        if replay_candidates:
+            replay_result = self.insert_facts(
+                replay_candidates,
+                session_id=derived_session_id,
+                validate=validate,
+                rule_params=params,
+                derived_from_session_id=source_session_id,
+            )
+
+        return {
+            "source_session_id": source_session_id,
+            "derived_session_id": derived_session_id,
+            "rule_params_version": params.version,
+            "copied_approvals": copied,
+            "replayed_rejections": len(replay_candidates),
+            "replay_result": replay_result,
+        }
 
     # ------------------------------------------------------------------ reads
 

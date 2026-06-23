@@ -166,6 +166,16 @@ Context Retrieval (n-hop entity-seeded query → LLM-ready text)
 
 `validate_update(existing_facts, new_fact)` returns `(decision, reason, replace_fact_id)` where decision is `"accept"`, `"reject"`, or `"replace"`.
 
+For audit-oriented callers, `validate_update_detailed(...)` returns a structured
+decision object with:
+
+- `decision`: `accept`, `reject`, or `replace`
+- `reason`: human-readable explanation
+- `rejection_label`: structured label for rejected updates, for example
+  `{"code": "functional_conflict", "category": "contradiction", ...}`
+- `rule_params_version`: the explicit rule-parameter version, default `rules.v1`
+- `replace_fact_id`: the removed fact when a higher-confidence update wins
+
 | Rule | Type | What it prevents |
 |------|------|-----------------|
 | Functional predicate constraint | Scallop | Two different values for a single-valued predicate (e.g. two capitals for one country) |
@@ -179,6 +189,43 @@ Context Retrieval (n-hop entity-seeded query → LLM-ready text)
 
 **Functional predicates** (one value per subject):
 `CAPITAL_IS`, `BORN_IN`, `BIRTH_DATE`, `DEATH_DATE`, `DIED_IN`, `FOUNDED_IN`, `LOCATED_IN`, `HAS_ISO_CODE`, `HAS_GLOTTOCODE`
+
+### Decision Ledger and Rule Evolution
+
+`Neo4jGraph.insert_facts(..., validate=True)` now records each validator outcome
+as a `DecisionLedger` node. This includes rejected candidate facts, which are
+not committed as KG relationships but remain available for auditing and later
+learning runs. Ledger entries store the candidate JSON, decision, reason,
+structured rejection label, replacement target, committed flag, and the full
+versioned `RuleParameters` snapshot used for the decision.
+
+Rules are explicit through `RuleParameters`. To test a new rule set without
+mutating the original session, pass a versioned instance:
+
+```python
+from scallop_validator import RuleParameters
+
+rules_v2 = RuleParameters(
+    version="rules.v2",
+    generic_objects=("unknown", "n/a"),
+)
+graph.insert_facts(facts, session_id="run_v2", rule_params=rules_v2)
+```
+
+Derived sessions provide controlled replay from past decisions:
+
+```python
+graph.create_derived_session(
+    source_session_id="pilot_scallop",
+    derived_session_id="pilot_scallop_rules_v2",
+    rule_params=rules_v2,
+    include_rejection_labels=["generic_object"],
+)
+```
+
+The derived session copies prior approved facts by default, selectively replays
+past rejected candidates through the new rule parameters, and writes a separate
+ledger tied back to the source session.
 
 ---
 
