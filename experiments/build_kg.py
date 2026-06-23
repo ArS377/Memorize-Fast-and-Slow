@@ -44,7 +44,14 @@ def _dump_session_facts(graph, session_id: str, out_path: Path) -> int:
         "RETURN s.name AS subject, type(r) AS predicate, o.name AS object, "
         "       r.fact_id AS fact_id, r.example_id AS example_id, "
         "       r.support_text AS support_text, r.provenance_json AS provenance_json, "
-        "       r.confidence AS confidence, r.question AS question"
+        "       r.confidence AS confidence, r.confidence_score AS confidence_score, "
+        "       r.confidence_method AS confidence_method, "
+        "       r.provenance_quality AS provenance_quality, "
+        "       r.question AS question, r.question_relevance AS question_relevance, "
+        "       r.valid_from AS valid_from, r.valid_to AS valid_to, "
+        "       r.observed_at AS observed_at, r.document_id AS document_id, "
+        "       r.extractor_model AS extractor_model, "
+        "       r.verifier_model AS verifier_model, r.run_id AS run_id"
     )
     n = 0
     with graph._session() as s, out_path.open("w", encoding="utf-8") as fp:
@@ -85,6 +92,8 @@ def build_kg(
     Returns the JSONL mirror path (``results/kg_builds/<session>_facts.jsonl``).
     """
     from neo4j_graph import Neo4jGraph
+    from compiled_memory import fact_to_compiled_fact
+    from rejection_artifacts import append_rejection_jsonl, build_rejection_record
     from longbench_kg_pipeline import (
         LongBenchKGPipeline,
         PipelineConfig,
@@ -95,6 +104,7 @@ def build_kg(
     )
 
     out_path = facts_out_dir / f"{session_id}_facts.jsonl"
+    rejections_path = facts_out_dir / f"{session_id}_rejections.jsonl"
 
     graph = Neo4jGraph(
         uri=neo4j_uri,
@@ -110,6 +120,8 @@ def build_kg(
                 "skipping extraction (use --rebuild to force).",
                 file=sys.stderr,
             )
+            rejections_path.parent.mkdir(parents=True, exist_ok=True)
+            rejections_path.touch(exist_ok=True)
             n = _dump_session_facts(graph, session_id, out_path)
             print(f"[build_kg] mirrored {n} facts -> {out_path}", file=sys.stderr)
             return out_path
@@ -117,6 +129,9 @@ def build_kg(
         if rebuild and existing > 0:
             print(f"[build_kg] --rebuild: clearing session {session_id}", file=sys.stderr)
             graph.clear_session(session_id)
+
+        rejections_path.parent.mkdir(parents=True, exist_ok=True)
+        rejections_path.write_text("", encoding="utf-8")
 
         examples = iter_pilot_examples(input_path, limit)
         print(
@@ -144,6 +159,7 @@ def build_kg(
             neo4j_user=None,
             neo4j_password=None,
             verify_batch_size=verify_batch_size,
+            run_id=f"build_{session_id}",
         )
         pipeline = LongBenchKGPipeline(cfg)
 
@@ -160,22 +176,60 @@ def build_kg(
                 extracted.extend(pipeline.extract_facts(example, chunk, ci))
 
             verified = pipeline.verify_facts(example, extracted)
-            supported = [
-                f for f in verified
-                if normalize_status(f.get("status") or f.get("confidence")) == "supported"
-            ]
-            for fact in supported:
+            for fact in verified:
                 fact["example_id"] = example_id
                 fact["fact_id"] = make_fact_id(example_id, fact)
                 fact["question"] = str(example.get("question", ""))
+
+            supported = []
+            verifier_rejected = []
+            for fact in verified:
+                status = normalize_status(fact.get("status") or fact.get("confidence"))
+                if status == "supported":
+                    supported.append(fact)
+                else:
+                    verifier_rejected.append(fact)
+                    append_rejection_jsonl(
+                        rejections_path,
+                        build_rejection_record(
+                            candidate_fact=fact,
+                            reason=fact.get("verification_reason") or status,
+                            example_id=example_id,
+                            session_id=session_id,
+                            stage="llm_verification",
+                            existing_conflicting_fact=None,
+                            validator="llm_self_reflection",
+                        ),
+                    )
+
+            for fact in supported:
+                fact.update(fact_to_compiled_fact(fact))
 
             if supported:
                 result = graph.insert_facts(
                     supported, session_id=session_id, validate=validate
                 )
                 total_committed += int(result.get("committed", 0))
+                for rejected in result.get("rejected", []):
+                    candidate = rejected.get("candidate", {})
+                    if not isinstance(candidate, dict):
+                        continue
+                    append_rejection_jsonl(
+                        rejections_path,
+                        build_rejection_record(
+                            candidate_fact=candidate,
+                            reason=rejected.get("reason", ""),
+                            example_id=str(candidate.get("example_id") or example_id),
+                            session_id=session_id,
+                            stage="scallop_validation",
+                            existing_conflicting_fact=rejected.get("existing_conflicting_fact"),
+                            rule_fired=rejected.get("rule_fired"),
+                            validator="scallop",
+                        ),
+                    )
             print(
                 f"           extracted={len(extracted)} supported={len(supported)} "
+                f"rejected={len(verifier_rejected)} "
                 f"committed_total={total_committed}",
                 file=sys.stderr,
             )
@@ -183,7 +237,7 @@ def build_kg(
         n = _dump_session_facts(graph, session_id, out_path)
         print(
             f"[build_kg] done. session={session_id} committed={total_committed} "
-            f"mirrored={n} -> {out_path}",
+            f"mirrored={n} -> {out_path}; rejections -> {rejections_path}",
             file=sys.stderr,
         )
         return out_path

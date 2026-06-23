@@ -151,14 +151,18 @@ LongBench data
       ↓
 Fact Extraction (LLM via vLLM)
       ↓
-Self-Reflection Validation (6-question LLM check → confidence score)
+Self-Reflection Validation (6-question LLM check → supported/rejected)
       ↓
-Scallop Validator (logical rules gate each fact)
+Scallop Validator (logical + temporal rules gate each fact)
       ↓
 Neo4j Knowledge Graph (only contradiction-free facts committed)
       ↓
 Context Retrieval (n-hop entity-seeded query → LLM-ready text)
 ```
+
+Rejected candidates are persisted as JSONL artifacts beside the accepted facts,
+for example `results/kg_builds/<session>_rejections.jsonl` in the pilot build.
+Those records are audit artifacts, not KG edges.
 
 ---
 
@@ -178,14 +182,16 @@ decision object with:
 
 | Rule | Type | What it prevents |
 |------|------|-----------------|
-| Functional predicate constraint | Scallop | Two different values for a single-valued predicate (e.g. two capitals for one country) |
-| Circular containment | Scallop | `A PART_OF B` and `B PART_OF A` simultaneously |
-| Alive/dead conflict | Scallop | Entity marked both `IS_ALIVE true` and `IS_ALIVE false` |
+| Functional predicate constraint | Scallop | Two different overlapping-time values for a single-valued predicate (e.g. two capitals for one country) |
+| Circular containment | Scallop | `A PART_OF B` and `B PART_OF A` during overlapping validity intervals |
+| Alive/dead conflict | Scallop | Entity marked both `IS_ALIVE true` and `IS_ALIVE false` during overlapping validity intervals |
 | Self-referential fact | Python | Subject equals object (e.g. `Jakarta LOCATED_IN Jakarta`) |
 | Generic object | Python | Objects like `"unknown"`, `"various"`, `"multiple"` that carry no information |
-| Exact redundancy | Python | Identical triple already exists in the graph |
+| Exact redundancy | Python | Identical triple already exists for an overlapping validity interval |
 
-**Confidence-based resolution**: when a contradiction is detected on a functional predicate, the validator compares confidence scores (`supported=3, uncertain=2, rejected=1`) × 10 + provenance count. If the new fact scores higher, it replaces the existing one instead of being rejected.
+**Confidence-based resolution**: when a contradiction is detected on a functional predicate, the validator compares weighted evidence-strength scores. The score keeps the `supported` / `uncertain` / `rejected` label as a prior, then adjusts for explicit confidence scores, provenance quality, support text, verification reason, and question relevance. If the new fact scores higher, it replaces the existing one instead of being rejected.
+
+**Rejected-fact artifacts** include the candidate fact, rejection reason, inferred rule fired, existing conflicting fact when available, example ID, session ID, run ID, validator, and rule version.
 
 **Functional predicates** (one value per subject):
 `CAPITAL_IS`, `BORN_IN`, `BIRTH_DATE`, `DEATH_DATE`, `DIED_IN`, `FOUNDED_IN`, `LOCATED_IN`, `HAS_ISO_CODE`, `HAS_GLOTTOCODE`

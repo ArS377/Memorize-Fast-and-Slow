@@ -49,6 +49,7 @@ from openai import OpenAI
 
 from compiled_memory import fact_to_compiled_fact
 from neo4j_graph import Neo4jGraph
+from rejection_artifacts import append_rejection_jsonl, build_rejection_record
 
 
 Fact = Dict[str, Any]
@@ -76,6 +77,8 @@ class PipelineConfig:
     neo4j_session_id: Optional[str] = None
     neo4j_stateless: bool = False
     verify_batch_size: int = 20
+    run_id: Optional[str] = None
+    rejections_output_path: Optional[Path] = None
 
 
 class LongBenchKGPipeline:
@@ -83,6 +86,7 @@ class LongBenchKGPipeline:
         self.config = config
         self.client = OpenAI(base_url=config.vllm_base_url, api_key=config.api_key)
         self.graph: Optional[Neo4jGraph] = None
+        self.run_id = config.run_id or make_run_id(config)
 
         if config.neo4j_uri:
             if not config.neo4j_user or not config.neo4j_password:
@@ -119,6 +123,14 @@ class LongBenchKGPipeline:
             examples = examples[: self.config.limit]
 
         self.config.output_path.parent.mkdir(parents=True, exist_ok=True)
+        rejections_path = (
+            self.config.rejections_output_path
+            or self.config.output_path.with_name(
+                f"{self.config.output_path.stem}_rejections.jsonl"
+            )
+        )
+        rejections_path.parent.mkdir(parents=True, exist_ok=True)
+        rejections_path.write_text("", encoding="utf-8")
         total_supported = 0
 
         with self.config.output_path.open("w", encoding="utf-8") as out:
@@ -139,28 +151,82 @@ class LongBenchKGPipeline:
                     polite_sleep(self.config.sleep_seconds)
 
                 verified = self.verify_facts(example, extracted)
-                supported = [f for f in verified if normalize_status(f.get("status") or f.get("confidence")) == "supported"]
-
-                for fact in supported:
+                for fact in verified:
                     fact["example_id"] = example_id
                     fact["fact_id"] = make_fact_id(example_id, fact)
-                    # FIX 3: propagate the question from the source example so
-                    # insert_facts_neo4j can store it on the relationship.
-                    # Without this, fact.get("question") is always "" in Neo4j.
                     fact["question"] = str(example.get("question", ""))
+
+                supported = []
+                verifier_rejected = []
+                for fact in verified:
+                    status = normalize_status(fact.get("status") or fact.get("confidence"))
+                    if status == "supported":
+                        supported.append(fact)
+                    else:
+                        verifier_rejected.append(fact)
+                        append_rejection_jsonl(
+                            rejections_path,
+                            build_rejection_record(
+                                candidate_fact=fact,
+                                reason=fact.get("verification_reason") or status,
+                                example_id=example_id,
+                                session_id=self.config.neo4j_session_id or "default",
+                                stage="llm_verification",
+                                existing_conflicting_fact=None,
+                                validator="llm_self_reflection",
+                            ),
+                        )
+
+                for fact in supported:
                     fact.update(fact_to_compiled_fact(fact))
+
+                accepted_for_output = list(supported)
+                if self.graph is not None and supported:
+                    result = self.graph.insert_facts(supported)
+                    rejected_ids = {
+                        str(rejected.get("candidate", {}).get("fact_id", ""))
+                        for rejected in result.get("rejected", [])
+                        if isinstance(rejected.get("candidate"), dict)
+                    }
+                    accepted_for_output = [
+                        fact
+                        for fact in supported
+                        if str(fact.get("fact_id", "")) not in rejected_ids
+                    ]
+                    for rejected in result.get("rejected", []):
+                        candidate = rejected.get("candidate", {})
+                        if not isinstance(candidate, dict):
+                            continue
+                        append_rejection_jsonl(
+                            rejections_path,
+                            build_rejection_record(
+                                candidate_fact=candidate,
+                                reason=rejected.get("reason", ""),
+                                example_id=str(candidate.get("example_id") or example_id),
+                                session_id=self.graph.session_id,
+                                stage="scallop_validation",
+                                existing_conflicting_fact=rejected.get("existing_conflicting_fact"),
+                                rule_fired=rejected.get("rule_fired"),
+                                validator="scallop",
+                            ),
+                        )
+
+                for fact in accepted_for_output:
                     out.write(json.dumps(fact, ensure_ascii=False) + "\n")
 
-                if self.graph is not None and supported:
-                    self.graph.insert_facts(supported)
-
-                total_supported += len(supported)
+                total_supported += len(accepted_for_output)
                 print(
-                    f"    extracted={len(extracted)} supported={len(supported)} total_supported={total_supported}",
+                    f"    extracted={len(extracted)} supported={len(supported)} "
+                    f"accepted={len(accepted_for_output)} "
+                    f"rejected={len(verifier_rejected)} total_supported={total_supported}",
                     file=sys.stderr,
                 )
 
-        print(f"Done. Wrote {total_supported} supported facts to {self.config.output_path}", file=sys.stderr)
+        print(
+            f"Done. Wrote {total_supported} supported facts to {self.config.output_path}; "
+            f"rejections to {rejections_path}",
+            file=sys.stderr,
+        )
 
     def extract_facts(self, example: Dict[str, Any], chunk: List[SentenceRecord], chunk_index: int) -> List[Fact]:
         prompt = build_extraction_prompt(example, chunk, chunk_index)
@@ -177,6 +243,15 @@ class LongBenchKGPipeline:
             if cleaned:
                 cleaned["chunk_index"] = chunk_index
                 cleaned["local_fact_index"] = j
+                enrich_fact_provenance(
+                    cleaned,
+                    example=example,
+                    chunk=chunk,
+                    chunk_index=chunk_index,
+                    extractor_model=self.config.model,
+                    verifier_model="",
+                    run_id=self.run_id,
+                )
                 clean_facts.append(cleaned)
         return clean_facts
 
@@ -197,6 +272,7 @@ class LongBenchKGPipeline:
             judgments = data.get("verified_facts", [])
 
             by_id = {f["verification_id"]: f for f in batch}
+            seen_ids = set()
             if isinstance(judgments, list):
                 for judgment in judgments:
                     if not isinstance(judgment, dict):
@@ -205,9 +281,12 @@ class LongBenchKGPipeline:
                     original = by_id.get(str(vid))
                     if not original:
                         continue
+                    seen_ids.add(str(vid))
                     merged = dict(original)
                     merged["status"] = normalize_status(judgment.get("status"))
                     merged["verification_reason"] = str(judgment.get("verification_reason", ""))
+                    merged["verifier_model"] = self.config.model
+                    merged["run_id"] = self.run_id
                     merged["revised_subject"] = judgment.get("subject", original.get("subject"))
                     merged["revised_predicate"] = judgment.get("predicate", original.get("predicate"))
                     merged["revised_object"] = judgment.get("object", original.get("object"))
@@ -218,6 +297,16 @@ class LongBenchKGPipeline:
                         merged["predicate"] = sanitize_predicate(str(merged["revised_predicate"]))
                         merged["object"] = str(merged["revised_object"]).strip()
                     verified.append(merged)
+
+            for vid, original in by_id.items():
+                if str(vid) in seen_ids:
+                    continue
+                missing = dict(original)
+                missing["status"] = "rejected"
+                missing["verification_reason"] = "No verifier judgment returned."
+                missing["verifier_model"] = self.config.model
+                missing["run_id"] = self.run_id
+                verified.append(missing)
 
             polite_sleep(self.config.sleep_seconds)
 
@@ -405,6 +494,135 @@ def chunk_sentence_records(records: List[SentenceRecord], max_chars: int) -> Lis
     return chunks
 
 
+def make_run_id(config: PipelineConfig) -> str:
+    payload = json.dumps(
+        {
+            "input": str(config.input_path),
+            "output": str(config.output_path),
+            "model": config.model,
+            "session": config.neo4j_session_id,
+            "started_at": int(time.time()),
+        },
+        sort_keys=True,
+    )
+    return f"run_{hashlib.sha256(payload.encode('utf-8')).hexdigest()[:12]}"
+
+
+def _maybe_int(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _span_for_support(sentence_text: str, support_text: str) -> tuple[Optional[int], Optional[int]]:
+    support = support_text.strip()
+    if not sentence_text or not support:
+        return None, None
+    start = sentence_text.find(support)
+    if start >= 0:
+        return start, start + len(support)
+    compact_sentence = re.sub(r"\s+", " ", sentence_text)
+    compact_support = re.sub(r"\s+", " ", support)
+    start = compact_sentence.find(compact_support)
+    if start >= 0:
+        return start, start + len(compact_support)
+    return None, None
+
+
+def _provenance_entries_from_support(
+    *,
+    support_text: str,
+    chunk: List[SentenceRecord],
+    example_id: str,
+) -> List[Dict[str, Any]]:
+    """Recover sentence provenance when the extractor cites text but no sent_id."""
+    support = support_text.strip()
+    if not support:
+        return []
+    recovered: List[Dict[str, Any]] = []
+    for record in chunk:
+        start, end = _span_for_support(str(record.get("text", "")), support)
+        if start is None or end is None:
+            continue
+        document_id = str(record.get("document_id") or example_id)
+        recovered.append(
+            {
+                "title": str(record.get("title") or example_id),
+                "sent_id": record.get("sent_id"),
+                "document_id": document_id,
+                "sentence_id": f"{document_id}:{record.get('sent_id')}",
+                "local_sent_id": record.get("local_sent_id"),
+                "source_span_start": start,
+                "source_span_end": end,
+            }
+        )
+    return recovered[:3]
+
+
+def enrich_fact_provenance(
+    fact: Fact,
+    *,
+    example: Dict[str, Any],
+    chunk: List[SentenceRecord],
+    chunk_index: int,
+    extractor_model: str,
+    verifier_model: str,
+    run_id: str,
+) -> None:
+    """Attach auditable document/sentence/span/model/run metadata in-place."""
+    example_id = str(example.get("_id", "unknown"))
+    fact["document_id"] = str(fact.get("document_id") or example_id)
+    fact["extractor_model"] = extractor_model
+    if verifier_model:
+        fact["verifier_model"] = verifier_model
+    fact["run_id"] = run_id
+
+    records_by_sent = {str(record.get("sent_id")): record for record in chunk}
+    provenance = fact.get("provenance", [])
+    if not isinstance(provenance, list):
+        provenance = []
+
+    enriched: List[Dict[str, Any]] = []
+    support_text = str(fact.get("support_text", "")).strip()
+    if not provenance:
+        provenance = _provenance_entries_from_support(
+            support_text=support_text,
+            chunk=chunk,
+            example_id=example_id,
+        )
+    for entry in provenance:
+        if not isinstance(entry, dict):
+            continue
+        out = dict(entry)
+        sent_key = str(out.get("sent_id", ""))
+        record = records_by_sent.get(sent_key)
+        title = str(out.get("title") or (record or {}).get("title") or example_id)
+        document_id = str(out.get("document_id") or example_id)
+        out["title"] = title
+        out["document_id"] = document_id
+        out["sentence_id"] = str(
+            out.get("sentence_id")
+            or f"{document_id}:{out.get('sent_id', sent_key)}"
+        )
+        out["chunk_index"] = out.get("chunk_index", chunk_index)
+        if record is not None:
+            out["local_sent_id"] = out.get("local_sent_id", record.get("local_sent_id"))
+            start, end = _span_for_support(str(record.get("text", "")), support_text)
+            if start is not None and end is not None:
+                existing_start = _maybe_int(out.get("source_span_start"))
+                existing_end = _maybe_int(out.get("source_span_end"))
+                out["source_span_start"] = existing_start if existing_start is not None else start
+                out["source_span_end"] = existing_end if existing_end is not None else end
+        out["extractor_model"] = str(out.get("extractor_model") or extractor_model)
+        if verifier_model:
+            out["verifier_model"] = str(out.get("verifier_model") or verifier_model)
+        out["run_id"] = str(out.get("run_id") or run_id)
+        enriched.append(out)
+
+    fact["provenance"] = enriched
+
+
 def build_extraction_prompt(example: Dict[str, Any], chunk: List[SentenceRecord], chunk_index: int) -> str:
     question_block = build_question_block(example)
     context_block = json.dumps(chunk, ensure_ascii=False)
@@ -429,6 +647,7 @@ Return this exact JSON shape:
       "predicate": "UPPER_SNAKE_CASE_RELATION",
       "object": "canonical entity/value name",
       "qualifiers": {{}},
+      "temporal": {{"valid_from": null, "valid_to": null}},
       "provenance": [{{"title": "...", "sent_id": 0}}],
       "support_text": "exact supporting sentence(s)",
       "question_relevance": "why this fact could help answer the current multiple-choice question",
@@ -442,6 +661,8 @@ Rules:
 - One fact per subject-predicate-object claim.
 - Keep claims atomic.
 - Use provenance sent_id values from the sentence records.
+- Use temporal.valid_from / temporal.valid_to only when the text gives an
+  explicit time range, date, year, or event time; otherwise leave both null.
 - If no useful facts are explicitly supported, return {{"facts": []}}.
 """.strip()
 
@@ -517,12 +738,22 @@ def clean_fact(fact: Fact) -> Optional[Fact]:
     qualifiers = fact.get("qualifiers", {})
     if not isinstance(qualifiers, dict):
         qualifiers = {}
+    temporal = fact.get("temporal", {})
+    if not isinstance(temporal, dict):
+        temporal = {}
+    clean_temporal = {
+        "valid_from": temporal.get("valid_from"),
+        "valid_to": temporal.get("valid_to"),
+    }
+    if not clean_temporal["valid_from"] and not clean_temporal["valid_to"]:
+        clean_temporal = {}
 
     return {
         "subject": subject,
         "predicate": predicate,
         "object": obj,
         "qualifiers": qualifiers,
+        "temporal": clean_temporal,
         "provenance": provenance,
         "support_text": str(fact.get("support_text", "")).strip(),
         "question_relevance": str(fact.get("question_relevance", "")).strip(),
@@ -550,6 +781,18 @@ def normalize_status(value: Any) -> str:
 
 
 def make_fact_id(example_id: str, fact: Fact) -> str:
+    provenance_for_id = []
+    for entry in fact.get("provenance", []) or []:
+        if isinstance(entry, dict):
+            provenance_for_id.append(
+                {
+                    "title": entry.get("title"),
+                    "sent_id": entry.get("sent_id"),
+                    "document_id": entry.get("document_id"),
+                    "sentence_id": entry.get("sentence_id"),
+                }
+            )
+    temporal = fact.get("temporal") if isinstance(fact.get("temporal"), dict) else {}
     stable = json.dumps(
         {
             "example_id": example_id,
@@ -557,7 +800,11 @@ def make_fact_id(example_id: str, fact: Fact) -> str:
             "predicate": fact.get("predicate"),
             "object": fact.get("object"),
             "support_text": fact.get("support_text"),
-            "provenance": fact.get("provenance", []),
+            "provenance": provenance_for_id,
+            "temporal": {
+                "valid_from": temporal.get("valid_from") or fact.get("valid_from"),
+                "valid_to": temporal.get("valid_to") or fact.get("valid_to"),
+            },
         },
         sort_keys=True,
         ensure_ascii=False,
@@ -597,6 +844,8 @@ def parse_args() -> PipelineConfig:
     parser = argparse.ArgumentParser(description="Extract verified KG facts from LongBench-v2-style data.")
     parser.add_argument("--input", required=True, type=Path, help="Path to LongBench-v2 JSON or JSONL file.")
     parser.add_argument("--output", required=True, type=Path, help="Output JSONL path for supported facts.")
+    parser.add_argument("--rejections-output", type=Path, default=None,
+                        help="Output JSONL path for rejected fact artifacts. Defaults to <output_stem>_rejections.jsonl.")
     parser.add_argument("--model", required=True, help="Model name served by vLLM, e.g. Qwen/Qwen3-4B.")
     parser.add_argument("--vllm-base-url", default="http://localhost:8000/v1", help="vLLM OpenAI-compatible base URL.")
     parser.add_argument("--api-key", default=os.getenv("VLLM_API_KEY", "EMPTY"), help="API key for vLLM server; often EMPTY locally.")
@@ -630,6 +879,8 @@ def parse_args() -> PipelineConfig:
         sleep_seconds=args.sleep_seconds,
         use_json_mode=args.use_json_mode,
         verify_batch_size=args.verify_batch_size,
+        run_id=None,
+        rejections_output_path=args.rejections_output,
         neo4j_uri=args.neo4j_uri,
         neo4j_user=args.neo4j_user,
         neo4j_password=args.neo4j_password,

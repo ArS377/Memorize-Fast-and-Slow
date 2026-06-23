@@ -96,6 +96,32 @@ def _json_property(value: Any, fallback: Any) -> Any:
     return fallback
 
 
+def _first_conflicting_fact(existing_facts: List[Fact], candidate: Fact) -> Optional[Fact]:
+    subj = str(candidate.get("subject", ""))
+    pred = sanitize_predicate(str(candidate.get("predicate", "")))
+    obj = str(candidate.get("object", ""))
+    for fact in existing_facts:
+        fact_subj = str(fact.get("subject", ""))
+        fact_pred = sanitize_predicate(str(fact.get("predicate", "")))
+        fact_obj = str(fact.get("object", ""))
+        if not facts_temporally_overlap(fact, candidate):
+            continue
+        if fact_subj == subj and fact_pred == pred and fact_obj == obj:
+            return fact
+        if fact_subj == subj and fact_pred == pred and fact_obj != obj:
+            return fact
+        if pred == "PART_OF" and fact_pred == "PART_OF" and fact_subj == obj and fact_obj == subj:
+            return fact
+        if (
+            pred == "IS_ALIVE"
+            and fact_pred == "IS_ALIVE"
+            and fact_subj == subj
+            and {fact_obj.lower(), obj.lower()} == {"true", "false"}
+        ):
+            return fact
+    return None
+
+
 def _record_to_fact(record: Dict[str, Any]) -> Fact:
     """Hydrate a Neo4j relationship row back into the fact dict shape."""
     fact: Fact = {
@@ -619,7 +645,7 @@ class Neo4jGraph:
         """Convenience: propose + commit. When validate=True (default), each
         new fact is run through the Scallop validator; when False, the
         validator is skipped and all proposed-new facts are committed directly.
-        Returns {"committed", "conflicts"}.
+        Returns {"committed", "conflicts", "replaced", "ledger", "rejected"}.
         """
         params = rule_params or DEFAULT_RULE_PARAMETERS
         sid = session_id or self.session_id
@@ -644,6 +670,7 @@ class Neo4jGraph:
                 "conflicts": proposal["conflicts"],
                 "replaced": [],
                 "ledger": ledger,
+                "rejected": [],
             }
 
         # Seed the validator with relevant committed session facts, plus facts
@@ -671,6 +698,7 @@ class Neo4jGraph:
         valid_facts = []
         replaced = []
         ledger = []
+        rejected = []
         for fact in proposal["new"]:
             validation = validate_update_detailed(
                 existing_fact_dicts, fact, rule_params=params
@@ -726,6 +754,19 @@ class Neo4jGraph:
                     "rejection_label": label,
                     "rule_params_version": validation.rule_params_version,
                 })
+                existing_conflicting_fact = _first_conflicting_fact(
+                    existing_fact_dicts, fact
+                )
+                rejected.append(
+                    {
+                        "candidate": fact,
+                        "reason": reason,
+                        "rule_fired": (label or {}).get("code", "validator_reject"),
+                        "rejection_label": label,
+                        "rule_params_version": validation.rule_params_version,
+                        "existing_conflicting_fact": existing_conflicting_fact,
+                    }
+                )
                 ledger.append(
                     {
                         "candidate": fact,
@@ -756,6 +797,7 @@ class Neo4jGraph:
             "conflicts": proposal["conflicts"],
             "replaced": replaced,
             "ledger": persisted_ledger,
+            "rejected": rejected,
         }
 
     def session_facts(self, session_id: Optional[str] = None) -> List[Fact]:
@@ -859,6 +901,7 @@ class Neo4jGraph:
             "conflicts": [],
             "replaced": [],
             "ledger": [],
+            "rejected": [],
         }
         if replay_candidates:
             replay_result = self.insert_facts(
