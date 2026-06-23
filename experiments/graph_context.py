@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import json
 import re
 
+from compiled_memory import context_sort_key, format_fact_rows_for_llm
+
 
 def extract_seed_entities(ex: Dict[str, Any]) -> List[str]:
     """Heuristic seed extraction from a question (mirrors
@@ -62,30 +64,7 @@ def format_facts_from_jsonl(
             ]
     else:
         relevant = [f for f in facts if f.get("example_id") == example_id]
-    lines: List[str] = []
-    used = 0
-    for i, fact in enumerate(relevant, start=1):
-        subject = str(fact.get("subject", ""))
-        predicate = str(fact.get("predicate", ""))
-        obj = str(fact.get("object", ""))
-        support = str(fact.get("support_text", "")).strip()
-        eid = str(fact.get("example_id", ""))
-        prov = fact.get("provenance", []) or []
-        sent_ids = [str(p["sent_id"]) for p in prov if isinstance(p, dict) and "sent_id" in p]
-        sent_part = f"sent_id={','.join(sent_ids)}" if sent_ids else "sent_id=?"
-        head = f"[F{i}] {subject} -{predicate}-> {obj}"
-        evidence = (
-            f"     evidence: \"{support}\" ({eid}, {sent_part})"
-            if support else
-            f"     evidence: ({eid}, {sent_part})"
-        )
-        block = head + "\n" + evidence
-        if used + len(block) > max_chars:
-            lines.append(f"... [{len(relevant) - i + 1} more facts truncated]")
-            break
-        lines.append(block)
-        used += len(block) + 1
-    return "\n".join(lines)
+    return format_fact_rows_for_llm(relevant, max_chars=max_chars)
 
 
 def _row_key(row: Dict[str, Any]) -> str:
@@ -105,43 +84,7 @@ def format_fact_rows(
     """Format already-selected fact rows for LLM ingestion."""
     if not rows:
         return ""
-    sorted_rows = sorted(
-        rows,
-        key=lambda row: (str(row.get("example_id", "")), str(row.get("fact_id", ""))),
-    )
-    lines: List[str] = []
-    used = 0
-    rendered = 0
-    for i, row in enumerate(sorted_rows, start=1):
-        subject = str(row.get("subject", ""))
-        predicate = str(row.get("predicate", ""))
-        obj = str(row.get("object", ""))
-        support = str(row.get("support_text", "")).strip()
-        example_id = str(row.get("example_id", ""))
-        prov = row.get("provenance") or []
-        sent_ids = [
-            str(p.get("sent_id"))
-            for p in prov
-            if isinstance(p, dict) and "sent_id" in p
-        ] if isinstance(prov, list) else []
-        sent_part = f"sent_id={','.join(sent_ids)}" if sent_ids else "sent_id=?"
-        head = f"[F{i}] {subject} -{predicate}-> {obj}"
-        evidence = (
-            f"     evidence: \"{support}\" ({example_id}, {sent_part})"
-            if support else
-            f"     evidence: ({example_id}, {sent_part})"
-        )
-        block = head + "\n" + evidence
-        block_len = len(block) + 1
-        if used + block_len > max_chars:
-            remaining = len(sorted_rows) - rendered
-            if remaining > 0:
-                lines.append(f"... [truncated, {remaining} more facts]")
-            break
-        lines.append(block)
-        used += block_len
-        rendered += 1
-    return "\n".join(lines)
+    return format_fact_rows_for_llm(rows, max_chars=max_chars)
 
 
 def filter_rows_by_predicates(
@@ -251,9 +194,8 @@ class GraphSource:
             obj = str(fact.get("object", "")).lower()
             if any(seed in subject or seed in obj for seed in seeds_lower):
                 rows.append(fact)
-                if len(rows) >= limit_triples:
-                    break
-        return filter_rows_by_predicates(rows, predicates)
+        rows = filter_rows_by_predicates(rows, predicates)
+        return sorted(rows, key=context_sort_key)[:limit_triples]
 
     def format_rows(
         self,

@@ -32,6 +32,8 @@ from __future__ import annotations
 from compiled_memory import (
     compiled_memory_to_neo4j_properties,
     fact_to_compiled_memory,
+    facts_temporally_overlap,
+    format_fact_rows_for_llm,
 )
 from scallop_validator import DEFAULT_RULE_PARAMETERS, RuleParameters, validate_update_detailed
 
@@ -62,21 +64,22 @@ def sanitize_predicate(predicate: str) -> str:
 
 def _fact_to_params(fact: Fact, session_id: str) -> Dict[str, Any]:
     memory = fact_to_compiled_memory(fact)
+    compiled_fact = memory.to_fact()
     compiled_props = compiled_memory_to_neo4j_properties(memory)
     params = {
-        "subject": str(fact["subject"]),
-        "object": str(fact["object"]),
+        "subject": str(compiled_fact["subject"]),
+        "object": str(compiled_fact["object"]),
         "fact_id": str(fact["fact_id"]),
         "example_id": str(fact.get("example_id", "")),
         "session_id": session_id,
         "question": str(fact.get("question", "")),
-        "support_text": str(fact.get("support_text", "")),
-        "provenance_json": json.dumps(fact.get("provenance", []), ensure_ascii=False),
-        "qualifiers_json": json.dumps(fact.get("qualifiers", {}), ensure_ascii=False),
-        "question_relevance": str(fact.get("question_relevance", "")),
-        "confidence": str(fact.get("confidence", fact.get("status", "supported"))),
-        "normalization_notes": str(fact.get("normalization_notes", "")),
-        "verification_reason": str(fact.get("verification_reason", "")),
+        "support_text": str(compiled_fact.get("support_text", "")),
+        "provenance_json": json.dumps(compiled_fact.get("provenance", []), ensure_ascii=False),
+        "qualifiers_json": json.dumps(compiled_fact.get("qualifiers", {}), ensure_ascii=False),
+        "question_relevance": str(compiled_fact.get("question_relevance", "")),
+        "confidence": str(compiled_fact.get("confidence", fact.get("status", "supported"))),
+        "normalization_notes": str(compiled_fact.get("normalization_notes", "")),
+        "verification_reason": str(compiled_fact.get("verification_reason", "")),
     }
     params.update(compiled_props)
     # Preserve the public fact_id contract when callers pass an existing ID.
@@ -113,8 +116,18 @@ def _record_to_fact(record: Dict[str, Any]) -> Fact:
             or record.get("status")
             or "supported"
         ),
+        "confidence_score": record.get("confidence_score"),
+        "confidence_method": str(record.get("confidence_method", "")),
+        "provenance_quality": record.get("provenance_quality"),
         "normalization_notes": str(record.get("normalization_notes", "")),
         "verification_reason": str(record.get("verification_reason", "")),
+        "valid_from": str(record.get("valid_from", "")),
+        "valid_to": str(record.get("valid_to", "")),
+        "observed_at": str(record.get("observed_at", "")),
+        "document_id": str(record.get("document_id", "")),
+        "extractor_model": str(record.get("extractor_model", "")),
+        "verifier_model": str(record.get("verifier_model", "")),
+        "run_id": str(record.get("run_id", "")),
     }
     compiled = _json_property(record.get("compiled_memory_json"), None)
     if isinstance(compiled, dict):
@@ -267,6 +280,11 @@ class Neo4jGraph:
                     "    r.confidence_level = $confidence_level,\n"
                     "    r.confidence_score = $confidence_score,\n"
                     "    r.confidence_method = $confidence_method,\n"
+                    "    r.provenance_quality = $provenance_quality,\n"
+                    "    r.document_id = $document_id,\n"
+                    "    r.extractor_model = $extractor_model,\n"
+                    "    r.verifier_model = $verifier_model,\n"
+                    "    r.run_id = $run_id,\n"
                     "    r.decision_status = $decision_status,\n"
                     "    r.decision_validator = $decision_validator,\n"
                     "    r.decision_reason = $decision_reason,\n"
@@ -411,7 +429,20 @@ class Neo4jGraph:
             "  AND o.name <> $object\n"
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
-            "       r.example_id AS example_id, r.support_text AS support_text"
+            "       r.example_id AS example_id, r.support_text AS support_text,\n"
+            "       r.provenance_json AS provenance_json,\n"
+            "       r.qualifiers_json AS qualifiers_json,\n"
+            "       r.question_relevance AS question_relevance,\n"
+            "       r.confidence AS confidence,\n"
+            "       r.confidence_level AS confidence_level,\n"
+            "       r.confidence_score AS confidence_score,\n"
+            "       r.confidence_method AS confidence_method,\n"
+            "       r.provenance_quality AS provenance_quality,\n"
+            "       r.valid_from AS valid_from, r.valid_to AS valid_to,\n"
+            "       r.observed_at AS observed_at, r.document_id AS document_id,\n"
+            "       r.extractor_model AS extractor_model,\n"
+            "       r.verifier_model AS verifier_model, r.run_id AS run_id,\n"
+            "       r.compiled_memory_json AS compiled_memory_json"
         )
         with self._session() as session:
             result = session.run(
@@ -420,7 +451,7 @@ class Neo4jGraph:
                 object=str(object_),
                 session_id=sid,
             )
-            return [dict(record) for record in result]
+            return [_record_to_fact(dict(record)) for record in result]
 
     def validation_context_for_facts(
         self,
@@ -478,8 +509,15 @@ class Neo4jGraph:
             "       r.question_relevance AS question_relevance,\n"
             "       r.confidence AS confidence,\n"
             "       r.confidence_level AS confidence_level,\n"
+            "       r.confidence_score AS confidence_score,\n"
+            "       r.confidence_method AS confidence_method,\n"
+            "       r.provenance_quality AS provenance_quality,\n"
             "       r.normalization_notes AS normalization_notes,\n"
             "       r.verification_reason AS verification_reason,\n"
+            "       r.valid_from AS valid_from, r.valid_to AS valid_to,\n"
+            "       r.observed_at AS observed_at, r.document_id AS document_id,\n"
+            "       r.extractor_model AS extractor_model,\n"
+            "       r.verifier_model AS verifier_model, r.run_id AS run_id,\n"
             "       r.compiled_memory_json AS compiled_memory_json"
         )
         with self._session() as session:
@@ -735,8 +773,15 @@ class Neo4jGraph:
             "       r.question_relevance AS question_relevance,\n"
             "       r.confidence AS confidence,\n"
             "       r.confidence_level AS confidence_level,\n"
+            "       r.confidence_score AS confidence_score,\n"
+            "       r.confidence_method AS confidence_method,\n"
+            "       r.provenance_quality AS provenance_quality,\n"
             "       r.normalization_notes AS normalization_notes,\n"
             "       r.verification_reason AS verification_reason,\n"
+            "       r.valid_from AS valid_from, r.valid_to AS valid_to,\n"
+            "       r.observed_at AS observed_at, r.document_id AS document_id,\n"
+            "       r.extractor_model AS extractor_model,\n"
+            "       r.verifier_model AS verifier_model, r.run_id AS run_id,\n"
             "       r.compiled_memory_json AS compiled_memory_json"
         )
         with self._session() as session:
@@ -872,7 +917,20 @@ class Neo4jGraph:
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.example_id AS example_id,\n"
             "       r.session_id AS session_id, r.support_text AS support_text,\n"
-            "       r.provenance_json AS provenance_json, r.confidence AS confidence\n"
+            "       r.provenance_json AS provenance_json, r.confidence AS confidence,\n"
+            "       r.confidence_level AS confidence_level,\n"
+            "       r.confidence_score AS confidence_score,\n"
+            "       r.confidence_method AS confidence_method,\n"
+            "       r.provenance_quality AS provenance_quality,\n"
+            "       r.question_relevance AS question_relevance,\n"
+            "       r.valid_from AS valid_from, r.valid_to AS valid_to,\n"
+            "       r.observed_at AS observed_at, r.document_id AS document_id,\n"
+            "       r.extractor_model AS extractor_model,\n"
+            "       r.verifier_model AS verifier_model, r.run_id AS run_id\n"
+            "ORDER BY coalesce(r.confidence_score, 0.0) DESC,\n"
+            "         coalesce(r.provenance_quality, 0.0) DESC,\n"
+            "         coalesce(r.question_relevance, '') DESC,\n"
+            "         coalesce(r.example_id, ''), coalesce(r.fact_id, '')\n"
             f"LIMIT {limit_int}"
         )
         with self._session() as session:
@@ -882,19 +940,7 @@ class Neo4jGraph:
                 example_id=example_id,
                 session_id=session_id,
             )
-            rows: List[Dict[str, Any]] = []
-            for record in result:
-                row = dict(record)
-                prov_raw = row.get("provenance_json")
-                if isinstance(prov_raw, str) and prov_raw:
-                    try:
-                        row["provenance"] = json.loads(prov_raw)
-                    except json.JSONDecodeError:
-                        row["provenance"] = []
-                else:
-                    row["provenance"] = []
-                rows.append(row)
-            return rows
+            return [_record_to_fact(dict(record)) for record in result]
 
     # ------------------------------------------------------------------ format
 
@@ -912,45 +958,7 @@ class Neo4jGraph:
         if not rows:
             return ""
 
-        def sort_key(row: Dict[str, Any]):
-            return (str(row.get("example_id", "")), str(row.get("fact_id", "")))
-
-        sorted_rows = sorted(rows, key=sort_key)
-        lines: List[str] = []
-        used = 0
-        rendered = 0
-        for i, row in enumerate(sorted_rows, start=1):
-            subject = str(row.get("subject", ""))
-            predicate = str(row.get("predicate", ""))
-            obj = str(row.get("object", ""))
-            support = str(row.get("support_text", "")).strip()
-            example_id = str(row.get("example_id", ""))
-            prov = row.get("provenance") or []
-            sent_ids = []
-            if isinstance(prov, list):
-                for p in prov:
-                    if isinstance(p, dict) and "sent_id" in p:
-                        sent_ids.append(str(p.get("sent_id")))
-            sent_part = (
-                f"sent_id={','.join(sent_ids)}" if sent_ids else "sent_id=?"
-            )
-            head = f"[F{i}] {subject} -{predicate}-> {obj}"
-            evidence = (
-                f"     evidence: \"{support}\" ({example_id}, {sent_part})"
-                if support
-                else f"     evidence: ({example_id}, {sent_part})"
-            )
-            block = head + "\n" + evidence
-            block_len = len(block) + 1  # for trailing newline
-            if used + block_len > max_chars:
-                remaining = len(sorted_rows) - rendered
-                if remaining > 0:
-                    lines.append(f"... [truncated, {remaining} more facts]")
-                break
-            lines.append(block)
-            used += block_len
-            rendered += 1
-        return "\n".join(lines)
+        return format_fact_rows_for_llm(rows, max_chars=max_chars)
 
     # ------------------------------------------------------------------ admin
 

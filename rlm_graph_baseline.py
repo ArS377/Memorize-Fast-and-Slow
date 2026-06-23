@@ -37,6 +37,7 @@ from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
 from experiments.rlm_answerer import rlm_answer
+from experiments.graph_context import format_fact_rows
 
 
 # ------------------------------------------------------------------ helpers
@@ -109,32 +110,7 @@ def format_facts_from_jsonl(
     """
     relevant = [f for f in facts if f.get("example_id") == example_id]
 
-    lines = []
-    used = 0
-    for i, fact in enumerate(relevant, start=1):
-        subject = str(fact.get("subject", ""))
-        predicate = str(fact.get("predicate", ""))
-        obj = str(fact.get("object", ""))
-        support = str(fact.get("support_text", "")).strip()
-        eid = str(fact.get("example_id", ""))
-        prov = fact.get("provenance", [])
-        sent_ids = [str(p["sent_id"]) for p in prov if isinstance(p, dict) and "sent_id" in p]
-        sent_part = f"sent_id={','.join(sent_ids)}" if sent_ids else "sent_id=?"
-
-        head = f"[F{i}] {subject} -{predicate}-> {obj}"
-        evidence = (
-            f"     evidence: \"{support}\" ({eid}, {sent_part})"
-            if support else
-            f"     evidence: ({eid}, {sent_part})"
-        )
-        block = head + "\n" + evidence
-        if used + len(block) > max_chars:
-            lines.append(f"... [{len(relevant) - i + 1} more facts truncated]")
-            break
-        lines.append(block)
-        used += len(block) + 1
-
-    return "\n".join(lines)
+    return format_fact_rows(relevant, max_chars=max_chars)
 
 
 # ------------------------------------------------------------------ main

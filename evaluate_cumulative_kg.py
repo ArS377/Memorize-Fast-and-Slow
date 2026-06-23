@@ -50,6 +50,7 @@ from experiments.common import (
 from experiments.flat_answerer import flat_answer
 from experiments.graph_context import (
     extract_seed_entities,
+    format_fact_rows,
     load_facts_from_jsonl,
 )
 from scallop_validator import validate_update, confidence_score
@@ -147,32 +148,7 @@ def cumulative_context_jsonl(
     if validate and relevant:
         relevant = scallop_filter_facts(relevant)
 
-    # Format
-    lines: List[str] = []
-    used = 0
-    for i, fact in enumerate(relevant, start=1):
-        subject = str(fact.get("subject", ""))
-        predicate = str(fact.get("predicate", ""))
-        obj = str(fact.get("object", ""))
-        support = str(fact.get("support_text", "")).strip()
-        eid = str(fact.get("example_id", ""))
-        prov = fact.get("provenance", []) or []
-        sent_ids = [str(p["sent_id"]) for p in prov if isinstance(p, dict) and "sent_id" in p]
-        sent_part = f"sent_id={','.join(sent_ids)}" if sent_ids else "sent_id=?"
-        head = f"[F{i}] {subject} -{predicate}-> {obj}"
-        evidence = (
-            f"     evidence: \"{support}\" ({eid}, {sent_part})"
-            if support else
-            f"     evidence: ({eid}, {sent_part})"
-        )
-        block = head + "\n" + evidence
-        if used + len(block) > max_chars:
-            lines.append(f"... [{len(relevant) - i + 1} more facts truncated]")
-            break
-        lines.append(block)
-        used += len(block) + 1
-
-    context = "\n".join(lines)
+    context = format_fact_rows(relevant, max_chars=max_chars)
     n_triples = context.count("[F") if context else 0
     return context, n_triples
 

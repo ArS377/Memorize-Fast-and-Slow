@@ -151,12 +151,22 @@ def test_commit_facts_emits_expected_cypher_with_session_tag() -> None:
         assert "r.example_id = $example_id" in query
         assert "r.support_text = $support_text" in query
         assert "r.provenance_json = $provenance_json" in query
+        assert "r.confidence_score = $confidence_score" in query
+        assert "r.provenance_quality = $provenance_quality" in query
+        assert "r.document_id = $document_id" in query
+        assert "r.extractor_model = $extractor_model" in query
+        assert "r.verifier_model = $verifier_model" in query
+        assert "r.run_id = $run_id" in query
         assert params["session_id"] == "sess_test"
         assert params["fact_id"] == fact["fact_id"]
         assert params["subject"] == fact["subject"]
         assert params["object"] == fact["object"]
-        # provenance_json is JSON-encoded
-        assert json.loads(params["provenance_json"]) == fact["provenance"]
+        provenance = json.loads(params["provenance_json"])
+        assert provenance[0]["title"] == fact["provenance"][0]["title"]
+        assert provenance[0]["sent_id"] == fact["provenance"][0]["sent_id"]
+        assert "source_id" in provenance[0]
+        assert isinstance(params["confidence_score"], float)
+        assert isinstance(params["provenance_quality"], float)
     print("PASS test_commit_facts_emits_expected_cypher_with_session_tag")
 
 

@@ -117,6 +117,9 @@ def test_neo4j_query_generation():
         assert "r.qualifiers_json = $qualifiers_json" in query
         assert "r.question_relevance = $question_relevance" in query
         assert "r.confidence = $confidence" in query
+        assert "r.confidence_score = $confidence_score" in query
+        assert "r.provenance_quality = $provenance_quality" in query
+        assert "r.document_id = $document_id" in query
         assert "r.normalization_notes = $normalization_notes" in query
         assert "r.verification_reason = $verification_reason" in query
         
@@ -134,7 +137,11 @@ def test_neo4j_query_generation():
         
         # Check JSON fields
         provenance_json = json.loads(kwargs["provenance_json"])
-        assert provenance_json == fact["provenance"]
+        assert provenance_json[0]["title"] == fact["provenance"][0]["title"]
+        assert provenance_json[0]["sent_id"] == fact["provenance"][0]["sent_id"]
+        assert "source_id" in provenance_json[0]
+        assert isinstance(kwargs["confidence_score"], float)
+        assert isinstance(kwargs["provenance_quality"], float)
         
         qualifiers_json = json.loads(kwargs["qualifiers_json"])
         assert qualifiers_json == fact["qualifiers"]
@@ -197,6 +204,23 @@ def test_fact_id_generation():
     fact2["object"] = "West Indonesia"
     id3 = pipe.make_fact_id(example_id, fact2)
     assert id1 != id3, "Different facts should have different IDs"
+
+    fact_past = fact.copy()
+    fact_past["temporal"] = {"valid_from": "1990-01-01", "valid_to": "2000-12-31"}
+    fact_present = fact.copy()
+    fact_present["temporal"] = {"valid_from": "2020-01-01", "valid_to": None}
+    assert (
+        pipe.make_fact_id(example_id, fact_past)
+        != pipe.make_fact_id(example_id, fact_present)
+    ), "Distinct temporal intervals should produce distinct fact IDs"
+
+    fact_top_level_temporal = fact.copy()
+    fact_top_level_temporal["temporal"] = {}
+    fact_top_level_temporal["valid_from"] = "1990-01-01"
+    assert (
+        pipe.make_fact_id(example_id, fact_top_level_temporal)
+        != pipe.make_fact_id(example_id, fact)
+    ), "Top-level temporal bounds should participate in fact IDs"
     
     print("Fact ID generation test passed.")
     return True
