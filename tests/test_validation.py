@@ -9,6 +9,7 @@ from pathlib import Path
 # Add parent directory to path to import pipeline
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import longbench_kg_pipeline as pipe
+from scallop_validator import validate_update
 
 def test_self_reflection_questions():
     """Test that the verification prompt contains the required self-reflection questions."""
@@ -81,6 +82,7 @@ def test_fact_extraction_format():
         '"predicate": "UPPER_SNAKE_CASE_RELATION"',
         '"object": "canonical entity/value name"',
         '"qualifiers": {}',
+        '"temporal": {"valid_from": null, "valid_to": null}',
         '"provenance": [{"title": "...", "sent_id": 0}]',
         '"support_text": "exact supporting sentence(s)"',
         '"question_relevance": "why this fact could help answer the current multiple-choice question"',
@@ -184,6 +186,85 @@ def test_neo4j_format():
     print("Neo4j format validation passed.")
     return True
 
+
+def test_temporal_functional_facts_can_coexist_without_overlap():
+    existing = [{
+        "subject": "Exampleland",
+        "predicate": "CAPITAL_IS",
+        "object": "Old City",
+        "confidence": "supported",
+        "provenance": [{"title": "doc", "sent_id": 1}],
+        "support_text": "Old City was the capital of Exampleland until 2020.",
+        "temporal": {"valid_from": "2018-01-01", "valid_to": "2020-12-31"},
+        "fact_id": "old",
+    }]
+    new_non_overlapping = {
+        "subject": "Exampleland",
+        "predicate": "CAPITAL_IS",
+        "object": "New City",
+        "confidence": "supported",
+        "provenance": [{"title": "doc", "sent_id": 2}],
+        "support_text": "New City became the capital of Exampleland in 2021.",
+        "temporal": {"valid_from": "2021-01-01", "valid_to": None},
+        "fact_id": "new",
+    }
+    new_overlapping = {
+        **new_non_overlapping,
+        "temporal": {"valid_from": "2020-06-01", "valid_to": None},
+        "fact_id": "new_overlap",
+    }
+
+    decision, reason, replace_id = validate_update(existing, new_non_overlapping)
+    if decision != "accept":
+        print(f"ERROR: non-overlapping temporal fact should be accepted: {decision}, {reason}, {replace_id}")
+        return False
+
+    decision, reason, replace_id = validate_update(existing, new_overlapping)
+    if decision not in {"reject", "replace"}:
+        print(f"ERROR: overlapping temporal fact should conflict: {decision}, {reason}, {replace_id}")
+        return False
+
+    print("Temporal functional validation works correctly.")
+    return True
+
+
+def test_temporal_alive_dead_conflict_requires_overlap():
+    existing = [{
+        "subject": "Ada",
+        "predicate": "IS_ALIVE",
+        "object": "true",
+        "confidence": "supported",
+        "temporal": {"valid_from": "1815-01-01", "valid_to": "1852-11-27"},
+        "fact_id": "alive",
+    }]
+    later_dead = {
+        "subject": "Ada",
+        "predicate": "IS_ALIVE",
+        "object": "false",
+        "confidence": "supported",
+        "temporal": {"valid_from": "1852-11-28", "valid_to": None},
+        "fact_id": "dead_later",
+    }
+    overlapping_dead = {
+        **later_dead,
+        "temporal": {"valid_from": "1850-01-01", "valid_to": None},
+        "fact_id": "dead_overlap",
+    }
+
+    decision, reason, replace_id = validate_update(existing, later_dead)
+    if decision != "accept":
+        print(f"ERROR: non-overlapping alive/dead facts should be accepted: {decision}, {reason}, {replace_id}")
+        return False
+
+    decision, reason, replace_id = validate_update(existing, overlapping_dead)
+    if decision != "reject":
+        print(f"ERROR: overlapping alive/dead facts should reject: {decision}, {reason}, {replace_id}")
+        return False
+
+    print("Temporal alive/dead validation works correctly.")
+    return True
+
+
 def main():
     """Run all validation tests."""
     print("Testing pipeline validation logic...\n")
@@ -193,7 +274,9 @@ def main():
         ("Fact extraction format", test_fact_extraction_format),
         ("Status normalization", test_status_normalization),
         ("Predicate sanitization", test_predicate_sanitization),
-        ("Neo4j format", test_neo4j_format)
+        ("Neo4j format", test_neo4j_format),
+        ("Temporal functional validation", test_temporal_functional_facts_can_coexist_without_overlap),
+        ("Temporal alive/dead validation", test_temporal_alive_dead_conflict_requires_overlap),
     ]
     
     passed = 0

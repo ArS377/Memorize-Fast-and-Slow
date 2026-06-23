@@ -86,6 +86,262 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def _as_float(value: Any) -> Optional[float]:
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    if score > 1.0:
+        score = score / 100.0
+    return max(0.0, min(1.0, score))
+
+
+def _as_int(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_list(value: Any) -> List[Any]:
+    return value if isinstance(value, list) else []
+
+
+def _get_nested(mapping: Dict[str, Any], *keys: str) -> Any:
+    current: Any = mapping
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
+def _support_text_for_score(fact: Fact) -> str:
+    support = str(fact.get("support_text", "")).strip()
+    if support:
+        return support
+    compiled = fact.get("compiled_memory")
+    if isinstance(compiled, dict):
+        for entry in _as_list(compiled.get("provenance")):
+            if isinstance(entry, dict) and entry.get("support_text"):
+                return str(entry.get("support_text", "")).strip()
+    return ""
+
+
+def _provenance_entries(fact: Fact) -> List[Dict[str, Any]]:
+    provenance = _as_list(fact.get("provenance"))
+    if not provenance:
+        compiled = fact.get("compiled_memory")
+        if isinstance(compiled, dict):
+            provenance = _as_list(compiled.get("provenance"))
+    return [p for p in provenance if isinstance(p, dict)]
+
+
+def _span_bounds(entry: Dict[str, Any]) -> tuple[Optional[Any], Optional[Any]]:
+    start = entry.get("source_span_start")
+    end = entry.get("source_span_end")
+    span = entry.get("source_span")
+    if isinstance(span, dict):
+        start = span.get("start_char", span.get("start", start))
+        end = span.get("end_char", span.get("end", end))
+    return start, end
+
+
+def provenance_quality_score(fact: Fact) -> float:
+    """Return a 0..1 auditability score for a fact's evidence trail."""
+    entries = _provenance_entries(fact)
+    support = _support_text_for_score(fact)
+    if not entries:
+        stored_quality = _as_float(fact.get("provenance_quality"))
+        if stored_quality is not None:
+            return stored_quality
+        return 0.12 if support else 0.0
+
+    per_entry: List[float] = []
+    for entry in entries:
+        score = 0.0
+        if entry.get("source_id"):
+            score += 0.10
+        if entry.get("document_id") or entry.get("doc_id") or entry.get("title"):
+            score += 0.15
+        if entry.get("sentence_id") or entry.get("sent_id") is not None:
+            score += 0.20
+        start, end = _span_bounds(entry)
+        if start is not None and end is not None:
+            score += 0.25
+        if entry.get("support_text") or support:
+            score += 0.15
+        if entry.get("extractor_model") or fact.get("extractor_model"):
+            score += 0.05
+        if entry.get("verifier_model") or fact.get("verifier_model"):
+            score += 0.05
+        if entry.get("run_id") or fact.get("run_id"):
+            score += 0.05
+        per_entry.append(min(1.0, score))
+
+    multi_source_bonus = min(0.10, max(0, len(entries) - 1) * 0.03)
+    return min(1.0, (sum(per_entry) / len(per_entry)) + multi_source_bonus)
+
+
+def evidence_strength_score(fact: Fact) -> float:
+    """Weighted confidence score used for conflict resolution and ranking.
+
+    The score combines verifier/extractor confidence with evidence quality and
+    utility signals. It keeps the existing supported/uncertain/rejected labels
+    as a prior instead of letting them collapse all supported facts to one
+    value.
+    """
+    compiled_confidence = _get_nested(fact, "compiled_memory", "confidence")
+    raw_score = fact.get("confidence_score")
+    if raw_score is None and isinstance(compiled_confidence, dict):
+        raw_score = compiled_confidence.get("score")
+
+    explicit = _as_float(raw_score)
+    confidence_method = fact.get("confidence_method")
+    if confidence_method is None and isinstance(compiled_confidence, dict):
+        confidence_method = compiled_confidence.get("method")
+    if explicit is not None and confidence_method == "weighted_evidence_v1":
+        return round(explicit, 4)
+
+    raw_level = fact.get("confidence", fact.get("status", fact.get("confidence_level")))
+    if raw_level is None and isinstance(compiled_confidence, dict):
+        raw_level = compiled_confidence.get("level")
+    level = normalize_confidence_level(raw_level)
+    level_prior = {"supported": 0.78, "uncertain": 0.42, "rejected": 0.06}.get(level, 0.42)
+    base = explicit if explicit is not None else level_prior
+
+    provenance = provenance_quality_score(fact)
+    support = _support_text_for_score(fact)
+    support_bonus = 0.04 if support else 0.0
+    if len(support) >= 80:
+        support_bonus += 0.03
+    if str(fact.get("verification_reason", "")).strip():
+        support_bonus += 0.03
+    if str(fact.get("question_relevance", "")).strip():
+        support_bonus += 0.04
+
+    score = (0.72 * base) + (0.20 * provenance) + support_bonus
+    if fact.get("verifier_model") or fact.get("extractor_model"):
+        score += 0.02
+    if fact.get("run_id"):
+        score += 0.01
+    if level == "rejected":
+        score = min(score, 0.20)
+    return round(max(0.0, min(1.0, score)), 4)
+
+
+def context_rank_score(row: Fact) -> float:
+    """Score a retrieved fact row for context ordering."""
+    confidence = evidence_strength_score(row)
+    provenance = provenance_quality_score(row)
+    utility = 0.0
+    if str(row.get("question_relevance", "")).strip():
+        utility += 0.04
+    if str(row.get("support_text", "")).strip():
+        utility += 0.03
+    if row.get("retrieval_utility") is not None:
+        utility += 0.05 * (_as_float(row.get("retrieval_utility")) or 0.0)
+    return round(min(1.0, 0.78 * confidence + 0.17 * provenance + utility), 4)
+
+
+def context_sort_key(row: Fact) -> tuple:
+    return (
+        -context_rank_score(row),
+        str(row.get("example_id", "")),
+        str(row.get("fact_id", "")),
+        str(row.get("subject", "")),
+        str(row.get("predicate", "")),
+        str(row.get("object", "")),
+    )
+
+
+def temporal_scope_from_fact(fact: Fact) -> "TemporalScope":
+    temporal = fact.get("temporal", {})
+    if not isinstance(temporal, dict):
+        temporal = {}
+    compiled_temporal = _get_nested(fact, "compiled_memory", "temporal")
+    if isinstance(compiled_temporal, dict):
+        temporal = {**compiled_temporal, **temporal}
+    return TemporalScope(
+        valid_from=temporal.get("valid_from") or fact.get("valid_from"),
+        valid_to=temporal.get("valid_to") or fact.get("valid_to"),
+        observed_at=temporal.get("observed_at") or fact.get("observed_at") or "",
+    )
+
+
+def facts_temporally_overlap(left: Fact, right: Fact) -> bool:
+    return temporal_scope_from_fact(left).overlaps(temporal_scope_from_fact(right))
+
+
+def _metadata_for_context(row: Fact) -> str:
+    example_id = str(row.get("example_id", ""))
+    provenance = _provenance_entries(row)
+    sent_ids = [
+        str(p.get("sent_id"))
+        for p in provenance
+        if p.get("sent_id") is not None
+    ]
+    sent_part = f"sent_id={','.join(sent_ids)}" if sent_ids else "sent_id=?"
+    source = f"({example_id}, {sent_part})"
+
+    annotations = [
+        f"confidence={evidence_strength_score(row):.2f}",
+        f"provenance={provenance_quality_score(row):.2f}",
+    ]
+    valid_from = str(row.get("valid_from") or _get_nested(row, "temporal", "valid_from") or "")
+    valid_to = str(row.get("valid_to") or _get_nested(row, "temporal", "valid_to") or "")
+    if valid_from or valid_to:
+        annotations.append(f"valid={valid_from or '..'}..{valid_to or '..'}")
+    if provenance:
+        spans = []
+        docs = []
+        for entry in provenance[:2]:
+            doc = entry.get("document_id") or entry.get("doc_id") or entry.get("title")
+            if doc:
+                docs.append(str(doc))
+            start, end = _span_bounds(entry)
+            if start is not None and end is not None:
+                spans.append(f"{start}:{end}")
+        if docs:
+            annotations.append(f"doc={','.join(dict.fromkeys(docs))}")
+        if spans:
+            annotations.append(f"span={','.join(spans)}")
+    return f"{source} [{', '.join(annotations)}]"
+
+
+def format_fact_rows_for_llm(rows: List[Fact], max_chars: int = 4000) -> str:
+    """Rank and render fact rows for LLM context."""
+    if not rows:
+        return ""
+    sorted_rows = sorted(rows, key=context_sort_key)
+    lines: List[str] = []
+    used = 0
+    rendered = 0
+    for i, row in enumerate(sorted_rows, start=1):
+        subject = str(row.get("subject", ""))
+        predicate = str(row.get("predicate", ""))
+        obj = str(row.get("object", ""))
+        support = str(row.get("support_text", "")).strip()
+        head = f"[F{i}] {subject} -{predicate}-> {obj}"
+        metadata = _metadata_for_context(row)
+        evidence = (
+            f"     evidence: \"{support}\" {metadata}"
+            if support
+            else f"     evidence: {metadata}"
+        )
+        block = head + "\n" + evidence
+        block_len = len(block) + 1
+        if used + block_len > max_chars:
+            remaining = len(sorted_rows) - rendered
+            if remaining > 0:
+                lines.append(f"... [truncated, {remaining} more facts]")
+            break
+        lines.append(block)
+        used += block_len
+        rendered += 1
+    return "\n".join(lines)
+
+
 @dataclass
 class CompiledEntity:
     name: str
@@ -145,21 +401,68 @@ class ProvenanceRecord:
     title: str = ""
     sent_id: Optional[Any] = None
     support_text: str = ""
+    document_id: str = ""
+    sentence_id: str = ""
+    source_span_start: Optional[int] = None
+    source_span_end: Optional[int] = None
+    local_sent_id: Optional[Any] = None
+    chunk_index: Optional[int] = None
+    extractor_model: str = ""
+    verifier_model: str = ""
+    run_id: str = ""
 
     @classmethod
-    def from_fact_entry(cls, entry: Any, support_text: str = "") -> "ProvenanceRecord":
+    def from_fact_entry(
+        cls,
+        entry: Any,
+        support_text: str = "",
+        fact: Optional[Fact] = None,
+    ) -> "ProvenanceRecord":
+        fact = fact or {}
         if isinstance(entry, dict):
             title = str(entry.get("title", ""))
             sent_id = entry.get("sent_id")
-            source_id = str(entry.get("source_id") or stable_id("source", [title, sent_id]))
+            document_id = str(
+                entry.get("document_id")
+                or entry.get("doc_id")
+                or fact.get("document_id")
+                or fact.get("example_id")
+                or title
+            )
+            sentence_id = str(
+                entry.get("sentence_id")
+                or (f"{document_id}:{sent_id}" if document_id and sent_id is not None else "")
+            )
+            start, end = _span_bounds(entry)
+            source_id = str(
+                entry.get("source_id")
+                or stable_id("source", [document_id, title, sent_id, start, end])
+            )
             return cls(
                 source_id=source_id,
                 title=title,
                 sent_id=sent_id,
                 support_text=str(entry.get("support_text") or support_text or ""),
+                document_id=document_id,
+                sentence_id=sentence_id,
+                source_span_start=_as_int(start),
+                source_span_end=_as_int(end),
+                local_sent_id=entry.get("local_sent_id"),
+                chunk_index=entry.get("chunk_index", fact.get("chunk_index")),
+                extractor_model=str(entry.get("extractor_model") or fact.get("extractor_model", "")),
+                verifier_model=str(entry.get("verifier_model") or fact.get("verifier_model", "")),
+                run_id=str(entry.get("run_id") or fact.get("run_id", "")),
             )
         text = str(entry or "")
-        return cls(source_id=stable_id("source", [text]), title=text, support_text=support_text)
+        return cls(
+            source_id=stable_id("source", [text]),
+            title=text,
+            support_text=support_text,
+            document_id=str(fact.get("document_id") or fact.get("example_id") or ""),
+            extractor_model=str(fact.get("extractor_model", "")),
+            verifier_model=str(fact.get("verifier_model", "")),
+            run_id=str(fact.get("run_id", "")),
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -177,6 +480,12 @@ class ConfidenceRecord:
             self.score = {"supported": 0.9, "uncertain": 0.5, "rejected": 0.1}.get(
                 self.level, 0.5
             )
+        else:
+            self.score = _as_float(self.score)
+            if self.score is None:
+                self.score = {"supported": 0.9, "uncertain": 0.5, "rejected": 0.1}.get(
+                    self.level, 0.5
+                )
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -221,6 +530,10 @@ class CompiledRelationship:
     question_relevance: str = ""
     normalization_notes: str = ""
     verification_reason: str = ""
+    document_id: str = ""
+    extractor_model: str = ""
+    verifier_model: str = ""
+    run_id: str = ""
 
     def __post_init__(self) -> None:
         self.predicate = sanitize_predicate(self.predicate)
@@ -266,6 +579,10 @@ class CompiledRelationship:
             "question_relevance": self.question_relevance,
             "normalization_notes": self.normalization_notes,
             "verification_reason": self.verification_reason,
+            "document_id": self.document_id,
+            "extractor_model": self.extractor_model,
+            "verifier_model": self.verifier_model,
+            "run_id": self.run_id,
         }
 
     def to_fact(self) -> Fact:
@@ -275,23 +592,39 @@ class CompiledRelationship:
             "predicate": self.predicate,
             "object": self.object.name,
             "qualifiers": dict(self.qualifiers),
+            "temporal": self.temporal.to_dict(),
             "provenance": [
                 {
                     "source_id": p.source_id,
                     "title": p.title,
                     "sent_id": p.sent_id,
                     "support_text": p.support_text,
+                    "document_id": p.document_id,
+                    "sentence_id": p.sentence_id,
+                    "source_span_start": p.source_span_start,
+                    "source_span_end": p.source_span_end,
+                    "local_sent_id": p.local_sent_id,
+                    "chunk_index": p.chunk_index,
+                    "extractor_model": p.extractor_model,
+                    "verifier_model": p.verifier_model,
+                    "run_id": p.run_id,
                 }
                 for p in self.provenance
             ],
             "support_text": self.support_text,
             "question_relevance": self.question_relevance,
             "confidence": self.confidence.level,
+            "confidence_score": self.confidence.score,
+            "confidence_method": self.confidence.method,
             "normalization_notes": self.normalization_notes,
             "example_id": self.example_id,
+            "document_id": self.document_id,
             "fact_id": self.memory_id,
             "question": self.question,
             "verification_reason": self.verification_reason,
+            "extractor_model": self.extractor_model,
+            "verifier_model": self.verifier_model,
+            "run_id": self.run_id,
             "compiled_memory": self.to_dict(),
         }
         return fact
@@ -327,6 +660,10 @@ def fact_to_compiled_memory(fact: Fact) -> CompiledRelationship:
         fact.setdefault("question_relevance", compiled.get("question_relevance", ""))
         fact.setdefault("normalization_notes", compiled.get("normalization_notes", ""))
         fact.setdefault("verification_reason", compiled.get("verification_reason", ""))
+        fact.setdefault("document_id", compiled.get("document_id", ""))
+        fact.setdefault("extractor_model", compiled.get("extractor_model", ""))
+        fact.setdefault("verifier_model", compiled.get("verifier_model", ""))
+        fact.setdefault("run_id", compiled.get("run_id", ""))
         if isinstance(confidence_raw, dict):
             fact.setdefault("confidence", confidence_raw.get("level", DEFAULT_CONFIDENCE_LEVEL))
             fact.setdefault("confidence_score", confidence_raw.get("score"))
@@ -352,18 +689,12 @@ def fact_to_compiled_memory(fact: Fact) -> CompiledRelationship:
         valid_to=temporal_raw.get("valid_to") or fact.get("valid_to"),
         observed_at=temporal_raw.get("observed_at") or fact.get("observed_at"),
     )
-    confidence_raw = fact.get("confidence", fact.get("status", DEFAULT_CONFIDENCE_LEVEL))
-    confidence = ConfidenceRecord(
-        level=confidence_raw,
-        score=fact.get("confidence_score"),
-        method=fact.get("confidence_method", "llm_self_reflection"),
-    )
     provenance_raw = fact.get("provenance", [])
     if not isinstance(provenance_raw, list):
         provenance_raw = []
     support_text = str(fact.get("support_text", ""))
     provenance = [
-        ProvenanceRecord.from_fact_entry(entry, support_text=support_text)
+        ProvenanceRecord.from_fact_entry(entry, support_text=support_text, fact=fact)
         for entry in provenance_raw
     ]
     if support_text and not provenance:
@@ -373,8 +704,26 @@ def fact_to_compiled_memory(fact: Fact) -> CompiledRelationship:
                 title=str(fact.get("example_id", "")),
                 sent_id=None,
                 support_text=support_text,
+                document_id=str(fact.get("document_id") or fact.get("example_id", "")),
+                chunk_index=fact.get("chunk_index"),
+                extractor_model=str(fact.get("extractor_model", "")),
+                verifier_model=str(fact.get("verifier_model", "")),
+                run_id=str(fact.get("run_id", "")),
             )
         ]
+    score_fact = dict(fact)
+    score_fact["provenance"] = [p.to_dict() for p in provenance]
+    score_fact["document_id"] = str(fact.get("document_id") or fact.get("example_id", ""))
+    confidence_raw = fact.get("confidence", fact.get("status", DEFAULT_CONFIDENCE_LEVEL))
+    confidence_score = fact.get("confidence_score")
+    confidence = ConfidenceRecord(
+        level=confidence_raw,
+        score=confidence_score if confidence_score is not None else evidence_strength_score(score_fact),
+        method=fact.get(
+            "confidence_method",
+            "explicit_confidence_score" if confidence_score is not None else "weighted_evidence_v1",
+        ),
+    )
 
     predicate = sanitize_predicate(str(fact.get("predicate", "")))
     constraints_raw = fact.get("constraints", {})
@@ -425,6 +774,10 @@ def fact_to_compiled_memory(fact: Fact) -> CompiledRelationship:
         question_relevance=str(fact.get("question_relevance", "")),
         normalization_notes=str(fact.get("normalization_notes", "")),
         verification_reason=str(fact.get("verification_reason", "")),
+        document_id=str(fact.get("document_id") or fact.get("example_id", "")),
+        extractor_model=str(fact.get("extractor_model", "")),
+        verifier_model=str(fact.get("verifier_model", "")),
+        run_id=str(fact.get("run_id", "")),
     )
 
 
@@ -520,6 +873,11 @@ def compiled_memory_to_neo4j_properties(memory: CompiledRelationship) -> Dict[st
         "confidence_level": memory.confidence.level,
         "confidence_score": float(memory.confidence.score or 0.0),
         "confidence_method": memory.confidence.method,
+        "provenance_quality": provenance_quality_score(memory.to_fact()),
+        "document_id": memory.document_id,
+        "extractor_model": memory.extractor_model,
+        "verifier_model": memory.verifier_model,
+        "run_id": memory.run_id,
         "decision_status": memory.decision.status,
         "decision_validator": memory.decision.validator,
         "decision_reason": memory.decision.reason or "",

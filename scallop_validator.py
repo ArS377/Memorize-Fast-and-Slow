@@ -8,6 +8,12 @@ try:
 except ImportError:  # Keep non-Scallop tests/imports usable.
     scallopy = None
 
+from compiled_memory import (
+    evidence_strength_score,
+    facts_temporally_overlap,
+    sanitize_predicate,
+)
+
 
 @dataclass(frozen=True)
 class RuleParameters:
@@ -131,23 +137,19 @@ def _replace(
 def confidence_score(fact, rule_params: Optional[RuleParameters] = None):
     """
     Numeric score for a fact dict. Higher = more trustworthy.
-    Primary: confidence level (supported > uncertain > rejected).
-    Tiebreaker: provenance count (more source citations = more reliable).
+    Uses weighted evidence strength rather than only the coarse confidence
+    label. Returned on a 0..100 scale for readable validator messages.
     """
-    params = rule_params or DEFAULT_RULE_PARAMETERS
-    level = params.confidence_weights.get(
-        str(fact.get("confidence", "")).lower(), 0
-    )
-    provenance_count = len(fact.get("provenance", []))
-    return (
-        level * params.confidence_multiplier
-        + provenance_count * params.provenance_weight
-    )
+    return round(evidence_strength_score(fact) * 100, 2)
 
 
 def _to_triple(fact):
     """Extract (subject, predicate, object) tuple from a fact dict."""
-    return (str(fact["subject"]), str(fact["predicate"]), str(fact["object"]))
+    return (
+        str(fact["subject"]),
+        sanitize_predicate(str(fact["predicate"])),
+        str(fact["object"]),
+    )
 
 
 def _python_symbolic_checks(
@@ -173,8 +175,9 @@ def _python_symbolic_checks(
                     (
                         e for e in existing_facts
                         if str(e["subject"]) == subj
-                        and str(e["predicate"]) == pred
+                        and sanitize_predicate(str(e["predicate"])) == pred
                         and str(e["object"]) != obj
+                        and facts_temporally_overlap(e, new_fact)
                     ),
                     None,
                 )
@@ -244,7 +247,7 @@ def validate_update_detailed(
     """
     params = rule_params or DEFAULT_RULE_PARAMETERS
     subj = str(new_fact["subject"])
-    pred = str(new_fact["predicate"])
+    pred = sanitize_predicate(str(new_fact["predicate"]))
     obj = str(new_fact["object"])
 
     # --- Python-side checks (fast, no Scallop needed) ---
@@ -277,7 +280,10 @@ def validate_update_detailed(
         )
 
     new_triple = _to_triple(new_fact)
-    if any(_to_triple(e) == new_triple for e in existing_facts):
+    if any(
+        _to_triple(e) == new_triple and facts_temporally_overlap(e, new_fact)
+        for e in existing_facts
+    ):
         return _reject(
             f"Redundancy: {new_triple} already exists",
             code="duplicate_fact",
@@ -288,7 +294,14 @@ def validate_update_detailed(
 
     # --- Scallop-side checks (symbolic reasoning) ---
 
-    existing_triples = [_to_triple(e) for e in existing_facts]
+    # Symbolic contradictions apply only across overlapping temporal scopes.
+    # Atemporal facts keep the old behavior because unbounded scopes overlap
+    # everything.
+    temporally_relevant_existing = [
+        e for e in existing_facts
+        if facts_temporally_overlap(e, new_fact)
+    ]
+    existing_triples = [_to_triple(e) for e in temporally_relevant_existing]
 
     if scallopy is None:
         return _python_symbolic_checks(
@@ -335,8 +348,9 @@ def validate_update_detailed(
         conflicting = next(
             (e for e in existing_facts
              if str(e["subject"]) == s
-             and str(e["predicate"]) == p
-             and str(e["object"]) != obj),
+             and sanitize_predicate(str(e["predicate"])) == p
+             and str(e["object"]) != obj
+             and facts_temporally_overlap(e, new_fact)),
             None,
         )
         if conflicting is not None:
