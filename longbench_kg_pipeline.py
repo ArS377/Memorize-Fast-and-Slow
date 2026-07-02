@@ -329,6 +329,7 @@ class LongBenchKGPipeline:
             "messages": messages,
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
+            "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
         }
         if self.config.use_json_mode:
             kwargs["response_format"] = {"type": "json_object"}

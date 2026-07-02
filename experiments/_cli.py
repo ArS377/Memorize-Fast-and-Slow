@@ -46,6 +46,12 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--raw-max-chars", type=int, default=32000,
                        help="Truncate raw context to this many chars")
 
+    if kind == "flat":
+        p.add_argument("--max-completion-tokens", type=int, default=2048,
+                       help="Maximum tokens for the flat LLM answer call")
+        p.add_argument("--disable-thinking", action="store_true",
+                       help="Disable Qwen3 thinking mode for faster flat-cell runs")
+
     # KG cells
     if retrieval == "kg":
         p.add_argument("--neo4j-uri", default=os.getenv("NEO4J_URI", "bolt://localhost:7687"))
@@ -221,7 +227,14 @@ def run_cell(
                 try:
                     if kind == "flat":
                         from experiments.flat_answerer import flat_answer
-                        predicted, _raw = flat_answer(client, args.model, context, question)
+                        predicted, _raw = flat_answer(
+                            client,
+                            args.model,
+                            context,
+                            question,
+                            max_tokens=args.max_completion_tokens,
+                            enable_thinking=not args.disable_thinking,
+                        )
                     else:
                         from experiments.rlm_answerer import make_rlm, rlm_answer
                         rlm = make_rlm(
