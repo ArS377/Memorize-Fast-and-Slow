@@ -84,6 +84,8 @@ def build_kg(
     limit: Optional[int] = None,
     rebuild: bool = False,
     chunk_chars: int = 12000,
+    max_tokens: int = 2048,
+    max_chunks_per_example: Optional[int] = None,
     verify_batch_size: int = 20,
     facts_out_dir: Path = Path("results/kg_builds"),
 ) -> Path:
@@ -149,9 +151,9 @@ def build_kg(
             vllm_base_url=vllm_base_url,
             api_key=api_key,
             temperature=0.0,
-            max_tokens=2048,
+            max_tokens=max_tokens,
             chunk_chars=chunk_chars,
-            max_chunks_per_example=None,
+            max_chunks_per_example=max_chunks_per_example,
             limit=None,
             sleep_seconds=0.0,
             use_json_mode=False,
@@ -170,9 +172,15 @@ def build_kg(
 
             sentence_records = flatten_context_to_sentence_records(example)
             chunks = chunk_sentence_records(sentence_records, chunk_chars)
+            if max_chunks_per_example is not None:
+                chunks = chunks[:max_chunks_per_example]
 
             extracted: List[Dict[str, Any]] = []
             for ci, chunk in enumerate(chunks):
+                print(
+                    f"           chunk {ci + 1}/{len(chunks)} chars={len(chunk)}",
+                    file=sys.stderr,
+                )
                 extracted.extend(pipeline.extract_facts(example, chunk, ci))
 
             verified = pipeline.verify_facts(example, extracted)
@@ -261,6 +269,8 @@ def _add_cli(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--rebuild", action="store_true",
                         help="Wipe the target session before rebuilding")
     parser.add_argument("--chunk-chars", type=int, default=12000)
+    parser.add_argument("--max-tokens", type=int, default=2048)
+    parser.add_argument("--max-chunks-per-example", type=int, default=None)
     parser.add_argument("--verify-batch-size", type=int, default=20)
     parser.add_argument("--facts-out-dir", type=Path, default=Path("results/kg_builds"))
 
@@ -284,6 +294,8 @@ def main(argv: Optional[List[str]] = None) -> Path:
         limit=args.limit,
         rebuild=args.rebuild,
         chunk_chars=args.chunk_chars,
+        max_tokens=args.max_tokens,
+        max_chunks_per_example=args.max_chunks_per_example,
         verify_batch_size=args.verify_batch_size,
         facts_out_dir=args.facts_out_dir,
     )
