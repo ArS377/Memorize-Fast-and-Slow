@@ -29,6 +29,20 @@ KG_SESSIONS = {2: "pilot_noscallop", 3: "pilot_scallop",
                5: "pilot_noscallop", 6: "pilot_scallop"}
 
 
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return parsed
+
+
+def _positive_float(value: str) -> float:
+    parsed = float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be positive")
+    return parsed
+
+
 def _git_sha() -> Optional[str]:
     try:
         out = subprocess.check_output(
@@ -90,11 +104,17 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             "--max-iterations", str(args.max_iterations),
             "--max-tokens", str(args.max_tokens),
         ]
-        if cell_id in (5, 6) and args.rlm_retrieval:
-            base += [
-                "--rlm-retrieval",
-                "--rlm-retrieval-steps", str(args.rlm_retrieval_steps),
-            ]
+        if cell_id in (5, 6):
+            if args.qwen_tool_retrieval:
+                base += [
+                    "--qwen-tool-retrieval",
+                    "--max-tool-calls", str(args.max_tool_calls),
+                    "--tool-choice", args.tool_choice,
+                    "--tool-timeout", str(args.tool_timeout),
+                    "--tool-max-tokens", str(args.tool_max_tokens),
+                ]
+                if args.tool_trace_dir is not None:
+                    base += ["--tool-trace-dir", str(args.tool_trace_dir / f"cell{cell_id}")]
     return base
 
 
@@ -121,13 +141,21 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--max-depth", type=int, default=2)
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
-    parser.add_argument("--rlm-retrieval", action="store_true",
-                        help="Enable RLM-planned iterative KG retrieval for cells 5/6")
-    parser.add_argument("--rlm-retrieval-steps", type=int, default=3)
+    parser.add_argument(
+        "--qwen-tool-retrieval",
+        action="store_true",
+        help="Enable native Qwen KG tool calls inside the RLM loop for cells 5/6",
+    )
+    parser.add_argument("--max-tool-calls", type=_positive_int, default=3)
+    parser.add_argument("--tool-choice", choices=["auto", "required"], default="auto")
+    parser.add_argument("--tool-timeout", type=_positive_float, default=30.0)
+    parser.add_argument("--tool-trace-dir", type=Path, default=None)
+    parser.add_argument("--tool-max-tokens", type=_positive_int, default=2048)
     args = parser.parse_args(argv)
 
     cells = _parse_cells(args.cells)
     args.results_dir.mkdir(parents=True, exist_ok=True)
+    orchestration_mode = "qwen_native_tool_inside_rlm" if args.qwen_tool_retrieval else "fixed"
 
     metadata = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -146,8 +174,13 @@ def main(argv: Optional[List[str]] = None) -> None:
         "max_depth": args.max_depth,
         "max_iterations": args.max_iterations,
         "max_tokens": args.max_tokens,
-        "rlm_retrieval": args.rlm_retrieval,
-        "rlm_retrieval_steps": args.rlm_retrieval_steps,
+        "orchestration_mode": orchestration_mode,
+        "qwen_tool_retrieval": args.qwen_tool_retrieval,
+        "max_tool_calls": args.max_tool_calls,
+        "tool_choice": args.tool_choice,
+        "tool_timeout": args.tool_timeout,
+        "tool_trace_dir": str(args.tool_trace_dir) if args.tool_trace_dir else None,
+        "tool_max_tokens": args.tool_max_tokens,
     }
     (args.results_dir / "run_metadata.json").write_text(
         json.dumps(metadata, indent=2), encoding="utf-8"

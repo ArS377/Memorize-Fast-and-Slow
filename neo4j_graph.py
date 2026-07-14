@@ -84,7 +84,34 @@ def _fact_to_params(fact: Fact, session_id: str) -> Dict[str, Any]:
     params.update(compiled_props)
     # Preserve the public fact_id contract when callers pass an existing ID.
     params["fact_id"] = str(fact["fact_id"])
+    params["rule_params_version"] = str(fact.get("rule_params_version", ""))
     return params
+
+
+def _fact_with_decision(
+    fact: Fact,
+    *,
+    status: str,
+    validator: str,
+    reason: str,
+    replaces: Optional[str],
+    rule_params_version: Optional[str],
+) -> Fact:
+    committed = dict(fact)
+    decision = dict(committed.get("decision", {})) if isinstance(
+        committed.get("decision"), dict
+    ) else {}
+    decision.update(
+        {
+            "status": status,
+            "validator": validator,
+            "reason": reason,
+            "replaces": replaces,
+        }
+    )
+    committed["decision"] = decision
+    committed["rule_params_version"] = rule_params_version or ""
+    return committed
 
 
 def _json_property(value: Any, fallback: Any) -> Any:
@@ -154,6 +181,10 @@ def _record_to_fact(record: Dict[str, Any]) -> Fact:
         "extractor_model": str(record.get("extractor_model", "")),
         "verifier_model": str(record.get("verifier_model", "")),
         "run_id": str(record.get("run_id", "")),
+        "decision_status": str(record.get("decision_status", "")),
+        "decision_validator": str(record.get("decision_validator", "")),
+        "decision_reason": str(record.get("decision_reason", "")),
+        "rule_params_version": str(record.get("rule_params_version", "")),
     }
     compiled = _json_property(record.get("compiled_memory_json"), None)
     if isinstance(compiled, dict):
@@ -314,6 +345,7 @@ class Neo4jGraph:
                     "    r.decision_status = $decision_status,\n"
                     "    r.decision_validator = $decision_validator,\n"
                     "    r.decision_reason = $decision_reason,\n"
+                    "    r.rule_params_version = $rule_params_version,\n"
                     "    r.replaces_memory_id = $replaces_memory_id,\n"
                     "    r.constraints_json = $constraints_json,\n"
                     "    r.compiled_memory_json = $compiled_memory_json"
@@ -652,7 +684,18 @@ class Neo4jGraph:
         proposal = self.propose_facts(facts, session_id=session_id)
 
         if not validate:
-            committed = self.commit_facts(proposal["new"], session_id=session_id)
+            accepted_facts = [
+                _fact_with_decision(
+                    fact,
+                    status="accept",
+                    validator="none",
+                    reason="Accepted without validation",
+                    replaces=None,
+                    rule_params_version=None,
+                )
+                for fact in proposal["new"]
+            ]
+            committed = self.commit_facts(accepted_facts, session_id=session_id)
             ledger = [
                 self._record_decision_ledger(
                     candidate=fact,
@@ -708,8 +751,16 @@ class Neo4jGraph:
             replace_id = validation.replace_fact_id
 
             if decision == "accept":
-                valid_facts.append(fact)
-                existing_fact_dicts.append(fact)
+                committed_fact = _fact_with_decision(
+                    fact,
+                    status=decision,
+                    validator="scallop",
+                    reason=reason,
+                    replaces=replace_id,
+                    rule_params_version=validation.rule_params_version,
+                )
+                valid_facts.append(committed_fact)
+                existing_fact_dicts.append(committed_fact)
                 ledger.append(
                     {
                         "candidate": fact,
@@ -730,8 +781,16 @@ class Neo4jGraph:
                         e for e in existing_fact_dicts
                         if e.get("fact_id") != replace_id
                     ]
-                valid_facts.append(fact)
-                existing_fact_dicts.append(fact)
+                committed_fact = _fact_with_decision(
+                    fact,
+                    status=decision,
+                    validator="scallop",
+                    reason=reason,
+                    replaces=replace_id,
+                    rule_params_version=validation.rule_params_version,
+                )
+                valid_facts.append(committed_fact)
+                existing_fact_dicts.append(committed_fact)
                 ledger.append(
                     {
                         "candidate": fact,
@@ -969,7 +1028,12 @@ class Neo4jGraph:
             "       r.valid_from AS valid_from, r.valid_to AS valid_to,\n"
             "       r.observed_at AS observed_at, r.document_id AS document_id,\n"
             "       r.extractor_model AS extractor_model,\n"
-            "       r.verifier_model AS verifier_model, r.run_id AS run_id\n"
+            "       r.verifier_model AS verifier_model, r.run_id AS run_id,\n"
+            "       r.decision_status AS decision_status,\n"
+            "       r.decision_validator AS decision_validator,\n"
+            "       r.decision_reason AS decision_reason,\n"
+            "       r.rule_params_version AS rule_params_version,\n"
+            "       r.compiled_memory_json AS compiled_memory_json\n"
             "ORDER BY coalesce(r.confidence_score, 0.0) DESC,\n"
             "         coalesce(r.provenance_quality, 0.0) DESC,\n"
             "         coalesce(r.question_relevance, '') DESC,\n"

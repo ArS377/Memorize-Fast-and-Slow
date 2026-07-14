@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -17,12 +18,39 @@ from typing import Any, Dict, List, Optional
 
 from experiments.common import (
     cell_output_path,
-    extract_letter,
     format_question,
     iter_pilot_examples,
     truncate_context,
     write_result_row,
 )
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return parsed
+
+
+def _positive_float(value: str) -> float:
+    parsed = float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be positive")
+    return parsed
+
+
+def _write_tool_trace(
+    trace_dir: Path,
+    *,
+    example_id: str,
+    index: int,
+    trace: Dict[str, Any],
+) -> Path:
+    trace_dir.mkdir(parents=True, exist_ok=True)
+    safe_id = re.sub(r"[^A-Za-z0-9._-]+", "_", example_id).strip("._") or "example"
+    path = trace_dir / f"{index:04d}_{safe_id}.json"
+    path.write_text(json.dumps(trace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> argparse.ArgumentParser:
@@ -88,10 +116,41 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--log-dir", type=Path, default=Path("rlm_logs_ablation"))
         p.add_argument("--verbose", action="store_true")
         if retrieval == "kg":
-            p.add_argument("--rlm-retrieval", action="store_true",
-                           help="Use RLM to plan iterative KG retrieval before answering")
-            p.add_argument("--rlm-retrieval-steps", type=int, default=3,
-                           help="Maximum retrieval-planning steps per example")
+            p.add_argument(
+                "--qwen-tool-retrieval",
+                action="store_true",
+                help="Let root Qwen use native KG tool calls inside the RLM loop",
+            )
+            p.add_argument(
+                "--max-tool-calls",
+                type=_positive_int,
+                default=3,
+                help="Maximum native knowledge-graph tool calls per example",
+            )
+            p.add_argument(
+                "--tool-choice",
+                choices=["auto", "required"],
+                default="auto",
+                help="OpenAI-compatible tool selection mode before the call limit",
+            )
+            p.add_argument(
+                "--tool-timeout",
+                type=_positive_float,
+                default=30.0,
+                help="Maximum seconds allowed for one graph-tool execution",
+            )
+            p.add_argument(
+                "--tool-trace-dir",
+                type=Path,
+                default=None,
+                help="Trace directory (default: beside the cell output)",
+            )
+            p.add_argument(
+                "--tool-max-tokens",
+                type=_positive_int,
+                default=2048,
+                help="Maximum completion tokens for each Qwen tool-loop turn",
+            )
 
     return p
 
@@ -135,13 +194,18 @@ def run_cell(
         file=sys.stderr,
     )
 
+    qwen_tool_mode = bool(
+        kind == "rlm"
+        and retrieval == "kg"
+        and getattr(args, "qwen_tool_retrieval", False)
+    )
     # Lazy-imported answerer + memory builder
     client = None
     rlm_log_dir = None
     if kind == "flat":
         from openai import OpenAI
         client = OpenAI(base_url=args.vllm_base_url, api_key=args.api_key)
-    else:
+    if kind == "rlm":
         rlm_log_dir = args.log_dir
 
     graph_source = None
@@ -172,14 +236,32 @@ def run_cell(
                 if retrieval == "raw":
                     context = truncate_context(ex.get("context", ""), args.raw_max_chars)
                     n_triples = 0
+                    n_context_chars = len(context)
+                elif qwen_tool_mode:
+                    # The root RLM sees the question before native retrieval.
+                    context = ""
+                    n_triples = 0
+                    n_context_chars = 0
                 else:
-                    if kind == "rlm" and getattr(args, "rlm_retrieval", False):
-                        from experiments.rlm_answerer import make_rlm
-                        from experiments.rlm_retrieval import (
-                            make_rlm_action_completer,
-                            rlm_guided_context,
-                        )
-                        retrieval_rlm = make_rlm(
+                    context, n_triples = graph_source.context_for(
+                        ex,
+                        hops=args.hops,
+                        limit_triples=args.limit_triples,
+                        max_chars=args.context_max_chars,
+                    )
+                    # Preserve the pre-existing fixed-retrieval baseline only.
+                    if not context:
+                        context = "No relevant facts."
+                    n_context_chars = len(context)
+
+                t0 = time.time()
+                error: Optional[str] = None
+                predicted = ""
+                try:
+                    if qwen_tool_mode:
+                        from experiments.rlm_retrieval import qwen_rlm_tool_answer
+
+                        outcome = qwen_rlm_tool_answer(
                             backend=args.backend,
                             model=args.model,
                             base_url=args.vllm_base_url,
@@ -187,45 +269,32 @@ def run_cell(
                             max_depth=args.max_depth,
                             max_iterations=args.max_iterations,
                             max_tokens=args.max_tokens,
-                            log_dir=Path(args.log_dir) / "retrieval",
+                            log_dir=Path(rlm_log_dir) / "qwen_tool",
                             verbose=args.verbose,
-                        )
-                        context, n_triples, retrieval_trace = rlm_guided_context(
                             graph_source=graph_source,
                             example=ex,
-                            complete_action=make_rlm_action_completer(retrieval_rlm),
-                            hops=args.hops,
-                            limit_triples=args.limit_triples,
-                            max_chars=args.context_max_chars,
-                            max_steps=args.rlm_retrieval_steps,
+                            max_tool_calls=args.max_tool_calls,
+                            tool_choice=args.tool_choice,
+                            tool_timeout=args.tool_timeout,
+                            max_completion_tokens=args.tool_max_tokens,
                         )
+                        trace_dir = args.tool_trace_dir or (out_path.parent / "tool_traces")
+                        trace_path = _write_tool_trace(
+                            trace_dir,
+                            example_id=example_id,
+                            index=i,
+                            trace=outcome.trace,
+                        )
+                        predicted = outcome.predicted
+                        error = outcome.error
+                        n_triples = outcome.retrieved_fact_count
+                        n_context_chars = outcome.tool_result_chars
                         print(
-                            f"  [{i}/{len(examples)}] retrieval_trace="
-                            f"{json.dumps(retrieval_trace, ensure_ascii=False)[:500]}",
+                            f"  [{i}/{len(examples)}] tool_trace={trace_path} "
+                            f"termination={outcome.termination_reason}",
                             file=sys.stderr,
                         )
-                        if not context:
-                            context, n_triples = graph_source.context_for(
-                                ex,
-                                hops=args.hops,
-                                limit_triples=args.limit_triples,
-                                max_chars=args.context_max_chars,
-                            )
-                    else:
-                        context, n_triples = graph_source.context_for(
-                            ex,
-                            hops=args.hops,
-                            limit_triples=args.limit_triples,
-                            max_chars=args.context_max_chars,
-                        )
-                    if not context:
-                        context = "No relevant facts."
-
-                t0 = time.time()
-                error: Optional[str] = None
-                predicted = ""
-                try:
-                    if kind == "flat":
+                    elif kind == "flat":
                         from experiments.flat_answerer import flat_answer
                         predicted, _raw = flat_answer(
                             client,
@@ -270,7 +339,7 @@ def run_cell(
                     predicted=predicted,
                     gold=gold,
                     correct=correct,
-                    n_context_chars=len(context),
+                    n_context_chars=n_context_chars,
                     n_triples=n_triples,
                     elapsed_seconds=elapsed,
                     error=error,

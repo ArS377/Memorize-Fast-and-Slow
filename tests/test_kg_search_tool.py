@@ -131,6 +131,28 @@ def test_adapter_returns_structured_sparse_result_without_an_llm() -> None:
     json.dumps(response, allow_nan=False)
 
 
+def test_missing_document_provenance_remains_explicit() -> None:
+    fact = {
+        "example_id": "ex-no-document",
+        "subject": "Kalamang",
+        "predicate": "SPOKEN_IN",
+        "object": "East Indonesia",
+        "fact_id": "fact-no-document",
+        "support_text": "Kalamang is spoken in East Indonesia.",
+        "provenance": [{"sent_id": 3}],
+    }
+    source = GraphSource(fallback_facts=[fact], session_id="session-1")
+
+    response = execute_search_knowledge_graph(
+        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+        source,
+        "ex-no-document",
+    )
+
+    assert response["results"][0]["document_id"] is None
+    assert response["results"][0]["scope"]["example_id"] == "ex-no-document"
+
+
 def test_explicit_seed_preserves_current_case_insensitive_substring_matching() -> None:
     source = GraphSource(fallback_facts=FACTS, session_id="session-1")
 

@@ -24,13 +24,33 @@ def test_sparse_smoke_fixture_covers_every_required_scenario() -> None:
 def test_compute_sparse_baseline_records_phase_three_metrics() -> None:
     metrics = compute_sparse_baseline([
         {"retrieved_fact_count": 1, "expected_fact_ids": ["f1"], "retrieved_fact_ids": ["f1"], "correct": True, "tool_call_count": 1, "latency_seconds": 0.2},
-        {"retrieved_fact_count": 0, "no_hit": True, "expected_fact_ids": [], "correct": False, "tool_call_count": 2, "latency_seconds": 0.4, "error": "timeout"},
+        {"retrieved_fact_count": 0, "no_hit": True, "expected_fact_ids": [], "correct": False, "tool_call_count": 2, "latency_seconds": 0.4},
+        {"retrieved_fact_count": 0, "no_hit": True, "expected_fact_ids": [], "correct": False, "tool_call_count": 1, "latency_seconds": 0.6, "tool_error_codes": ["backend_timeout"]},
     ])
     assert metrics == {
-        "examples": 2, "hit_rate": 0.5, "no_hit_rate": 0.5,
-        "recall_at_k": 1.0, "answer_accuracy": 0.5, "mean_tool_calls": 1.5,
-        "mean_latency_seconds": 0.3, "error_rate": 0.5,
+        "examples": 3, "hit_rate": 0.3333, "no_hit_rate": 0.3333,
+        "recall_at_k": 1.0, "answer_accuracy": 0.3333, "mean_tool_calls": 1.3333,
+        "mean_latency_seconds": 0.4, "error_rate": 0.3333,
     }
+
+
+def test_sparse_baseline_reads_native_trace_and_excludes_unlabelled_accuracy() -> None:
+    metrics = compute_sparse_baseline([
+        {
+            "trace": {
+                "events": [
+                    {
+                        "event": "tool_result",
+                        "response": {"status": "ok", "results": [{"fact_id": "f1"}]},
+                    }
+                ]
+            },
+            "expected_fact_ids": ["f1"],
+        }
+    ])
+
+    assert metrics["recall_at_k"] == 1.0
+    assert metrics["answer_accuracy"] == 0.0
 
 
 def test_sparse_baseline_cli_writes_separate_metrics_file(tmp_path: Path) -> None:

@@ -6,10 +6,14 @@ a new retrieval algorithm. The committed cases are in
 `tests/fixtures/qwen_sparse_smoke_cases.json` and are deliberately independent
 of `data.jsonl`.
 
-Run deterministic fixture and metric checks:
+Run deterministic adapter, native-loop, live-command, and metric checks:
 
 ```bash
-python -m pytest tests/test_sparse_baseline.py
+python -m pytest \
+  tests/test_sparse_tool_adapter_smoke.py \
+  tests/test_rlm_retrieval.py \
+  tests/test_qwen_tool_smoke.py \
+  tests/test_sparse_baseline.py
 ```
 
 A live Qwen/vLLM run requires the Phase 1 tool adapter and Phase 2 Qwen-first
@@ -43,7 +47,12 @@ must never return `scope-foreign`. `paraphrase_miss` and `valid_zero` are
 valid no-hit outcomes; malformed arguments, repeated calls, and timeouts must
 be reported as explicit termination/error states, never treated as evidence.
 
+The deterministic tests inject malformed, repeated, and timed-out native calls.
+The live command leaves tool selection to Qwen and fails if the complete run
+does not contain at least one native tool call or violates fixture scope.
+
 The baseline reports hit rate, no-hit rate, Recall@k for labelled facts,
-answer accuracy, mean tool calls, mean latency, and error rate. Save these
+answer accuracy over labelled answer cases, mean tool calls, mean latency, and
+error rate. Tool failures are excluded from the legitimate no-hit count. Save these
 only below `results/sparse_baseline/`; future dense/hybrid runs should use
 their own directories.

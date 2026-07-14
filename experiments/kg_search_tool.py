@@ -375,7 +375,6 @@ def _result_record(
         "document_id": _first_nonempty(
             row.get("document_id"),
             provenance_document,
-            row.get("example_id"),
         ),
         "provenance": provenance,
         "provenance_truncated": provenance_count > MAX_PROVENANCE_ENTRIES,

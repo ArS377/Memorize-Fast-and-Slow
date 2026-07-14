@@ -15,6 +15,7 @@
 | `rlm_baseline.py` | Recursive Language Model baseline — calls the LLM recursively over raw context chunks (no KG) |
 | `rlm_graph_baseline.py` | RLM baseline extended with KG retrieval but without Scallop constraints |
 | `experiments/kg_search_tool.py` | Stable JSON-schema tool adapter that exposes scoped sparse KG retrieval to Qwen or another agent |
+| `experiments/qwen_tool_smoke.py` | Live fixture runner for the Qwen-first RLM/tool trajectory and sparse baseline trace |
 | `_demo_neo4j.py` | One-shot demo: inserts fixture facts into a live Neo4j instance and runs example queries |
 | `test.py` | Scratch file for quick vLLM / model tests |
 | `test.scl` | Scratch Scallop file for testing `.scl` syntax with `./scli` |
@@ -97,7 +98,11 @@ docker run -p 7687:7687 -p 7474:7474 \
 
 ### 4. Start vLLM server
 ```bash
-vllm serve Qwen/Qwen3-4B --host 0.0.0.0 --port 8000
+vllm serve Qwen/Qwen3-4B \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --enable-auto-tool-choice \
+    --tool-call-parser hermes
 ```
 
 ### 5. Run the full pipeline
@@ -132,6 +137,31 @@ python3 -m experiments.run_all \
     --vllm-base-url http://localhost:8000/v1 \
     --neo4j-password yourpassword
 ```
+
+For Qwen-first native KG tool calls in cells 5 and 6:
+
+```bash
+python3 -m experiments.run_all \
+    --cells 5,6 \
+    --skip-kg-build \
+    --qwen-tool-retrieval \
+    --max-tool-calls 3 \
+    --tool-choice auto \
+    --tool-timeout 30 \
+    --results-dir results/qwen_tool_sparse \
+    --model Qwen/Qwen3-4B \
+    --vllm-base-url http://localhost:8000/v1 \
+    --neo4j-password yourpassword
+```
+
+This path sends the question and choices to Qwen before retrieval, returns
+structured tool results through native assistant/tool messages, requires cited
+fact IDs, and writes a trace per example. Native tool calls execute inside the
+root RLM model turns, so the same trajectory retains the RLM REPL, iterative
+reasoning, and recursive `llm_query`/`rlm_query` capabilities. It replaces only
+the legacy prompt-parsed retrieval protocol, not the RLM answerer. See the
+[`search_knowledge_graph` contract](docs/qwen-knowledge-graph-tool.md) and
+[`sparse smoke procedure`](docs/qwen_sparse_smoke.md).
 
 KG cells support two memory scopes:
 

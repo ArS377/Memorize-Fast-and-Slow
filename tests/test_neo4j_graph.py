@@ -157,6 +157,7 @@ def test_commit_facts_emits_expected_cypher_with_session_tag() -> None:
         assert "r.extractor_model = $extractor_model" in query
         assert "r.verifier_model = $verifier_model" in query
         assert "r.run_id = $run_id" in query
+        assert "r.rule_params_version = $rule_params_version" in query
         assert params["session_id"] == "sess_test"
         assert params["fact_id"] == fact["fact_id"]
         assert params["subject"] == fact["subject"]
@@ -469,6 +470,9 @@ def test_persistent_validation_context_is_session_scoped() -> None:
     assert not any("reason" in c for c in result["conflicts"])
     write_queries = [p for q, p in graph._driver.queries if "MERGE (s:Entity" in q]
     assert write_queries and write_queries[0]["session_id"] == "session_a"
+    assert write_queries[0]["decision_status"] == "accept"
+    assert write_queries[0]["decision_validator"] == "scallop"
+    assert write_queries[0]["rule_params_version"] == "rules.v1"
     print("PASS test_persistent_validation_context_is_session_scoped")
 
 
@@ -588,6 +592,10 @@ def test_query_context_one_hop_filters_by_example_and_session() -> None:
             "support_text": "It is spoken by around 130 people in East Indonesia.",
             "provenance_json": json.dumps([{"title": "ex_lang", "sent_id": 3}]),
             "confidence": "supported",
+            "decision_status": "accept",
+            "decision_validator": "scallop",
+            "decision_reason": "No contradiction found",
+            "rule_params_version": "rules.v1",
         }
     ])
     graph._driver.canned_results = [canned]
@@ -603,12 +611,17 @@ def test_query_context_one_hop_filters_by_example_and_session() -> None:
     assert row["subject"] == "Kalamang"
     assert row["object"] == "East Indonesia"
     assert row["provenance"] == [{"title": "ex_lang", "sent_id": 3}]
+    assert row["decision_status"] == "accept"
+    assert row["decision_validator"] == "scallop"
+    assert row["decision_reason"] == "No contradiction found"
+    assert row["rule_params_version"] == "rules.v1"
 
     query, params = graph._driver.queries[-1]
     assert "MATCH (start:Entity) WHERE start.name IN $seed_entities" in query
     assert "[rels*1..1]" in query
     assert "($example_id IS NULL OR r.example_id = $example_id)" in query
     assert "($session_id IS NULL OR r.session_id = $session_id)" in query
+    assert "r.compiled_memory_json AS compiled_memory_json" in query
     assert "LIMIT 50" in query
     assert params["seed_entities"] == ["Kalamang"]
     assert params["example_id"] == "ex_lang"

@@ -35,11 +35,17 @@ def load_jsonl(path: Path) -> List[Dict[str, Any]]:
 def _fact_ids(record: Dict[str, Any]) -> set[str]:
     """Read retrieved IDs from either the summary or individual trace events."""
     ids = {str(value) for value in record.get("retrieved_fact_ids", []) if value}
-    for event in record.get("trace", []):
+    trace = record.get("trace", [])
+    if isinstance(trace, dict):
+        ids.update(str(value) for value in trace.get("retrieved_fact_ids", []) if value)
+        events = trace.get("events", [])
+    else:
+        events = trace
+    for event in events if isinstance(events, list) else []:
         if not isinstance(event, dict):
             continue
         ids.update(str(value) for value in event.get("fact_ids", []) if value)
-        result = event.get("result")
+        result = event.get("response", event.get("result"))
         if isinstance(result, dict):
             ids.update(
                 str(item.get("fact_id"))
@@ -65,6 +71,7 @@ def compute_sparse_baseline(records: Iterable[Dict[str, Any]]) -> Dict[str, floa
     hits = 0
     no_hits = 0
     correct = 0
+    answer_examples = 0
     errors = 0
     calls: List[float] = []
     latencies: List[float] = []
@@ -73,11 +80,17 @@ def compute_sparse_baseline(records: Iterable[Dict[str, Any]]) -> Dict[str, floa
     for row in rows:
         fact_ids = _fact_ids(row)
         retrieved_count = int(row.get("retrieved_fact_count", len(fact_ids)) or 0)
-        is_no_hit = bool(row.get("no_hit", retrieved_count == 0))
+        has_error = bool(row.get("error") or row.get("tool_error_codes"))
+        is_no_hit = bool(row.get("no_hit", retrieved_count == 0)) and not has_error
         hits += int(retrieved_count > 0)
         no_hits += int(is_no_hit)
-        correct += int(bool(row.get("correct", row.get("predicted") == row.get("gold"))))
-        errors += int(bool(row.get("error")))
+        if isinstance(row.get("correct"), bool):
+            answer_examples += 1
+            correct += int(row["correct"])
+        elif row.get("gold") not in (None, ""):
+            answer_examples += 1
+            correct += int(row.get("predicted") == row.get("gold"))
+        errors += int(has_error)
         calls.append(float(row.get("tool_call_count", 0) or 0))
         latencies.append(float(row.get("latency_seconds", row.get("elapsed_seconds", 0)) or 0))
 
@@ -90,7 +103,7 @@ def compute_sparse_baseline(records: Iterable[Dict[str, Any]]) -> Dict[str, floa
         "hit_rate": round(hits / total, 4),
         "no_hit_rate": round(no_hits / total, 4),
         "recall_at_k": round(mean(recall_scores), 4) if recall_scores else 0.0,
-        "answer_accuracy": round(correct / total, 4),
+        "answer_accuracy": round(correct / answer_examples, 4) if answer_examples else 0.0,
         "mean_tool_calls": round(mean(calls), 4),
         "mean_latency_seconds": round(mean(latencies), 4),
         "error_rate": round(errors / total, 4),
