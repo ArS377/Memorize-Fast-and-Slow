@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import neo4j_graph as ng
 from neo4j_graph import Neo4jGraph
 from scallop_validator import RuleParameters, validate_update_detailed
+from memory_artifacts import MemoryScope, compile_working_memory, transition_for
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "verified_facts.sample.jsonl"
@@ -648,6 +649,49 @@ def test_query_context_multi_hop_uses_bounded_path() -> None:
     query3, _ = graph._driver.queries[-1]
     assert "[rels*1..1]" in query3
     print("PASS test_query_context_multi_hop_uses_bounded_path")
+
+
+def test_query_context_supports_trusted_session_set() -> None:
+    graph = make_graph(session_id="derived")
+    graph.query_context(
+        seed_entities=["Indonesia"],
+        session_id=None,
+        session_ids=["source-a", "source-b"],
+    )
+    query, params = graph._driver.queries[-1]
+    assert "r.session_id IN $session_ids" in query
+    assert params["session_ids"] == ["source-a", "source-b"]
+
+
+def test_working_memory_persists_proposal_and_transition_without_fact_edge() -> None:
+    graph = make_graph(session_id="sess_test")
+    source_fact = {
+        "fact_id": "f1",
+        "subject": "Alice",
+        "predicate": "WORKS_AT",
+        "object": "CompanyX",
+        "provenance": [{"document_id": "doc", "sentence_id": "doc:1"}],
+    }
+    scope = MemoryScope(mode="example", session_ids=("sess_test",), example_id="ex1")
+    artifact = compile_working_memory(
+        {"entity": "Alice", "selected_fact_ids": ["f1"]},
+        [source_fact],
+        scope,
+    )
+    transition = transition_for(
+        artifact,
+        decision="reject",
+        reason="conflict",
+        validator="scallop",
+        rule_version="rules.v1",
+    )
+    result = graph.persist_working_memory(artifact, transition)
+    query, params = graph._driver.queries[-1]
+    assert "WorkingMemoryArtifact" in query
+    assert "MemoryTransition" in query
+    assert "MERGE (s:Entity" not in query
+    assert params["committed"] is False
+    assert result["transition"]["after_artifact_id"] is None
 
 
 def test_format_context_for_llm_is_deterministic_and_truncates() -> None:

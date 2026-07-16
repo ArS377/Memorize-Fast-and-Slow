@@ -120,6 +120,23 @@ def test_live_graph_session_scope_drops_example_filter() -> None:
     assert graph.calls[0]["session_id"] == "pilot_scallop"
 
 
+def test_session_set_scope_uses_only_trusted_sessions() -> None:
+    facts = [
+        {**FACTS[0], "session_id": "source-a", "fact_id": "a"},
+        {**FACTS[0], "session_id": "source-b", "fact_id": "b"},
+        {**FACTS[0], "session_id": "source-c", "fact_id": "c"},
+    ]
+    source = GraphSource(
+        fallback_facts=facts,
+        session_id="derived",
+        memory_scope="session_set",
+        source_session_ids=["source-a", "source-b"],
+    )
+    rows = source.rows_for(seed_entities=["Secret Alpha"], example_id="ex-any")
+    assert {row["fact_id"] for row in rows} == {"a", "b"}
+    assert source.trusted_scope("ex-any").session_ids == ("source-a", "source-b")
+
+
 def main() -> bool:
     tests = [
         test_jsonl_context_does_not_leak_facts_between_examples,

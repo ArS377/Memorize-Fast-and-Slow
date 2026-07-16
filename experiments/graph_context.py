@@ -16,6 +16,7 @@ import json
 import re
 
 from compiled_memory import context_sort_key, format_fact_rows_for_llm
+from memory_artifacts import MemoryScope
 
 
 def extract_seed_entities(ex: Dict[str, Any]) -> List[str]:
@@ -105,8 +106,8 @@ def filter_rows_by_predicates(
 
 def normalize_memory_scope(memory_scope: str) -> str:
     scope = str(memory_scope or "example").strip().lower()
-    if scope not in {"example", "session"}:
-        raise ValueError("memory_scope must be 'example' or 'session'")
+    if scope not in {"example", "session", "session_set"}:
+        raise ValueError("memory_scope must be 'example', 'session', or 'session_set'")
     return scope
 
 
@@ -114,11 +115,25 @@ class GraphSource:
     """Either a live Neo4jGraph or a JSONL fact-file fallback."""
 
     def __init__(self, graph=None, fallback_facts: Optional[List[Dict[str, Any]]] = None,
-                 session_id: Optional[str] = None, memory_scope: str = "example"):
+                 session_id: Optional[str] = None, memory_scope: str = "example",
+                 source_session_ids: Optional[List[str]] = None):
         self.graph = graph
         self.fallback_facts = fallback_facts
         self.session_id = session_id
         self.memory_scope = normalize_memory_scope(memory_scope)
+        requested_sessions = [str(s) for s in (source_session_ids or []) if str(s).strip()]
+        self.source_session_ids = list(dict.fromkeys(requested_sessions or ([session_id] if session_id else [])))
+        if self.memory_scope == "session_set" and len(self.source_session_ids) < 2:
+            raise ValueError("session_set memory scope requires at least two trusted source sessions")
+        if self.memory_scope != "session_set" and len(self.source_session_ids) > 1:
+            raise ValueError(f"{self.memory_scope} memory scope accepts exactly one source session")
+
+    def trusted_scope(self, example_id: str) -> MemoryScope:
+        return MemoryScope(
+            mode=self.memory_scope,
+            session_ids=tuple(self.source_session_ids),
+            example_id=example_id if self.memory_scope == "example" else None,
+        )
 
     @property
     def is_live(self) -> bool:
@@ -141,20 +156,19 @@ class GraphSource:
                 hops=hops,
                 limit=limit_triples,
                 example_id=query_example_id,
-                session_id=self.session_id,
+                session_id=self.session_id if self.memory_scope != "session_set" else None,
+                session_ids=self.source_session_ids if self.memory_scope == "session_set" else None,
             )
             context = self.graph.format_context_for_llm(rows, max_chars=max_chars)
             return context, len(rows)
-        # JSONL fallback
-        context = format_facts_from_jsonl(
-            self.fallback_facts or [],
-            example_id,
-            memory_scope=self.memory_scope,
+        # JSONL fallback uses the same scoped row path as the tool adapter.
+        rows = self.rows_for(
             seed_entities=seeds,
-            max_chars=max_chars,
+            example_id=example_id,
+            hops=hops,
+            limit_triples=limit_triples,
         )
-        n_triples = context.count("[F") if context else 0
-        return context, n_triples
+        return format_fact_rows_for_llm(rows, max_chars=max_chars), len(rows)
 
     def rows_for(
         self,
@@ -180,7 +194,8 @@ class GraphSource:
                 hops=hops,
                 limit=limit_triples,
                 example_id=query_example_id,
-                session_id=self.session_id,
+                session_id=self.session_id if self.memory_scope != "session_set" else None,
+                session_ids=self.source_session_ids if self.memory_scope == "session_set" else None,
             )
             return filter_rows_by_predicates(rows, predicates)
 
@@ -188,6 +203,13 @@ class GraphSource:
         seeds_lower = [s.lower() for s in seed_entities if str(s).strip()]
         rows: List[Dict[str, Any]] = []
         for fact in facts:
+            fact_session = str(fact.get("session_id", ""))
+            if (
+                self.memory_scope == "session_set"
+                and fact_session
+                and fact_session not in self.source_session_ids
+            ):
+                continue
             if query_example_id is not None and str(fact.get("example_id", "")) != query_example_id:
                 continue
             subject = str(fact.get("subject", "")).lower()
@@ -220,6 +242,7 @@ def open_graph_source(
     session_id: str,
     facts_file: Optional[Path],
     memory_scope: str = "example",
+    source_session_ids: Optional[List[str]] = None,
 ) -> GraphSource:
     """Open a graph source preferring Neo4j; fall back to facts-file.
 
@@ -236,7 +259,12 @@ def open_graph_source(
                 session_id=session_id,
             )
             print(f"Connected to Neo4j at {neo4j_uri} (session={session_id})", file=sys.stderr)
-            return GraphSource(graph=graph, session_id=session_id, memory_scope=memory_scope)
+            return GraphSource(
+                graph=graph,
+                session_id=session_id,
+                memory_scope=memory_scope,
+                source_session_ids=source_session_ids,
+            )
         except Exception as e:
             print(f"Neo4j connection failed: {e}; trying --facts-file", file=sys.stderr)
             graph = None
@@ -248,6 +276,7 @@ def open_graph_source(
             fallback_facts=facts,
             session_id=session_id,
             memory_scope=memory_scope,
+            source_session_ids=source_session_ids,
         )
 
     raise RuntimeError(

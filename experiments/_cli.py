@@ -92,12 +92,19 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--context-max-chars", type=int, default=4000)
         p.add_argument(
             "--memory-scope",
-            choices=["example", "session"],
+            choices=["example", "session", "session_set"],
             default="example",
             help=(
                 "example=only retrieve facts for the current example; "
-                "session=retrieve accumulated facts across the KG session"
+                "session=retrieve accumulated facts across one KG session; "
+                "session_set=retrieve across an application-owned source-session allowlist"
             ),
+        )
+        p.add_argument(
+            "--source-session",
+            action="append",
+            default=[],
+            help="Trusted source session; repeat at least twice with --memory-scope session_set",
         )
 
     # RLM cells
@@ -222,6 +229,7 @@ def run_cell(
                 session_id=session_id,
                 facts_file=args.facts_file,
                 memory_scope=args.memory_scope,
+                source_session_ids=args.source_session,
             )
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)

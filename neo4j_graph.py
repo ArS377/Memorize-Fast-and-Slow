@@ -36,6 +36,7 @@ from compiled_memory import (
     format_fact_rows_for_llm,
 )
 from scallop_validator import DEFAULT_RULE_PARAMETERS, RuleParameters, validate_update_detailed
+from memory_artifacts import MemoryTransitionRecord, WorkingMemoryArtifact
 
 import json
 import re
@@ -275,6 +276,10 @@ class Neo4jGraph:
         "FOR (d:DecisionLedger) ON (d.rejection_label_code)",
         "CREATE CONSTRAINT derived_session_id_unique IF NOT EXISTS "
         "FOR (d:DerivedSession) REQUIRE d.session_id IS UNIQUE",
+        "CREATE CONSTRAINT working_memory_artifact_id_unique IF NOT EXISTS "
+        "FOR (a:WorkingMemoryArtifact) REQUIRE a.artifact_id IS UNIQUE",
+        "CREATE CONSTRAINT memory_transition_id_unique IF NOT EXISTS "
+        "FOR (t:MemoryTransition) REQUIRE t.transition_id IS UNIQUE",
         "CREATE FULLTEXT INDEX entity_name_fulltext IF NOT EXISTS "
         "FOR (e:Entity) ON EACH [e.name]",
     ]
@@ -980,6 +985,86 @@ class Neo4jGraph:
             "replay_result": replay_result,
         }
 
+    def persist_working_memory(
+        self,
+        artifact: WorkingMemoryArtifact,
+        transition: MemoryTransitionRecord,
+    ) -> Dict[str, Any]:
+        """Persist one proposed artifact and its auditable transition.
+
+        Rejected proposals remain as history nodes but never become current
+        working memory and never create accepted fact relationships.
+        """
+        self.ensure_schema()
+        artifact_payload = artifact.to_dict()
+        transition_payload = transition.to_dict()
+        params = {
+            "artifact_id": artifact.artifact_id,
+            "revision": artifact.revision,
+            "status": transition.decision,
+            "entity": artifact.entity,
+            "scope_mode": artifact.scope.mode,
+            "session_ids": list(artifact.scope.session_ids),
+            "session_ids_json": json.dumps(list(artifact.scope.session_ids)),
+            "example_id": artifact.scope.example_id or "",
+            "prior_artifact_id": artifact.prior_artifact_id or "",
+            "artifact_json": json.dumps(artifact_payload, ensure_ascii=False),
+            "transition_id": transition.transition_id,
+            "decision": transition.decision,
+            "reason": transition.reason,
+            "validator": transition.validator,
+            "rule_version": transition.rule_version,
+            "committed": transition.committed,
+            "before_artifact_id": transition.before_artifact_id or "",
+            "after_artifact_id": transition.after_artifact_id or "",
+            "transition_json": json.dumps(transition_payload, ensure_ascii=False),
+        }
+        query = (
+            "MERGE (a:WorkingMemoryArtifact {artifact_id: $artifact_id})\n"
+            "SET a.revision = $revision, a.status = $status, a.entity = $entity,\n"
+            "    a.scope_mode = $scope_mode, a.session_ids = $session_ids,\n"
+            "    a.session_ids_json = $session_ids_json,\n"
+            "    a.example_id = $example_id, a.prior_artifact_id = $prior_artifact_id,\n"
+            "    a.artifact_json = $artifact_json\n"
+            "MERGE (t:MemoryTransition {transition_id: $transition_id})\n"
+            "SET t.decision = $decision, t.reason = $reason, t.validator = $validator,\n"
+            "    t.rule_version = $rule_version, t.committed = $committed,\n"
+            "    t.before_artifact_id = $before_artifact_id,\n"
+            "    t.after_artifact_id = $after_artifact_id,\n"
+            "    t.transition_json = $transition_json\n"
+            "MERGE (t)-[:PROPOSED]->(a)\n"
+            "FOREACH (_ IN CASE WHEN $committed THEN [1] ELSE [] END |\n"
+            "  MERGE (t)-[:COMMITTED]->(a))"
+        )
+        with self._session() as session:
+            session.run(query, **params)
+        return {"artifact": artifact_payload, "transition": transition_payload}
+
+    def working_memory_history(
+        self,
+        *,
+        session_ids: Iterable[str],
+        example_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        sessions = [str(value) for value in session_ids if str(value).strip()]
+        query = (
+            "MATCH (t:MemoryTransition)-[:PROPOSED]->(a:WorkingMemoryArtifact)\n"
+            "WHERE any(sid IN $session_ids WHERE sid IN coalesce(a.session_ids, []))\n"
+            "  AND ($example_id IS NULL OR a.example_id = $example_id)\n"
+            "RETURN a.artifact_json AS artifact_json, "
+            "t.transition_json AS transition_json\n"
+            "ORDER BY a.revision, t.transition_id"
+        )
+        with self._session() as session:
+            result = session.run(query, session_ids=sessions, example_id=example_id)
+            return [
+                {
+                    "artifact": _json_property(record.get("artifact_json"), {}),
+                    "transition": _json_property(record.get("transition_json"), {}),
+                }
+                for record in result
+            ]
+
     # ------------------------------------------------------------------ reads
 
     def query_context(
@@ -989,6 +1074,7 @@ class Neo4jGraph:
         limit: int = 50,
         example_id: Optional[str] = None,
         session_id: Optional[str] = None,
+        session_ids: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Return the n-hop neighborhood of the seed entities as triples."""
         if not seed_entities:
@@ -1016,6 +1102,7 @@ class Neo4jGraph:
             "WITH DISTINCT r, startNode(r) AS s, endNode(r) AS o\n"
             "WHERE ($example_id IS NULL OR r.example_id = $example_id)\n"
             "  AND ($session_id IS NULL OR r.session_id = $session_id)\n"
+            "  AND (size($session_ids) = 0 OR r.session_id IN $session_ids)\n"
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.example_id AS example_id,\n"
             "       r.session_id AS session_id, r.support_text AS support_text,\n"
@@ -1046,6 +1133,7 @@ class Neo4jGraph:
                 seed_entities=[str(s) for s in seed_entities],
                 example_id=example_id,
                 session_id=session_id,
+                session_ids=[str(value) for value in (session_ids or [])],
             )
             return [_record_to_fact(dict(record)) for record in result]
 
