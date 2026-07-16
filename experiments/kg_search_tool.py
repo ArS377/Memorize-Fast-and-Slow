@@ -17,6 +17,7 @@ from experiments.graph_context import GraphSource, extract_seed_entities
 
 
 TOOL_NAME = "search_knowledge_graph"
+TOOL_VERSION = "search_knowledge_graph.v1"
 DEFAULT_RETRIEVAL_MODE = "sparse"
 DEFAULT_TOP_K = 10
 DEFAULT_HOPS = 2

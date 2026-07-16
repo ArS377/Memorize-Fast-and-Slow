@@ -66,6 +66,7 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
     p.add_argument("--output", type=Path, default=None,
                    help="Per-cell results.jsonl path (default: results/cell{N}_{LABEL}/results.jsonl)")
     p.add_argument("--results-dir", type=Path, default=Path("results"))
+    p.add_argument("--run-id", default=None, help="Run identifier persisted in every result row")
     p.add_argument("--no-aggregate", action="store_true",
                    help="Skip auto-aggregation at end (used by orchestrator)")
 
@@ -82,6 +83,7 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
 
     # KG cells
     if retrieval == "kg":
+        p.add_argument("--session-id", default=None, help="Override the cell's default KG session")
         p.add_argument("--neo4j-uri", default=os.getenv("NEO4J_URI", "bolt://localhost:7687"))
         p.add_argument("--neo4j-user", default=os.getenv("NEO4J_USER", "neo4j"))
         p.add_argument("--neo4j-password", default=os.getenv("NEO4J_PASSWORD"))
@@ -204,6 +206,8 @@ def run_cell(
 ) -> Path:
     parser = build_arg_parser(cell_id=cell_id, label=label, kind=kind, retrieval=retrieval)
     args = parser.parse_args(argv)
+    if retrieval == "kg" and args.session_id:
+        session_id = args.session_id
 
     out_path = args.output or cell_output_path(cell_id, label, args.results_dir)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -229,6 +233,7 @@ def run_cell(
         rlm_log_dir = args.log_dir
 
     graph_source = None
+    validator_backend_label = "n/a"
     if retrieval == "kg":
         from experiments.graph_context import open_graph_source
         try:
@@ -246,6 +251,11 @@ def run_cell(
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)
             sys.exit(2)
+        backend = getattr(getattr(graph_source, "graph", None), "validator_backend", None)
+        backend_info = getattr(backend, "info", None)
+        validator_backend_label = (
+            backend_info.name if backend_info is not None else "fallback_file"
+        )
 
     n_correct = 0
     try:
@@ -368,6 +378,14 @@ def run_cell(
                     n_triples=n_triples,
                     elapsed_seconds=elapsed,
                     error=error,
+                    run_id=args.run_id,
+                    session_id=session_id,
+                    memory_scope=getattr(args, "memory_scope", None),
+                    orchestration_mode=(
+                        "qwen_native_tools_inside_rlm" if qwen_tool_mode
+                        else "fixed_context"
+                    ),
+                    validator_backend=validator_backend_label,
                 )
                 status = "OK " if correct else "x  "
                 print(

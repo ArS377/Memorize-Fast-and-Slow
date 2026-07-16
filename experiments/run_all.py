@@ -2,18 +2,18 @@
 
 Pipeline:
 
-1. Resolve config and write ``results/run_metadata.json``.
-2. Optionally build the two shared KG sessions (``pilot_noscallop`` /
-   ``pilot_scallop``) once; cells 2/5 share the first, cells 3/6 share
-   the second.
+1. Resolve config and create an isolated ``results/runs/<run_id>`` manifest.
+2. Extract one frozen candidate corpus, then build run-specific unconstrained
+   and Scallop-filtered KG sessions from it.
 3. Run each requested cell as a standalone module call (passing
    ``--no-aggregate`` so we aggregate just once at the end).
-4. Aggregate -> ``results/summary.csv`` + ``results/figures/accuracy_grid.png``.
+4. Aggregate results and write the Summer 6/20 compliance report.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -23,10 +23,37 @@ from pathlib import Path
 from typing import List, Optional
 
 from experiments.common import CELLS
+from experiments.kg_search_tool import TOOL_VERSION as SEARCH_TOOL_VERSION
+from experiments.working_memory_tool import TOOL_VERSION as MEMORY_TOOL_VERSION
+from scallop_validator import DEFAULT_RULE_PARAMETERS
 
 KG_CELL_IDS = {2, 3, 5, 6}
 KG_SESSIONS = {2: "pilot_noscallop", 3: "pilot_scallop",
                5: "pilot_noscallop", 6: "pilot_scallop"}
+
+
+def _sha256(path: Path) -> Optional[str]:
+    if not path.exists():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _safe_run_id(value: str) -> str:
+    cleaned = "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in value)
+    if not cleaned or cleaned in {".", ".."}:
+        raise ValueError("run_id must contain at least one safe character")
+    return cleaned
+
+
+def _write_manifest(results_dir: Path, metadata: dict) -> None:
+    payload = json.dumps(metadata, indent=2) + "\n"
+    (results_dir / "manifest.json").write_text(payload, encoding="utf-8")
+    # Retain the original filename for scripts written before run-local manifests.
+    (results_dir / "run_metadata.json").write_text(payload, encoding="utf-8")
 
 
 def _positive_int(value: str) -> int:
@@ -78,6 +105,7 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
         "--vllm-base-url", args.vllm_base_url,
         "--api-key", args.api_key,
         "--results-dir", str(args.results_dir),
+        "--run-id", getattr(args, "run_id", "adhoc"),
         "--no-aggregate",
     ]
     if cell_id in KG_CELL_IDS:
@@ -87,7 +115,9 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             base += ["--neo4j-user", args.neo4j_user]
         if args.neo4j_password:
             base += ["--neo4j-password", args.neo4j_password]
-        facts_file = args.results_dir / "kg_builds" / f"{KG_SESSIONS[cell_id]}_facts.jsonl"
+        session_id = getattr(args, "kg_sessions", KG_SESSIONS)[cell_id]
+        base += ["--session-id", session_id]
+        facts_file = args.results_dir / "kg_builds" / f"{session_id}_facts.jsonl"
         if facts_file.exists():
             base += ["--facts-file", str(facts_file)]
         if args.hops is not None:
@@ -95,6 +125,10 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
         if args.limit_triples is not None:
             base += ["--limit-triples", str(args.limit_triples)]
         base += ["--memory-scope", args.memory_scope]
+        for source_session in getattr(args, "source_session", []):
+            base += ["--source-session", source_session]
+        if getattr(args, "scallop_validator_url", None):
+            base += ["--scallop-validator-url", args.scallop_validator_url]
     else:
         if args.raw_max_chars is not None:
             base += ["--raw-max-chars", str(args.raw_max_chars)]
@@ -103,6 +137,7 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             "--max-depth", str(args.max_depth),
             "--max-iterations", str(args.max_iterations),
             "--max-tokens", str(args.max_tokens),
+            "--log-dir", str(args.results_dir / f"cell{cell_id}_{next(c['label'] for c in CELLS if c['cell_id'] == cell_id)}" / "rlm_logs"),
         ]
         if cell_id in (5, 6):
             if not getattr(args, "fixed_kg_retrieval", False):
@@ -133,13 +168,18 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--neo4j-password", default=os.getenv("NEO4J_PASSWORD"))
     parser.add_argument("--rebuild-kg", action="store_true")
     parser.add_argument("--skip-kg-build", action="store_true")
+    parser.add_argument("--kg-session-noscallop", default=None)
+    parser.add_argument("--kg-session-scallop", default=None)
     parser.add_argument("--cells", default="all",
                         help="Comma-separated cell ids, e.g. '1,3,5'. Default: all six.")
-    parser.add_argument("--results-dir", type=Path, default=Path("results"))
+    parser.add_argument("--results-dir", type=Path, default=None)
+    parser.add_argument("--run-id", default=None)
     parser.add_argument("--raw-max-chars", type=int, default=32000)
     parser.add_argument("--hops", type=int, default=2)
     parser.add_argument("--limit-triples", type=int, default=50)
-    parser.add_argument("--memory-scope", choices=["example", "session"], default="example")
+    parser.add_argument("--memory-scope", choices=["example", "session", "session_set"], default="example")
+    parser.add_argument("--source-session", action="append", default=[])
+    parser.add_argument("--scallop-validator-url", default=os.getenv("SCALLOP_VALIDATOR_URL"))
     parser.add_argument("--max-depth", type=int, default=2)
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
@@ -160,14 +200,27 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--tool-max-tokens", type=_positive_int, default=2048)
     args = parser.parse_args(argv)
 
+    sha = _git_sha()
+    default_run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "_" + (sha or "nogit")[:7]
+    args.run_id = _safe_run_id(args.run_id or default_run_id)
+    args.results_dir = args.results_dir or (Path("results") / "runs" / args.run_id)
+    args.kg_sessions = {
+        2: args.kg_session_noscallop or f"{args.run_id}_noscallop",
+        3: args.kg_session_scallop or f"{args.run_id}_scallop",
+        5: args.kg_session_noscallop or f"{args.run_id}_noscallop",
+        6: args.kg_session_scallop or f"{args.run_id}_scallop",
+    }
+
     cells = _parse_cells(args.cells)
     args.results_dir.mkdir(parents=True, exist_ok=True)
     orchestration_mode = "fixed" if args.fixed_kg_retrieval else "qwen_native_tools_inside_rlm"
 
     metadata = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "git_sha": _git_sha(),
+        "run_id": args.run_id,
+        "git_sha": sha,
         "input": str(args.input),
+        "input_sha256": _sha256(args.input),
         "limit": args.limit,
         "seed": args.seed,
         "model": args.model,
@@ -189,10 +242,15 @@ def main(argv: Optional[List[str]] = None) -> None:
         "tool_timeout": args.tool_timeout,
         "tool_trace_dir": str(args.tool_trace_dir) if args.tool_trace_dir else None,
         "tool_max_tokens": args.tool_max_tokens,
+        "kg_sessions": args.kg_sessions,
+        "scallop_validator_url": args.scallop_validator_url,
+        "tool_contract_version": f"{SEARCH_TOOL_VERSION}+{MEMORY_TOOL_VERSION}",
+        "rule_version": DEFAULT_RULE_PARAMETERS.version,
+        "cell_status": {str(cell): "pending" for cell in cells},
+        "skip_kg_build": args.skip_kg_build,
+        "kg_artifacts": {},
     }
-    (args.results_dir / "run_metadata.json").write_text(
-        json.dumps(metadata, indent=2), encoding="utf-8"
-    )
+    _write_manifest(args.results_dir, metadata)
     print(f"[run_all] metadata -> {args.results_dir / 'run_metadata.json'}", file=sys.stderr)
 
     # KG build phase
@@ -206,13 +264,12 @@ def main(argv: Optional[List[str]] = None) -> None:
             )
         else:
             from experiments.build_kg import build_kg
-            sessions = []
-            if any(c in (2, 5) for c in selected_kg):
-                sessions.append(("pilot_noscallop", False))
+            sessions = [(args.kg_sessions[2], False)]
             if any(c in (3, 6) for c in selected_kg):
-                sessions.append(("pilot_scallop", True))
+                sessions.append((args.kg_sessions[3], True))
+            candidate_path = None
             for session, validate in sessions:
-                build_kg(
+                built_path = build_kg(
                     session_id=session,
                     validate=validate,
                     input_path=args.input,
@@ -225,7 +282,17 @@ def main(argv: Optional[List[str]] = None) -> None:
                     limit=args.limit,
                     rebuild=args.rebuild_kg,
                     facts_out_dir=args.results_dir / "kg_builds",
+                    scallop_validator_url=args.scallop_validator_url,
+                    candidate_facts_path=candidate_path if validate else None,
                 )
+                if not validate:
+                    candidate_path = built_path
+                    metadata["kg_artifacts"]["candidate_path"] = str(built_path)
+                    metadata["kg_artifacts"]["candidate_sha256"] = _sha256(built_path)
+                else:
+                    metadata["kg_artifacts"]["scallop_path"] = str(built_path)
+                    metadata["kg_artifacts"]["scallop_sha256"] = _sha256(built_path)
+            _write_manifest(args.results_dir, metadata)
 
     # Per-cell runs
     for cid in cells:
@@ -234,12 +301,22 @@ def main(argv: Optional[List[str]] = None) -> None:
         print(f"[run_all] -> {mod} {' '.join(cell_args)}", file=sys.stderr)
         cmd = [sys.executable, "-m", mod] + cell_args
         rc = subprocess.call(cmd)
+        metadata["cell_status"][str(cid)] = "complete" if rc == 0 else f"failed:{rc}"
+        cell = next(cell for cell in CELLS if cell["cell_id"] == cid)
+        output = args.results_dir / f"cell{cid}_{cell['label']}" / "results.jsonl"
+        metadata.setdefault("cell_artifacts", {})[str(cid)] = {
+            "results_path": str(output),
+            "results_sha256": _sha256(output),
+        }
+        _write_manifest(args.results_dir, metadata)
         if rc != 0:
             print(f"[run_all] cell {cid} exited with code {rc}", file=sys.stderr)
 
     # Aggregate once at the end
     from experiments.aggregate import main as agg_main
     agg_main(["--results-dir", str(args.results_dir)])
+    from experiments.compliance import main as compliance_main
+    compliance_main(["--results-dir", str(args.results_dir)])
 
 
 if __name__ == "__main__":

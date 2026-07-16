@@ -24,6 +24,11 @@ CELL_SCHEMA: List[str] = [
     "n_triples",
     "elapsed_seconds",
     "error",
+    "run_id",
+    "session_id",
+    "memory_scope",
+    "orchestration_mode",
+    "validator_backend",
 ]
 
 # Cell metadata table (cell_id -> info). Used by the aggregator and the

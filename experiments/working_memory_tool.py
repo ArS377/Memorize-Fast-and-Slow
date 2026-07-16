@@ -11,6 +11,7 @@ from scallop_validator import DEFAULT_RULE_PARAMETERS
 
 
 TOOL_NAME = "update_working_memory"
+TOOL_VERSION = "update_working_memory.v1"
 
 UPDATE_WORKING_MEMORY_TOOL: Dict[str, Any] = {
     "type": "function",

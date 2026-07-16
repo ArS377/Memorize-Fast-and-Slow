@@ -89,6 +89,7 @@ def build_kg(
     verify_batch_size: int = 20,
     facts_out_dir: Path = Path("results/kg_builds"),
     scallop_validator_url: Optional[str] = None,
+    candidate_facts_path: Optional[Path] = None,
 ) -> Path:
     """Extract+verify facts on the pilot slice and write to Neo4j.
 
@@ -137,6 +138,40 @@ def build_kg(
 
         rejections_path.parent.mkdir(parents=True, exist_ok=True)
         rejections_path.write_text("", encoding="utf-8")
+
+        if candidate_facts_path is not None:
+            candidates = []
+            with Path(candidate_facts_path).open(encoding="utf-8") as stream:
+                for line in stream:
+                    if line.strip():
+                        candidates.append(json.loads(line))
+            print(
+                f"[build_kg] loading frozen candidate corpus: {candidate_facts_path} "
+                f"({len(candidates)} facts)",
+                file=sys.stderr,
+            )
+            result = graph.insert_facts(
+                candidates,
+                session_id=session_id,
+                validate=validate,
+            )
+            for rejected in result.get("rejected", []):
+                candidate = rejected.get("candidate", {})
+                append_rejection_jsonl(
+                    rejections_path,
+                    build_rejection_record(
+                        candidate_fact=candidate,
+                        reason=rejected.get("reason", ""),
+                        example_id=str(candidate.get("example_id", "")),
+                        session_id=session_id,
+                        stage="scallop_validation",
+                        existing_conflicting_fact=None,
+                        rule_fired=(rejected.get("rejection_label") or {}).get("code", "validator_reject"),
+                        validator=graph.validator_backend.info.name,
+                    ),
+                )
+            _dump_session_facts(graph, session_id, out_path)
+            return out_path
 
         examples = iter_pilot_examples(input_path, limit)
         print(
@@ -270,6 +305,7 @@ def _add_cli(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--neo4j-user", default=os.getenv("NEO4J_USER", "neo4j"))
     parser.add_argument("--neo4j-password", default=os.getenv("NEO4J_PASSWORD"))
     parser.add_argument("--scallop-validator-url", default=os.getenv("SCALLOP_VALIDATOR_URL"))
+    parser.add_argument("--candidate-facts", type=Path, default=None)
     parser.add_argument("--rebuild", action="store_true",
                         help="Wipe the target session before rebuilding")
     parser.add_argument("--chunk-chars", type=int, default=12000)
@@ -303,6 +339,7 @@ def main(argv: Optional[List[str]] = None) -> Path:
         verify_batch_size=args.verify_batch_size,
         facts_out_dir=args.facts_out_dir,
         scallop_validator_url=args.scallop_validator_url,
+        candidate_facts_path=args.candidate_facts,
     )
 
 

@@ -153,6 +153,13 @@ python3 -m experiments.run_all \
     --neo4j-password yourpassword
 ```
 
+When `--results-dir` is omitted, each invocation writes to an isolated
+`results/runs/<timestamp>_<git-sha>/` directory and uses run-specific Neo4j
+sessions. The unconstrained and constrained KGs share one frozen extracted
+candidate corpus. Treat a run as valid evidence only when its generated
+`compliance_report.md` passes. See the
+[`Summer 6/20 execution contract`](docs/summer-6-20-implementation.md).
+
 Cells 5 and 6 both use Qwen-first native KG tools by default. They share the
 same search/update orchestration; Scallop transition gating is the only intended
 difference between them:
