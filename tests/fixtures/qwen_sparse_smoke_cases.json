@@ -1,0 +1,41 @@
+[
+  {
+    "id": "exact_entity",
+    "question": "Where is Kalamang spoken?",
+    "choices": {"A": "East Indonesia", "B": "Jakarta"},
+    "facts": [{"fact_id": "exact-1", "example_id": "exact_entity", "subject": "Kalamang", "predicate": "SPOKEN_IN", "object": "East Indonesia", "support_text": "Kalamang is spoken in East Indonesia.", "provenance": [{"document_id": "fixture", "sent_id": 1}]}],
+    "expected_fact_ids": ["exact-1"], "gold": "A"
+  },
+  {
+    "id": "lowercase_alias", "question": "Where is kalamang spoken?", "choices": {"A": "East Indonesia", "B": "Jakarta"},
+    "facts": [{"fact_id": "alias-1", "example_id": "lowercase_alias", "subject": "Kalamang language", "predicate": "SPOKEN_IN", "object": "East Indonesia", "support_text": "Kalamang is spoken in East Indonesia.", "provenance": [{"document_id": "fixture", "sent_id": 2}]}],
+    "expected_fact_ids": ["alias-1"], "gold": "A"
+  },
+  {
+    "id": "paraphrase_miss", "question": "Which region is home to speakers of the language?", "choices": {"A": "East Indonesia", "B": "Jakarta"},
+    "facts": [{"fact_id": "para-1", "example_id": "paraphrase_miss", "subject": "Kalamang", "predicate": "SPOKEN_IN", "object": "East Indonesia", "support_text": "Kalamang is spoken in East Indonesia.", "provenance": [{"document_id": "fixture", "sent_id": 3}]}],
+    "expected_fact_ids": [], "gold": ""
+  },
+  {
+    "id": "one_hop", "question": "What is the capital of Indonesia?", "choices": {"A": "Jakarta", "B": "Manila"},
+    "facts": [{"fact_id": "one-1", "example_id": "one_hop", "subject": "Indonesia", "predicate": "CAPITAL_IS", "object": "Jakarta", "support_text": "The capital of Indonesia is Jakarta.", "provenance": [{"document_id": "fixture", "sent_id": 4}]}],
+    "expected_fact_ids": ["one-1"], "gold": "A"
+  },
+  {
+    "id": "multi_hop", "question": "What is the capital of the country where Kalamang is spoken?", "choices": {"A": "Jakarta", "B": "Manila"},
+    "facts": [
+      {"fact_id": "multi-1", "example_id": "multi_hop", "subject": "Kalamang", "predicate": "SPOKEN_IN", "object": "East Indonesia", "support_text": "Kalamang is spoken in East Indonesia.", "provenance": [{"document_id": "fixture", "sent_id": 5}]},
+      {"fact_id": "multi-2", "example_id": "multi_hop", "subject": "East Indonesia", "predicate": "PART_OF", "object": "Indonesia", "support_text": "East Indonesia is part of Indonesia.", "provenance": [{"document_id": "fixture", "sent_id": 6}]},
+      {"fact_id": "multi-3", "example_id": "multi_hop", "subject": "Indonesia", "predicate": "CAPITAL_IS", "object": "Jakarta", "support_text": "Indonesia's capital is Jakarta.", "provenance": [{"document_id": "fixture", "sent_id": 7}]}
+    ], "expected_fact_ids": ["multi-1", "multi-2", "multi-3"], "gold": "A"
+  },
+  {"id": "valid_zero", "question": "Who founded an unrelated city?", "choices": {"A": "Unknown", "B": "Other"}, "facts": [], "expected_fact_ids": [], "gold": ""},
+  {
+    "id": "scope_isolation", "question": "What is Secret Alpha's answer?", "choices": {"A": "A", "B": "B"},
+    "facts": [{"fact_id": "scope-own", "example_id": "scope_isolation", "subject": "Secret Alpha", "predicate": "ANSWER_IS", "object": "A", "support_text": "Secret Alpha's answer is A.", "provenance": [{"document_id": "fixture", "sent_id": 8}]}, {"fact_id": "scope-foreign", "example_id": "other_example", "subject": "Secret Alpha", "predicate": "ANSWER_IS", "object": "B", "support_text": "Foreign answer.", "provenance": [{"document_id": "fixture", "sent_id": 9}]}],
+    "expected_fact_ids": ["scope-own"], "forbidden_fact_ids": ["scope-foreign"], "gold": "A"
+  },
+  {"id": "malformed_arguments", "question": "Where is Kalamang spoken?", "choices": {"A": "East Indonesia", "B": "Jakarta"}, "facts": [], "expected_fact_ids": [], "tool_call": {"query": 3}},
+  {"id": "repeated_call", "question": "Where is Kalamang spoken?", "choices": {"A": "East Indonesia", "B": "Jakarta"}, "facts": [], "expected_fact_ids": [], "repeat_identical_call": true},
+  {"id": "retrieval_timeout", "question": "Where is Kalamang spoken?", "choices": {"A": "East Indonesia", "B": "Jakarta"}, "facts": [], "expected_fact_ids": [], "simulate_timeout": true}
+]
