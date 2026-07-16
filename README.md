@@ -138,13 +138,29 @@ python3 -m experiments.run_all \
     --neo4j-password yourpassword
 ```
 
-For Qwen-first native KG tool calls in cells 5 and 6:
+Cell 6 uses Qwen-first native KG tool calls by default. For Cell 5, pass
+`--qwen-tool-retrieval` explicitly:
 
 ```bash
 python3 -m experiments.run_all \
-    --cells 5,6 \
+    --cells 5 \
     --skip-kg-build \
     --qwen-tool-retrieval \
+    --max-tool-calls 3 \
+    --tool-choice auto \
+    --tool-timeout 30 \
+    --results-dir results/qwen_tool_sparse \
+    --model Qwen/Qwen3-4B \
+    --vllm-base-url http://localhost:8000/v1 \
+    --neo4j-password yourpassword
+```
+
+For Cell 6, the same tool path is active without an extra flag:
+
+```bash
+python3 -m experiments.run_all \
+    --cells 6 \
+    --skip-kg-build \
     --max-tool-calls 3 \
     --tool-choice auto \
     --tool-timeout 30 \

@@ -119,7 +119,10 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
             p.add_argument(
                 "--qwen-tool-retrieval",
                 action="store_true",
-                help="Let root Qwen use native KG tool calls inside the RLM loop",
+                help=(
+                    "Let root Qwen use native KG tool calls inside the RLM loop "
+                    "(enabled by default for cell 6)"
+                ),
             )
             p.add_argument(
                 "--max-tool-calls",
@@ -197,7 +200,7 @@ def run_cell(
     qwen_tool_mode = bool(
         kind == "rlm"
         and retrieval == "kg"
-        and getattr(args, "qwen_tool_retrieval", False)
+        and (cell_id == 6 or getattr(args, "qwen_tool_retrieval", False))
     )
     # Lazy-imported answerer + memory builder
     client = None

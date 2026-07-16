@@ -572,3 +572,54 @@ def test_cell_runner_does_not_pre_retrieve_and_persists_integrated_trace(
     assert result["predicted"] == "A"
     assert result["n_triples"] == 1
     assert persisted["orchestration"] == "qwen_native_tool_inside_rlm"
+
+
+def test_cell6_enables_integrated_retrieval_without_flag(tmp_path: Path) -> None:
+    class NoPreRetrievalSource(GraphSource):
+        def context_for(self, *args, **kwargs):
+            raise AssertionError("cell 6 must use integrated retrieval by default")
+
+    source = NoPreRetrievalSource(
+        fallback_facts=FACTS,
+        session_id="pilot_scallop",
+        memory_scope="example",
+    )
+    outcome = SimpleNamespace(
+        predicted="A",
+        error=None,
+        retrieved_fact_count=1,
+        tool_result_chars=300,
+        trace={
+            "orchestration": "qwen_native_tool_inside_rlm",
+            "termination_reason": "supported_final_answer",
+        },
+        termination_reason="supported_final_answer",
+    )
+    input_path = tmp_path / "input.jsonl"
+    output_path = tmp_path / "cell6" / "results.jsonl"
+    input_path.write_text(json.dumps({**EXAMPLE, "answer": "A"}) + "\n", encoding="utf-8")
+
+    with patch(
+        "experiments.graph_context.open_graph_source", return_value=source
+    ), patch(
+        "experiments.rlm_retrieval.qwen_rlm_tool_answer", return_value=outcome
+    ) as answer:
+        run_cell(
+            cell_id=6,
+            label="rlm_kg_scallop",
+            kind="rlm",
+            retrieval="kg",
+            session_id="pilot_scallop",
+            argv=[
+                "--input",
+                str(input_path),
+                "--output",
+                str(output_path),
+                "--no-aggregate",
+            ],
+        )
+
+    result = json.loads(output_path.read_text(encoding="utf-8"))
+    assert answer.call_count == 1
+    assert result["predicted"] == "A"
+    assert result["n_triples"] == 1
