@@ -23,6 +23,11 @@ from experiments.kg_search_tool import (
     TOOL_NAME as SEARCH_TOOL_NAME,
     execute_search_knowledge_graph,
 )
+from experiments.working_memory_tool import (
+    TOOL_NAME as UPDATE_TOOL_NAME,
+    UPDATE_WORKING_MEMORY_TOOL,
+    execute_update_working_memory,
+)
 
 
 TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v1"
@@ -48,6 +53,7 @@ class QwenRLMToolOutcome:
     retrieved_fact_count: int
     tool_result_chars: int
     trace: Dict[str, Any]
+    working_memory_artifact_ids: List[str]
 
 
 def _tool_error(
@@ -59,6 +65,7 @@ def _tool_error(
     example_id: str,
     request: Optional[Dict[str, Any]] = None,
     details: Optional[List[str]] = None,
+    tool_name: str = SEARCH_TOOL_NAME,
 ) -> Dict[str, Any]:
     error: Dict[str, Any] = {
         "code": code,
@@ -69,7 +76,7 @@ def _tool_error(
         error["details"] = details
     return {
         "status": "error",
-        "tool": SEARCH_TOOL_NAME,
+        "tool": tool_name,
         "request": request,
         "scope": {
             "example_id": str(example_id),
@@ -81,6 +88,7 @@ def _tool_error(
             "memory_scope": str(getattr(graph_source, "memory_scope", "example")),
         },
         "results": [],
+        "working_memory": None,
         "result_count": 0,
         "truncated": False,
         "empty_reason": None,
@@ -201,7 +209,7 @@ def _question_message(example: Mapping[str, Any]) -> str:
 
 def _native_tool_instructions(max_tool_calls: int) -> str:
     return f"""
-The root model also has the native `{SEARCH_TOOL_NAME}` function. The REPL
+The root model has native `{SEARCH_TOOL_NAME}` and `{UPDATE_TOOL_NAME}` functions. The REPL
 contains no pre-retrieved facts. Call the native function when graph evidence
 is needed; do not print or hand-parse a JSON retrieval action. Tool results are
 retained across RLM iterations.
@@ -210,6 +218,11 @@ Use precise seed entities for sparse matching. After status="ok" with an empty
 results list, reformulate with an alias or follow an intermediate entity. A
 status="error" response is a failed call, not a no-hit. You may make at most
 {max_tool_calls} tool calls in the entire RLM trajectory.
+
+After selecting evidence, call `{UPDATE_TOOL_NAME}` with the returned fact IDs
+to compile shaped working memory. Never invent an ID or pass scope/session
+arguments. Derived facts must cite selected returned fact IDs. The application,
+not the model, owns memory scope and decides whether Scallop gates the update.
 
 You may use the RLM REPL, `llm_query`, and `rlm_query` to reason over returned
 facts. The terminal RLM answer must be one of:
@@ -262,6 +275,10 @@ class NativeToolSession:
         max_completion_tokens: int,
         tool_schema: Mapping[str, Any],
         execute_tool: SearchToolExecutor,
+        update_tool_schema: Mapping[str, Any] = UPDATE_WORKING_MEMORY_TOOL,
+        execute_update_tool: Callable[..., Mapping[str, Any]] = execute_update_working_memory,
+        validate_memory_updates: bool = True,
+        require_memory_update: bool = False,
     ) -> None:
         if max_tool_calls < 1:
             raise ValueError("max_tool_calls must be at least 1")
@@ -281,8 +298,16 @@ class NativeToolSession:
         self.max_completion_tokens = max_completion_tokens
         self.tool_schema = dict(tool_schema)
         self.execute_tool = execute_tool
+        self.update_tool_schema = dict(update_tool_schema)
+        self.execute_update_tool = execute_update_tool
+        self.validate_memory_updates = validate_memory_updates
+        self.require_memory_update = require_memory_update
         self.seen_calls: Set[str] = set()
         self.retrieved_fact_ids: Set[str] = set()
+        self.retrieved_facts: Dict[str, Dict[str, Any]] = {}
+        self.working_memory_artifact_ids: List[str] = []
+        self.working_memory_fact_ids: Set[str] = set()
+        self.prior_artifact = None
         self.tool_call_count = 0
         self.tool_result_chars = 0
         self.evidence_responses: List[Dict[str, Any]] = []
@@ -293,7 +318,7 @@ class NativeToolSession:
             "session_id": graph_source.session_id,
             "memory_scope": graph_source.memory_scope,
             "model": model,
-            "tool_name": SEARCH_TOOL_NAME,
+            "tool_names": [SEARCH_TOOL_NAME, UPDATE_TOOL_NAME],
             "tool_choice": tool_choice,
             "max_tool_calls": max_tool_calls,
             "orchestration": "qwen_native_tool_inside_rlm",
@@ -351,7 +376,7 @@ class NativeToolSession:
                 response = base_client.client.chat.completions.create(
                     model=self.model,
                     messages=list(messages),
-                    tools=[self.tool_schema],
+                    tools=[self.tool_schema, self.update_tool_schema],
                     tool_choice=request_tool_choice,
                     temperature=0.0,
                     max_tokens=self.max_completion_tokens,
@@ -424,7 +449,7 @@ class NativeToolSession:
                             graph_source=self.graph_source,
                             example_id=self.example_id,
                         )
-                    elif name != SEARCH_TOOL_NAME:
+                    elif name not in {SEARCH_TOOL_NAME, UPDATE_TOOL_NAME}:
                         tool_response = _tool_error(
                             "unknown_tool",
                             f"unsupported tool: {name}",
@@ -452,13 +477,44 @@ class NativeToolSession:
                         else:
                             self.seen_calls.add(signature)
                             started = time.perf_counter()
-                            tool_response = _execute_with_timeout(
-                                self.execute_tool,
-                                arguments,
-                                self.graph_source,
-                                self.example_id,
-                                self.tool_timeout,
-                            )
+                            if name == SEARCH_TOOL_NAME:
+                                tool_response = _execute_with_timeout(
+                                    self.execute_tool,
+                                    arguments,
+                                    self.graph_source,
+                                    self.example_id,
+                                    self.tool_timeout,
+                                )
+                            else:
+                                pool = ThreadPoolExecutor(
+                                    max_workers=1, thread_name_prefix="working-memory-tool"
+                                )
+                                future = pool.submit(
+                                    self.execute_update_tool,
+                                    arguments,
+                                    self.graph_source,
+                                    self.example_id,
+                                    list(self.retrieved_facts.values()),
+                                    validate=self.validate_memory_updates,
+                                    prior_artifact=self.prior_artifact,
+                                )
+                                try:
+                                    tool_response = _normalise_tool_response(
+                                        future.result(timeout=self.tool_timeout)
+                                    )
+                                except FutureTimeoutError:
+                                    future.cancel()
+                                    tool_response = _tool_error(
+                                        "backend_timeout",
+                                        "Working-memory update timed out.",
+                                        retryable=True,
+                                        graph_source=self.graph_source,
+                                        example_id=self.example_id,
+                                        request=arguments,
+                                        tool_name=UPDATE_TOOL_NAME,
+                                    )
+                                finally:
+                                    pool.shutdown(wait=False, cancel_futures=True)
                             elapsed_seconds = round(time.perf_counter() - started, 6)
 
                 self.trace["events"].append(
@@ -478,7 +534,20 @@ class NativeToolSession:
                 if tool_response.get("status") == "ok" and isinstance(results, list):
                     for result in results:
                         if isinstance(result, Mapping) and result.get("fact_id"):
-                            self.retrieved_fact_ids.add(str(result["fact_id"]))
+                            fact_id = str(result["fact_id"])
+                            self.retrieved_fact_ids.add(fact_id)
+                            self.retrieved_facts[fact_id] = dict(result)
+                if name == UPDATE_TOOL_NAME and tool_response.get("status") == "ok":
+                    artifact = tool_response.get("artifact")
+                    if isinstance(artifact, Mapping) and artifact.get("artifact_id"):
+                        artifact_id = str(artifact["artifact_id"])
+                        self.working_memory_artifact_ids.append(artifact_id)
+                        self.working_memory_fact_ids.update(
+                            str(value)
+                            for value in artifact.get("selected_fact_ids", [])
+                            if value
+                        )
+                        self.prior_artifact = None
 
                 tool_content = json.dumps(
                     tool_response, ensure_ascii=False, separators=(",", ":")
@@ -538,6 +607,8 @@ class NativeToolSession:
                 "retrieved_fact_ids": ordered_retrieved,
                 "tool_call_count": self.tool_call_count,
                 "retrieved_fact_count": len(ordered_retrieved),
+                "working_memory_artifact_ids": list(self.working_memory_artifact_ids),
+                "working_memory_fact_ids": sorted(self.working_memory_fact_ids),
                 "tool_result_chars": self.tool_result_chars,
                 "rlm_model_completion_count": self.model_completion_count,
                 "error": error,
@@ -563,6 +634,7 @@ class NativeToolSession:
             retrieved_fact_count=len(ordered_retrieved),
             tool_result_chars=self.tool_result_chars,
             trace=self.trace,
+            working_memory_artifact_ids=list(self.working_memory_artifact_ids),
         )
 
 
@@ -666,6 +738,10 @@ def qwen_rlm_tool_answer(
     max_completion_tokens: int = 2048,
     tool_schema: Optional[Mapping[str, Any]] = None,
     execute_tool: SearchToolExecutor = execute_search_knowledge_graph,
+    update_tool_schema: Mapping[str, Any] = UPDATE_WORKING_MEMORY_TOOL,
+    execute_update_tool: Callable[..., Mapping[str, Any]] = execute_update_working_memory,
+    validate_memory_updates: bool = True,
+    require_memory_update: bool = False,
 ) -> QwenRLMToolOutcome:
     """Run one Qwen-first native-tool trajectory inside the RLM structure."""
     example_id = str(example.get("_id", ""))
@@ -679,6 +755,10 @@ def qwen_rlm_tool_answer(
         max_completion_tokens=max_completion_tokens,
         tool_schema=tool_schema or SEARCH_KNOWLEDGE_GRAPH_TOOL,
         execute_tool=execute_tool,
+        update_tool_schema=update_tool_schema,
+        execute_update_tool=execute_update_tool,
+        validate_memory_updates=validate_memory_updates,
+        require_memory_update=require_memory_update,
     )
     rlm = make_qwen_tool_rlm(
         backend=backend,
@@ -729,7 +809,13 @@ def qwen_rlm_tool_answer(
         )
 
     unknown_citations = sorted(set(citations) - session.retrieved_fact_ids)
-    if predicted and citations and not unknown_citations:
+    missing_from_memory = sorted(set(citations) - session.working_memory_fact_ids)
+    if (
+        predicted
+        and citations
+        and not unknown_citations
+        and (not require_memory_update or not missing_from_memory)
+    ):
         return session.finish(
             status="supported",
             predicted=predicted,
@@ -741,6 +827,11 @@ def qwen_rlm_tool_answer(
 
     if unknown_citations:
         error = f"unknown cited fact IDs: {', '.join(unknown_citations)}"
+    elif require_memory_update and missing_from_memory:
+        error = (
+            "cited fact IDs were not committed to working memory: "
+            + ", ".join(missing_from_memory)
+        )
     elif predicted and not citations:
         error = "supported answer omitted CITED_FACT_IDS"
     else:

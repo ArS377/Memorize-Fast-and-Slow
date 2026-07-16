@@ -138,16 +138,16 @@ python3 -m experiments.run_all \
     --neo4j-password yourpassword
 ```
 
-Cell 6 uses Qwen-first native KG tool calls by default. For Cell 5, pass
-`--qwen-tool-retrieval` explicitly:
+Cells 5 and 6 both use Qwen-first native KG tools by default. They share the
+same search/update orchestration; Scallop transition gating is the only intended
+difference between them:
 
 ```bash
 python3 -m experiments.run_all \
-    --cells 5 \
+    --cells 5,6 \
     --skip-kg-build \
-    --qwen-tool-retrieval \
     --max-tool-calls 3 \
-    --tool-choice auto \
+    --tool-choice required \
     --tool-timeout 30 \
     --results-dir results/qwen_tool_sparse \
     --model Qwen/Qwen3-4B \
@@ -155,27 +155,24 @@ python3 -m experiments.run_all \
     --neo4j-password yourpassword
 ```
 
-For Cell 6, the same tool path is active without an extra flag:
+To reproduce the legacy fixed pre-retrieval baseline for both cells:
 
 ```bash
 python3 -m experiments.run_all \
-    --cells 6 \
+    --cells 5,6 \
     --skip-kg-build \
-    --max-tool-calls 3 \
-    --tool-choice auto \
-    --tool-timeout 30 \
-    --results-dir results/qwen_tool_sparse \
+    --fixed-kg-retrieval \
+    --results-dir results/fixed_kg_legacy \
     --model Qwen/Qwen3-4B \
     --vllm-base-url http://localhost:8000/v1 \
     --neo4j-password yourpassword
 ```
 
-This path sends the question and choices to Qwen before retrieval, returns
-structured tool results through native assistant/tool messages, requires cited
-fact IDs, and writes a trace per example. Native tool calls execute inside the
-root RLM model turns, so the same trajectory retains the RLM REPL, iterative
-reasoning, and recursive `llm_query`/`rlm_query` capabilities. It replaces only
-the legacy prompt-parsed retrieval protocol, not the RLM answerer. See the
+The native path sends the question and choices to Qwen before retrieval, then
+uses `search_knowledge_graph` and `update_working_memory`. Final answers must
+cite returned fact IDs that were selected into the working-memory artifact.
+Native calls execute inside root RLM turns, retaining the REPL and recursive
+`llm_query`/`rlm_query` capabilities. See the
 [`search_knowledge_graph` contract](docs/qwen-knowledge-graph-tool.md) and
 [`sparse smoke procedure`](docs/qwen_sparse_smoke.md).
 

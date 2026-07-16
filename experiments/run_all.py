@@ -105,7 +105,7 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             "--max-tokens", str(args.max_tokens),
         ]
         if cell_id in (5, 6):
-            if args.qwen_tool_retrieval:
+            if not getattr(args, "fixed_kg_retrieval", False):
                 base += [
                     "--qwen-tool-retrieval",
                     "--max-tool-calls", str(args.max_tool_calls),
@@ -115,6 +115,8 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
                 ]
                 if args.tool_trace_dir is not None:
                     base += ["--tool-trace-dir", str(args.tool_trace_dir / f"cell{cell_id}")]
+            else:
+                base += ["--fixed-kg-retrieval"]
     return base
 
 
@@ -144,10 +146,15 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument(
         "--qwen-tool-retrieval",
         action="store_true",
-        help="Enable native Qwen KG tool calls inside the RLM loop for cells 5/6",
+        help="Deprecated compatibility flag; native Qwen tools are now the cells 5/6 default",
+    )
+    parser.add_argument(
+        "--fixed-kg-retrieval",
+        action="store_true",
+        help="Use legacy fixed pre-retrieval for both cells 5 and 6",
     )
     parser.add_argument("--max-tool-calls", type=_positive_int, default=3)
-    parser.add_argument("--tool-choice", choices=["auto", "required"], default="auto")
+    parser.add_argument("--tool-choice", choices=["auto", "required"], default="required")
     parser.add_argument("--tool-timeout", type=_positive_float, default=30.0)
     parser.add_argument("--tool-trace-dir", type=Path, default=None)
     parser.add_argument("--tool-max-tokens", type=_positive_int, default=2048)
@@ -155,7 +162,7 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     cells = _parse_cells(args.cells)
     args.results_dir.mkdir(parents=True, exist_ok=True)
-    orchestration_mode = "qwen_native_tool_inside_rlm" if args.qwen_tool_retrieval else "fixed"
+    orchestration_mode = "fixed" if args.fixed_kg_retrieval else "qwen_native_tools_inside_rlm"
 
     metadata = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -176,6 +183,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         "max_tokens": args.max_tokens,
         "orchestration_mode": orchestration_mode,
         "qwen_tool_retrieval": args.qwen_tool_retrieval,
+        "fixed_kg_retrieval": args.fixed_kg_retrieval,
         "max_tool_calls": args.max_tool_calls,
         "tool_choice": args.tool_choice,
         "tool_timeout": args.tool_timeout,

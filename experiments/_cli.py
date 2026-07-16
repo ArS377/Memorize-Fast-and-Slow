@@ -127,9 +127,14 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
                 "--qwen-tool-retrieval",
                 action="store_true",
                 help=(
-                    "Let root Qwen use native KG tool calls inside the RLM loop "
-                    "(enabled by default for cell 6)"
+                    "Deprecated compatibility flag; native KG tools are the default "
+                    "for both cells 5 and 6"
                 ),
+            )
+            p.add_argument(
+                "--fixed-kg-retrieval",
+                action="store_true",
+                help="Run the legacy pre-retrieved KG baseline instead of native tools",
             )
             p.add_argument(
                 "--max-tool-calls",
@@ -140,7 +145,7 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
             p.add_argument(
                 "--tool-choice",
                 choices=["auto", "required"],
-                default="auto",
+                default="required",
                 help="OpenAI-compatible tool selection mode before the call limit",
             )
             p.add_argument(
@@ -207,7 +212,7 @@ def run_cell(
     qwen_tool_mode = bool(
         kind == "rlm"
         and retrieval == "kg"
-        and (cell_id == 6 or getattr(args, "qwen_tool_retrieval", False))
+        and not getattr(args, "fixed_kg_retrieval", False)
     )
     # Lazy-imported answerer + memory builder
     client = None
@@ -288,6 +293,8 @@ def run_cell(
                             tool_choice=args.tool_choice,
                             tool_timeout=args.tool_timeout,
                             max_completion_tokens=args.tool_max_tokens,
+                            validate_memory_updates=(cell_id == 6),
+                            require_memory_update=True,
                         )
                         trace_dir = args.tool_trace_dir or (out_path.parent / "tool_traces")
                         trace_path = _write_tool_trace(

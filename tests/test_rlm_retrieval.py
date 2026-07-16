@@ -19,6 +19,7 @@ from experiments.rlm_retrieval import (
     qwen_rlm_tool_answer,
 )
 from experiments.run_all import _common_cell_args
+from experiments.working_memory_tool import UPDATE_WORKING_MEMORY_TOOL
 
 
 FACTS = [
@@ -285,6 +286,28 @@ def test_empty_result_is_explicit_and_can_be_reformulated() -> None:
     )
 
 
+def test_search_then_working_memory_update_uses_only_returned_facts() -> None:
+    client = FakeRLMClient(
+        [
+            _response(tool_calls=[_tool_call("search", {"query": "Kalamang", "seed_entities": ["Kalamang"]})]),
+            _response(tool_calls=[_tool_call(
+                "update",
+                {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                name="update_working_memory",
+            )]),
+            _response(content="FINAL(FINAL_ANSWER: A\nCITED_FACT_IDS: f1)"),
+        ]
+    )
+    session = _session(client, max_tool_calls=3, require_memory_update=True)
+    content = session.complete(client, _messages())
+    assert "FINAL_ANSWER: A" in content
+    assert session.working_memory_fact_ids == {"f1"}
+    assert len(session.working_memory_artifact_ids) == 1
+    assert [tool["function"]["name"] for tool in client.completions.requests[0]["tools"]] == [
+        "search_knowledge_graph", "update_working_memory"
+    ]
+
+
 def test_malformed_and_duplicate_calls_return_tool_errors() -> None:
     executions: List[Dict[str, Any]] = []
 
@@ -491,6 +514,9 @@ def test_official_schema_does_not_expose_scope_controls() -> None:
     assert "example_id" not in properties
     assert "session_id" not in properties
     assert SEARCH_KNOWLEDGE_GRAPH_TOOL["function"]["name"] == "search_knowledge_graph"
+    update_properties = UPDATE_WORKING_MEMORY_TOOL["function"]["parameters"]["properties"]
+    assert "session_id" not in update_properties
+    assert "memory_scope" not in update_properties
 
 
 def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
@@ -519,12 +545,14 @@ def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
         "tool_trace_dir": None,
     }
     enabled = _common_cell_args(SimpleNamespace(**common, qwen_tool_retrieval=True), 5)
-    fixed = _common_cell_args(SimpleNamespace(**common, qwen_tool_retrieval=False), 5)
+    fixed = _common_cell_args(
+        SimpleNamespace(**common, qwen_tool_retrieval=False, fixed_kg_retrieval=True), 5
+    )
 
     assert "--qwen-tool-retrieval" in enabled
     assert "--max-tool-calls" in enabled
     assert "--rlm-retrieval" not in enabled
-    assert "--qwen-tool-retrieval" not in fixed
+    assert "--fixed-kg-retrieval" in fixed
 
 
 def test_cell_runner_does_not_pre_retrieve_and_persists_integrated_trace(
@@ -585,7 +613,7 @@ def test_cell_runner_does_not_pre_retrieve_and_persists_integrated_trace(
     assert persisted["orchestration"] == "qwen_native_tool_inside_rlm"
 
 
-def test_cell6_enables_integrated_retrieval_without_flag(tmp_path: Path) -> None:
+def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path: Path) -> None:
     class NoPreRetrievalSource(GraphSource):
         def context_for(self, *args, **kwargs):
             raise AssertionError("cell 6 must use integrated retrieval by default")
@@ -610,27 +638,23 @@ def test_cell6_enables_integrated_retrieval_without_flag(tmp_path: Path) -> None
     output_path = tmp_path / "cell6" / "results.jsonl"
     input_path.write_text(json.dumps({**EXAMPLE, "answer": "A"}) + "\n", encoding="utf-8")
 
-    with patch(
-        "experiments.graph_context.open_graph_source", return_value=source
-    ), patch(
+    with patch("experiments.graph_context.open_graph_source", return_value=source), patch(
         "experiments.rlm_retrieval.qwen_rlm_tool_answer", return_value=outcome
     ) as answer:
-        run_cell(
-            cell_id=6,
-            label="rlm_kg_scallop",
-            kind="rlm",
-            retrieval="kg",
-            session_id="pilot_scallop",
-            argv=[
-                "--input",
-                str(input_path),
-                "--output",
-                str(output_path),
-                "--no-aggregate",
-            ],
-        )
+        for cell_id, label, session in [
+            (5, "rlm_kg_noscallop", "pilot_noscallop"),
+            (6, "rlm_kg_scallop", "pilot_scallop"),
+        ]:
+            run_cell(
+                cell_id=cell_id,
+                label=label,
+                kind="rlm",
+                retrieval="kg",
+                session_id=session,
+                argv=["--input", str(input_path), "--output", str(output_path), "--no-aggregate"],
+            )
 
     result = json.loads(output_path.read_text(encoding="utf-8"))
-    assert answer.call_count == 1
+    assert answer.call_count == 2
     assert result["predicted"] == "A"
     assert result["n_triples"] == 1

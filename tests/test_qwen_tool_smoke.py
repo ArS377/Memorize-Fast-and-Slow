@@ -33,6 +33,7 @@ def _outcome(*, response: dict, status: str = "supported") -> QwenRLMToolOutcome
                 }
             ]
         },
+        working_memory_artifact_ids=[],
     )
 
 
