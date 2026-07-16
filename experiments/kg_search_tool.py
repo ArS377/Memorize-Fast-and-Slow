@@ -12,7 +12,7 @@ import math
 from collections.abc import Mapping
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
-from compiled_memory import context_rank_score
+from compiled_memory import retrieval_score_components
 from experiments.graph_context import GraphSource, extract_seed_entities
 
 
@@ -123,6 +123,7 @@ class SearchToolResponse(TypedDict):
     request: Optional[Dict[str, Any]]
     scope: Dict[str, Any]
     results: List[Dict[str, Any]]
+    working_memory: Optional[Dict[str, Any]]
     result_count: int
     truncated: bool
     empty_reason: Optional[str]
@@ -174,6 +175,7 @@ def _error_response(
         "request": request,
         "scope": _scope(graph_source, example_id),
         "results": [],
+        "working_memory": None,
         "result_count": 0,
         "truncated": False,
         "empty_reason": None,
@@ -344,6 +346,8 @@ def _result_record(
     *,
     rank: int,
     scope: Dict[str, Any],
+    query: str,
+    seed_entities: List[str],
 ) -> Dict[str, Any]:
     subject = str(row.get("subject", ""))
     predicate = str(row.get("predicate", ""))
@@ -362,7 +366,11 @@ def _result_record(
     )
     full_support_text = str(row.get("support_text", ""))
     support_text = full_support_text[:MAX_SUPPORT_TEXT_CHARS]
-    score = context_rank_score(row)
+    score_components = retrieval_score_components(
+        row,
+        query=query,
+        seed_entities=seed_entities,
+    )
 
     return {
         "rank": rank,
@@ -378,8 +386,11 @@ def _result_record(
         ),
         "provenance": provenance,
         "provenance_truncated": provenance_count > MAX_PROVENANCE_ENTRIES,
+        "valid_from": _first_nonempty(row.get("valid_from")),
+        "valid_to": _first_nonempty(row.get("valid_to")),
         "retrieval_mode": DEFAULT_RETRIEVAL_MODE,
-        "score": score,
+        "score": score_components["total"],
+        "score_components": score_components,
         "graph_path": {
             "nodes": [subject, object_value],
             "edges": [
@@ -396,6 +407,56 @@ def _result_record(
             "example_id": _first_nonempty(row.get("example_id"), scope["example_id"]),
             "session_id": _first_nonempty(row.get("session_id"), scope["session_id"]),
             "memory_scope": scope["memory_scope"],
+        },
+    }
+
+
+def _shape_working_memory(
+    results: List[Dict[str, Any]],
+    *,
+    request: Dict[str, Any],
+    scope: Dict[str, Any],
+    truncated: bool,
+    result_json_chars: int,
+) -> Dict[str, Any]:
+    missing: List[str] = []
+    citations: List[Dict[str, Any]] = []
+    temporal_intervals: List[Dict[str, Any]] = []
+    constraint_trace: List[Dict[str, Any]] = []
+    for result in results:
+        fact_id = result["fact_id"]
+        provenance = result.get("provenance", [])
+        if not provenance:
+            missing.append(fact_id)
+        for entry in provenance:
+            citations.append({"fact_id": fact_id, **entry})
+        temporal = {
+            "fact_id": fact_id,
+            "valid_from": result.get("valid_from"),
+            "valid_to": result.get("valid_to"),
+        }
+        if temporal["valid_from"] or temporal["valid_to"]:
+            temporal_intervals.append(temporal)
+        constraint_trace.append({"fact_id": fact_id, **result["scallop"]})
+    scores = [float(result.get("score", 0.0)) for result in results]
+    return {
+        "entity": request["seed_entities"][0] if request["seed_entities"] else None,
+        "relevant_fact_ids": [result["fact_id"] for result in results],
+        "excluded_claims": [],
+        "temporal_scope": {"intervals": temporal_intervals},
+        "confidence": (
+            "supported" if scores and sum(scores) / len(scores) >= 0.5 else "uncertain"
+        ),
+        "citations": citations,
+        "constraint_trace": constraint_trace,
+        "scope": scope,
+        "provenance_complete": not missing,
+        "missing_provenance_fact_ids": missing,
+        "budget": {
+            "top_k": request["top_k"],
+            "hops": request["hops"],
+            "result_json_chars": result_json_chars,
+            "truncated": truncated,
         },
     }
 
@@ -435,6 +496,9 @@ def execute_search_knowledge_graph(
             "request": request,
             "scope": scope,
             "results": [],
+            "working_memory": _shape_working_memory(
+                [], request=request, scope=scope, truncated=False, result_json_chars=2
+            ),
             "result_count": 0,
             "truncated": False,
             "empty_reason": "no_seed_entities",
@@ -446,7 +510,7 @@ def execute_search_knowledge_graph(
             seed_entities=seeds,
             example_id=str(example_id),
             hops=request["hops"],
-            limit_triples=request["top_k"],
+            limit_triples=min(MAX_TOP_K, request["top_k"] * 3),
             predicates=request["predicates"],
         )
     except Exception as exc:
@@ -484,11 +548,26 @@ def execute_search_knowledge_graph(
             request=request,
         )
 
+    ranked_rows = sorted(
+        rows,
+        key=lambda row: (
+            -retrieval_score_components(
+                dict(row), query=request["query"], seed_entities=seeds
+            )["total"],
+            str(row.get("fact_id", "")),
+        ),
+    )
     results: List[Dict[str, Any]] = []
     results_json_chars = 2
     truncated = False
-    for row in rows[: request["top_k"]]:
-        record = _result_record(row, rank=len(results) + 1, scope=scope)
+    for row in ranked_rows[: request["top_k"]]:
+        record = _result_record(
+            dict(row),
+            rank=len(results) + 1,
+            scope=scope,
+            query=request["query"],
+            seed_entities=seeds,
+        )
         encoded = json.dumps(record, ensure_ascii=False, separators=(",", ":"))
         added_chars = len(encoded) + (1 if results else 0)
         if results_json_chars + added_chars > MAX_RESULTS_JSON_CHARS:
@@ -499,7 +578,7 @@ def execute_search_knowledge_graph(
         if record["support_text_truncated"] or record["provenance_truncated"]:
             truncated = True
 
-    if len(rows) > len(results):
+    if len(ranked_rows) > len(results):
         truncated = True
 
     response: SearchToolResponse = {
@@ -508,6 +587,13 @@ def execute_search_knowledge_graph(
         "request": request,
         "scope": scope,
         "results": results,
+        "working_memory": _shape_working_memory(
+            results,
+            request=request,
+            scope=scope,
+            truncated=truncated,
+            result_json_chars=results_json_chars,
+        ),
         "result_count": len(results),
         "truncated": truncated,
         "empty_reason": "no_matches" if not results else None,

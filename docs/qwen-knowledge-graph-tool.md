@@ -195,14 +195,21 @@ Each result record contains:
 - `rank`, `fact_id`, `subject`, `predicate`, and `object`;
 - `support_text`, `support_text_truncated`, `document_id`, sentence/span
   `provenance`, and `provenance_truncated`;
-- `retrieval_mode` and `score`;
+- `retrieval_mode`, combined `score`, and auditable `score_components` for
+  query relevance, evidence strength, provenance quality, and utility;
 - a single-relationship `graph_path`;
 - `scallop.decision`, `validator`, `reason`, and `rule_version`;
 - trusted example/session `scope`.
 
-The sparse `score` is the repository's existing evidence-quality context rank,
-which combines confidence and provenance quality. It is not a lexical or
-semantic similarity score.
+The sparse `score` combines lexical query relevance (50%), evidence strength
+(25%), provenance quality (15%), and utility metadata (10%). The individual
+components are returned so evaluations can distinguish retrieval relevance
+from evidence quality. It is not a dense semantic-similarity score.
+
+Successful responses also include `working_memory`, a compact shaped view with
+the entity seed, ranked fact IDs, temporal intervals, citations, Scallop
+constraint traces, trusted scope, provenance completeness, and retrieval
+budget. It references result fact IDs instead of duplicating the full rows.
 
 Scallop fields are nullable. Older JSONL artifacts and graph relationships did
 not persist every decision field or rule version. The adapter reports `null`

@@ -232,7 +232,7 @@ def test_native_tool_protocol_starts_with_question_and_returns_structured_result
     assert result["status"] == "ok"
     assert set(result) == {
         "status", "tool", "request", "scope", "results", "result_count",
-        "truncated", "empty_reason", "error",
+        "working_memory", "truncated", "empty_reason", "error",
     }
     assert result["results"][0]["fact_id"] == "f1"
     assert result["results"][0]["document_id"] == "doc-1"

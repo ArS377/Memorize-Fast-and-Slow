@@ -244,6 +244,63 @@ def context_rank_score(row: Fact) -> float:
     return round(min(1.0, 0.78 * confidence + 0.17 * provenance + utility), 4)
 
 
+def sparse_relevance_score(
+    row: Fact,
+    query: str,
+    seed_entities: Optional[List[str]] = None,
+) -> float:
+    """Lexical relevance for the current query, separate from evidence quality."""
+    query_tokens = set(re.findall(r"[a-z0-9]+", str(query).lower()))
+    seed_tokens = set()
+    for seed in seed_entities or []:
+        seed_tokens.update(re.findall(r"[a-z0-9]+", str(seed).lower()))
+    wanted = query_tokens | seed_tokens
+    if not wanted:
+        return 0.0
+    subject = str(row.get("subject", "")).lower()
+    predicate = str(row.get("predicate", "")).lower().replace("_", " ")
+    obj = str(row.get("object", "")).lower()
+    support = str(row.get("support_text", "")).lower()
+    field_tokens = set(re.findall(r"[a-z0-9]+", " ".join([subject, predicate, obj, support])))
+    overlap = len(wanted.intersection(field_tokens)) / max(1, len(wanted))
+    exact_entity_bonus = 0.0
+    for seed in seed_entities or []:
+        normalized = str(seed).strip().lower()
+        if normalized and normalized in {subject.strip(), obj.strip()}:
+            exact_entity_bonus = 0.25
+            break
+    return round(min(1.0, overlap + exact_entity_bonus), 4)
+
+
+def retrieval_score_components(
+    row: Fact,
+    *,
+    query: str,
+    seed_entities: Optional[List[str]] = None,
+) -> Dict[str, float]:
+    """Return auditable score components for sparse retrieval ordering."""
+    relevance = sparse_relevance_score(row, query, seed_entities)
+    evidence = evidence_strength_score(row)
+    provenance = provenance_quality_score(row)
+    utility = 0.0
+    if str(row.get("question_relevance", "")).strip():
+        utility += 0.6
+    if str(row.get("support_text", "")).strip():
+        utility += 0.25
+    explicit_utility = _as_float(row.get("retrieval_utility"))
+    if explicit_utility is not None:
+        utility += 0.15 * explicit_utility
+    utility = min(1.0, utility)
+    total = (0.50 * relevance) + (0.25 * evidence) + (0.15 * provenance) + (0.10 * utility)
+    return {
+        "query_relevance": round(relevance, 4),
+        "evidence_strength": round(evidence, 4),
+        "provenance_quality": round(provenance, 4),
+        "utility": round(utility, 4),
+        "total": round(min(1.0, total), 4),
+    }
+
+
 def context_sort_key(row: Fact) -> tuple:
     return (
         -context_rank_score(row),

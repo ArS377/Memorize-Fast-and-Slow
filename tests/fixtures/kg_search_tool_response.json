@@ -39,8 +39,17 @@
         }
       ],
       "provenance_truncated": false,
+      "valid_from": null,
+      "valid_to": null,
       "retrieval_mode": "sparse",
-      "score": 0.8168,
+      "score": 0.8488,
+      "score_components": {
+        "query_relevance": 1.0,
+        "evidence_strength": 0.8452,
+        "provenance_quality": 0.75,
+        "utility": 0.25,
+        "total": 0.8488
+      },
       "graph_path": {
         "nodes": [
           "Kalamang",
@@ -68,6 +77,50 @@
       }
     }
   ],
+  "working_memory": {
+    "entity": "Kalamang",
+    "relevant_fact_ids": [
+      "fact-kalamang"
+    ],
+    "excluded_claims": [],
+    "temporal_scope": {
+      "intervals": []
+    },
+    "confidence": "supported",
+    "citations": [
+      {
+        "fact_id": "fact-kalamang",
+        "title": "Language notes",
+        "document_id": "doc-language",
+        "sent_id": 7,
+        "sentence_id": "doc-language:7",
+        "source_span_start": 0,
+        "source_span_end": 40
+      }
+    ],
+    "constraint_trace": [
+      {
+        "fact_id": "fact-kalamang",
+        "decision": "accept",
+        "validator": "scallop",
+        "reason": "No contradiction found.",
+        "rule_version": "rules.v1"
+      }
+    ],
+    "scope": {
+      "example_id": "ex1",
+      "session_id": "session-1",
+      "memory_scope": "example"
+    },
+    "provenance_complete": true,
+    "missing_provenance_fact_ids": [],
+    "budget": {
+      "top_k": 10,
+      "hops": 2,
+      "result_json_chars": 966,
+      "truncated": false
+    }
+  },
   "result_count": 1,
   "truncated": false,
   "empty_reason": null,

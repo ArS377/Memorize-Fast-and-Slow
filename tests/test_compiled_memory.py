@@ -19,6 +19,7 @@ from compiled_memory import (  # noqa: E402
     fact_to_compiled_fact,
     fact_to_compiled_memory,
     provenance_quality_score,
+    retrieval_score_components,
 )
 
 
@@ -231,6 +232,25 @@ def test_weighted_confidence_score_is_not_scored_twice():
 
     assert compiled["confidence_method"] == "weighted_evidence_v1"
     assert evidence_strength_score(compiled) == compiled["confidence_score"]
+
+
+def test_query_relevance_is_separate_and_auditable():
+    matching = sample_fact()
+    irrelevant = {**sample_fact(), "fact_id": "fact_2", "subject": "Unrelated"}
+    matching_score = retrieval_score_components(
+        matching,
+        query="Where does Alice work?",
+        seed_entities=["Alice Chen"],
+    )
+    irrelevant_score = retrieval_score_components(
+        irrelevant,
+        query="Where does Alice work?",
+        seed_entities=["Alice Chen"],
+    )
+    assert set(matching_score) == {
+        "query_relevance", "evidence_strength", "provenance_quality", "utility", "total"
+    }
+    assert matching_score["query_relevance"] > irrelevant_score["query_relevance"]
 
 
 def main():

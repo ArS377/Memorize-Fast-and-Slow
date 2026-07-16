@@ -119,6 +119,7 @@ def test_adapter_returns_structured_sparse_result_without_an_llm() -> None:
     assert result["provenance_truncated"] is False
     assert result["retrieval_mode"] == "sparse"
     assert isinstance(result["score"], float)
+    assert result["score"] == result["score_components"]["total"]
     assert result["graph_path"]["edges"][0]["fact_id"] == "fact-kalamang"
     assert result["scallop"] == {
         "decision": "accept",
@@ -127,6 +128,8 @@ def test_adapter_returns_structured_sparse_result_without_an_llm() -> None:
         "rule_version": "rules.v1",
     }
     assert result["scope"]["example_id"] == "ex1"
+    assert response["working_memory"]["relevant_fact_ids"] == [result["fact_id"]]
+    assert "provenance_complete" in response["working_memory"]
     assert "Wrong Example" not in json.dumps(response)
     json.dumps(response, allow_nan=False)
 
