@@ -41,7 +41,9 @@ resource limits, citations, and fixtures.
 
 ## Environment Setup
 
-scallopy requires **Python 3.9** and must be installed in a Conda environment (x86_64 for Apple Silicon via Rosetta 2).
+The Linux experiment setup uses the `scallopy` 0.2.4 Python 3.10 wheel. The
+older local macOS wheel shown below requires a separate Python 3.9 x86_64
+environment under Rosetta 2.
 
 ```bash
 # Install conda (first time only)

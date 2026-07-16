@@ -13,6 +13,15 @@ VLLM_ENV_DIR="${VLLM_ENV_DIR:-$HOME/.conda/envs/vllm-env}"
 KG_PY="$KG_ENV_DIR/bin/python3"
 VLLM_PY="$VLLM_ENV_DIR/bin/python3"
 FACTS_FILE="results/kg_builds/pilot_scallop_facts.jsonl"
+SCALLOP_VALIDATOR_URL="${SCALLOP_VALIDATOR_URL:-http://127.0.0.1:8765}"
+SCALLOP_VALIDATOR_PORT="${SCALLOP_VALIDATOR_PORT:-8765}"
+NEO4J_URI="${NEO4J_URI:-bolt://127.0.0.1:7687}"
+NEO4J_USER="${NEO4J_USER:-neo4j}"
+
+if [[ -z "${NEO4J_PASSWORD:-}" ]]; then
+  echo "[setup-cell6] ERROR: NEO4J_PASSWORD is required for persistent Cell 6 updates." >&2
+  exit 2
+fi
 
 echo "[setup-cell6] repo: $ROOT"
 echo "[setup-cell6] model: $MODEL"
@@ -46,8 +55,25 @@ echo "[setup-cell6] installing KG build dependencies in $KG_ENV..."
   openai neo4j pydantic tqdm httpx \
   "scallopy @ https://github.com/scallop-lang/scallop/releases/download/0.2.4/scallopy-0.2.4-cp310-cp310-manylinux_2_27_x86_64.whl"
 
-echo "[setup-cell6] building Scallop-validated KG facts without Neo4j..."
-PYTHONPATH="$ROOT" "$KG_PY" -m experiments.build_kg_facts_file \
+if ! curl -fsS "$SCALLOP_VALIDATOR_URL/health" >/dev/null; then
+  echo "[setup-cell6] starting actual-scallopy validator service..."
+  mkdir -p results/services
+  nohup env PYTHONPATH="$ROOT" "$KG_PY" -m services.scallop_validator_service \
+    --host 127.0.0.1 --port "$SCALLOP_VALIDATOR_PORT" \
+    >results/services/scallop_validator.log 2>&1 &
+  echo $! > results/services/scallop_validator.pid
+  for _ in 1 2 3 4 5; do
+    curl -fsS "$SCALLOP_VALIDATOR_URL/health" >/dev/null && break
+    sleep 1
+  done
+fi
+curl -fsS "$SCALLOP_VALIDATOR_URL/health" >/dev/null || {
+  echo "[setup-cell6] ERROR: actual Scallop validator did not become healthy." >&2
+  exit 2
+}
+
+echo "[setup-cell6] building Scallop-validated persistent KG..."
+PYTHONPATH="$ROOT" "$KG_PY" -m experiments.build_kg \
   --input data.jsonl \
   --limit "$LIMIT" \
   --session pilot_scallop \
@@ -55,15 +81,19 @@ PYTHONPATH="$ROOT" "$KG_PY" -m experiments.build_kg_facts_file \
   --model "$MODEL" \
   --vllm-base-url "$VLLM_BASE_URL" \
   --api-key EMPTY \
+  --neo4j-uri "$NEO4J_URI" \
+  --neo4j-user "$NEO4J_USER" \
+  --neo4j-password "$NEO4J_PASSWORD" \
+  --scallop-validator-url "$SCALLOP_VALIDATOR_URL" \
   --max-chunks-per-example 3 \
-  --max-tokens 768
+  --max-tokens 2048
 
 if [[ ! -s "$FACTS_FILE" ]]; then
   echo "[setup-cell6] ERROR: expected facts file was not created: $FACTS_FILE" >&2
   exit 2
 fi
 
-echo "[setup-cell6] ready: $FACTS_FILE"
+echo "[setup-cell6] ready: persistent session pilot_scallop; mirror: $FACTS_FILE"
 echo
 echo "Run Cell 6 with:"
 cat <<EOF
@@ -73,7 +103,10 @@ python3 -m experiments.cells.cell6_rlm_kg_scallop \\
   --model $MODEL \\
   --vllm-base-url $VLLM_BASE_URL \\
   --api-key EMPTY \\
-  --facts-file $FACTS_FILE \\
+  --neo4j-uri $NEO4J_URI \\
+  --neo4j-user $NEO4J_USER \\
+  --neo4j-password "\$NEO4J_PASSWORD" \\
+  --scallop-validator-url $SCALLOP_VALIDATOR_URL \\
   --hops 2 \\
   --limit-triples 50 \\
   --context-max-chars 4000 \\
