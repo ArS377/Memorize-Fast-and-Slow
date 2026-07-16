@@ -243,6 +243,8 @@ def open_graph_source(
     facts_file: Optional[Path],
     memory_scope: str = "example",
     source_session_ids: Optional[List[str]] = None,
+    validator_url: Optional[str] = None,
+    require_scallop: bool = False,
 ) -> GraphSource:
     """Open a graph source preferring Neo4j; fall back to facts-file.
 
@@ -257,6 +259,8 @@ def open_graph_source(
                 user=neo4j_user,
                 password=neo4j_password,
                 session_id=session_id,
+                validator_url=validator_url,
+                require_scallop=require_scallop,
             )
             print(f"Connected to Neo4j at {neo4j_uri} (session={session_id})", file=sys.stderr)
             return GraphSource(
@@ -266,6 +270,8 @@ def open_graph_source(
                 source_session_ids=source_session_ids,
             )
         except Exception as e:
+            if require_scallop:
+                raise RuntimeError(f"required Scallop validator unavailable: {e}") from e
             print(f"Neo4j connection failed: {e}; trying --facts-file", file=sys.stderr)
             graph = None
 

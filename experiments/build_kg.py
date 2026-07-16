@@ -88,6 +88,7 @@ def build_kg(
     max_chunks_per_example: Optional[int] = None,
     verify_batch_size: int = 20,
     facts_out_dir: Path = Path("results/kg_builds"),
+    scallop_validator_url: Optional[str] = None,
 ) -> Path:
     """Extract+verify facts on the pilot slice and write to Neo4j.
 
@@ -113,6 +114,8 @@ def build_kg(
         user=neo4j_user,
         password=neo4j_password,
         session_id=session_id,
+        validator_url=scallop_validator_url,
+        require_scallop=validate,
     )
     try:
         existing = _facts_count(graph, session_id)
@@ -266,6 +269,7 @@ def _add_cli(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--neo4j-uri", default=os.getenv("NEO4J_URI", "bolt://localhost:7687"))
     parser.add_argument("--neo4j-user", default=os.getenv("NEO4J_USER", "neo4j"))
     parser.add_argument("--neo4j-password", default=os.getenv("NEO4J_PASSWORD"))
+    parser.add_argument("--scallop-validator-url", default=os.getenv("SCALLOP_VALIDATOR_URL"))
     parser.add_argument("--rebuild", action="store_true",
                         help="Wipe the target session before rebuilding")
     parser.add_argument("--chunk-chars", type=int, default=12000)
@@ -298,6 +302,7 @@ def main(argv: Optional[List[str]] = None) -> Path:
         max_chunks_per_example=args.max_chunks_per_example,
         verify_batch_size=args.verify_batch_size,
         facts_out_dir=args.facts_out_dir,
+        scallop_validator_url=args.scallop_validator_url,
     )
 
 

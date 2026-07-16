@@ -39,6 +39,7 @@ def build_kg_facts_file(
     verify_batch_size: int = 20,
     max_tokens: int = 768,
     facts_out_dir: Path = Path("results/kg_builds"),
+    scallop_validator_url: Optional[str] = None,
 ) -> Path:
     from compiled_memory import fact_to_compiled_fact
     from longbench_kg_pipeline import (
@@ -50,7 +51,8 @@ def build_kg_facts_file(
         normalize_status,
     )
     from rejection_artifacts import append_rejection_jsonl, build_rejection_record
-    from scallop_validator import DEFAULT_RULE_PARAMETERS, validate_update_detailed
+    from scallop_validator import DEFAULT_RULE_PARAMETERS
+    from validator_backend import make_validator_backend
 
     out_path = facts_out_dir / f"{session_id}_facts.jsonl"
     rejections_path = facts_out_dir / f"{session_id}_rejections.jsonl"
@@ -86,6 +88,10 @@ def build_kg_facts_file(
 
     committed: List[Dict[str, Any]] = []
     params = DEFAULT_RULE_PARAMETERS
+    validator_backend = make_validator_backend(
+        endpoint=scallop_validator_url,
+        require_scallop=validate,
+    )
     try:
         for i, example in enumerate(examples, start=1):
             example_id = str(example.get("_id", f"example_{i}"))
@@ -136,7 +142,7 @@ def build_kg_facts_file(
                     committed.append(fact)
                     continue
 
-                validation = validate_update_detailed(committed, fact, rule_params=params)
+                validation = validator_backend.validate(committed, fact, rule_params=params)
                 if validation.decision == "accept":
                     committed.append(fact)
                 elif validation.decision == "replace":
@@ -164,7 +170,7 @@ def build_kg_facts_file(
                             stage="scallop_validation",
                             existing_conflicting_fact=None,
                             rule_fired=(label or {}).get("code", "validator_reject"),
-                            validator="scallop",
+                            validator=validator_backend.info.name,
                         ),
                     )
 
@@ -201,6 +207,7 @@ def main(argv: Optional[List[str]] = None) -> Path:
     parser.add_argument("--verify-batch-size", type=int, default=20)
     parser.add_argument("--max-tokens", type=int, default=768)
     parser.add_argument("--facts-out-dir", type=Path, default=Path("results/kg_builds"))
+    parser.add_argument("--scallop-validator-url", default=os.getenv("SCALLOP_VALIDATOR_URL"))
     args = parser.parse_args(argv)
     return build_kg_facts_file(
         session_id=args.session,
@@ -215,6 +222,7 @@ def main(argv: Optional[List[str]] = None) -> Path:
         verify_batch_size=args.verify_batch_size,
         max_tokens=args.max_tokens,
         facts_out_dir=args.facts_out_dir,
+        scallop_validator_url=args.scallop_validator_url,
     )
 
 

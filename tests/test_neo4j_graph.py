@@ -472,7 +472,7 @@ def test_persistent_validation_context_is_session_scoped() -> None:
     write_queries = [p for q, p in graph._driver.queries if "MERGE (s:Entity" in q]
     assert write_queries and write_queries[0]["session_id"] == "session_a"
     assert write_queries[0]["decision_status"] == "accept"
-    assert write_queries[0]["decision_validator"] == "scallop"
+    assert write_queries[0]["decision_validator"] == graph.validator_backend.info.name
     assert write_queries[0]["rule_params_version"] == "rules.v1"
     print("PASS test_persistent_validation_context_is_session_scoped")
 

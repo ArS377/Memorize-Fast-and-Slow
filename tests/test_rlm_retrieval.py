@@ -298,7 +298,12 @@ def test_search_then_working_memory_update_uses_only_returned_facts() -> None:
             _response(content="FINAL(FINAL_ANSWER: A\nCITED_FACT_IDS: f1)"),
         ]
     )
-    session = _session(client, max_tool_calls=3, require_memory_update=True)
+    session = _session(
+        client,
+        max_tool_calls=3,
+        require_memory_update=True,
+        validate_memory_updates=False,
+    )
     content = session.complete(client, _messages())
     assert "FINAL_ANSWER: A" in content
     assert session.working_memory_fact_ids == {"f1"}

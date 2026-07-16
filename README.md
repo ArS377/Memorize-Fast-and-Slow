@@ -105,6 +105,21 @@ vllm serve Qwen/Qwen3-4B \
     --tool-call-parser hermes
 ```
 
+### 4a. Start the fail-closed Scallop validator service
+
+Run this from the environment where `scallopy` is installed. The service
+refuses to start if it would use the Python fallback:
+
+```bash
+python3 -m services.scallop_validator_service --host 127.0.0.1 --port 8765
+export SCALLOP_VALIDATOR_URL=http://127.0.0.1:8765
+```
+
+Cell 6 and `build_kg --validate` require either this endpoint or an in-process
+`scallopy` installation. They fail closed when neither is available. Cells
+without Scallop constraints may still use the explicitly labeled
+`python_symbolic_fallback` for local development.
+
 ### 5. Run the full pipeline
 ```bash
 python3 longbench_kg_pipeline.py \
@@ -181,7 +196,8 @@ KG cells support two memory scopes:
 | Scope | Behavior |
 |-------|----------|
 | `--memory-scope example` | Default. Retrieve only facts tagged with the current example ID. Prevents cross-example leakage. |
-| `--memory-scope session` | Retrieve accumulated facts across the current KG session. Enables cross-session memory experiments. |
+| `--memory-scope session` | Retrieve accumulated facts across the current KG session. |
+| `--memory-scope session_set` | Retrieve across an application-owned allowlist supplied with repeated `--source-session` arguments. This is the true cross-session mode. |
 
 Example:
 ```bash

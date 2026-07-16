@@ -118,13 +118,46 @@ def execute_update_working_memory(
         return _error(graph_source, example_id, "invalid_memory_update", str(exc))
 
     graph = getattr(graph_source, "graph", None)
+    if validate and graph is None:
+        return _error(
+            graph_source,
+            example_id,
+            "validator_unavailable",
+            "validated working-memory updates require Neo4j and an actual Scallop backend",
+        )
     derived_result: Optional[Dict[str, Any]] = None
     decision = "accept"
     reason = "Working-memory references and provenance are valid."
-    validator = "scallop" if validate else "none"
+    backend = getattr(graph, "validator_backend", None) if graph is not None else None
+    validator = backend.info.name if validate and backend is not None else "none"
     rule_version = DEFAULT_RULE_PARAMETERS.version if validate else "unconstrained.v1"
+    if validate:
+        if backend is None or not backend.info.scallop_available:
+            return _error(
+                graph_source,
+                example_id,
+                "validator_unavailable",
+                "Cell 6 refuses a working-memory commit without actual scallopy",
+            )
+        selected = [
+            dict(fact)
+            for fact in returned_facts
+            if str(fact.get("fact_id", "")) in set(artifact.selected_fact_ids)
+        ]
+        accepted_selected: List[Dict[str, Any]] = []
+        for fact in selected:
+            validation = backend.validate(
+                accepted_selected,
+                fact,
+                rule_params=DEFAULT_RULE_PARAMETERS,
+            )
+            if validation.decision == "reject":
+                decision = "reject"
+                reason = f"Selected fact failed Scallop validation: {validation.reason}"
+                break
+            accepted_selected.append(fact)
     derived = list(artifact.derived_facts)
-    if derived and graph is not None:
+    if decision != "reject" and derived and graph is not None:
         for fact in derived:
             fact["example_id"] = example_id
             fact["fact_id"] = fact.get("fact_id") or stable_id(

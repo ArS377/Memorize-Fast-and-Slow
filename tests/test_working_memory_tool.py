@@ -50,3 +50,18 @@ def test_update_rejects_fabricated_and_scope_arguments() -> None:
     )
     assert fabricated["error"]["code"] == "invalid_memory_update"
     assert override["error"]["code"] == "invalid_memory_update"
+
+
+def test_validated_update_fails_closed_without_live_graph() -> None:
+    source = GraphSource(
+        fallback_facts=[FACT], session_id="run", memory_scope="example"
+    )
+    response = execute_update_working_memory(
+        {"entity": "Alice", "selected_fact_ids": ["f1"]},
+        source,
+        "ex1",
+        [FACT],
+        validate=True,
+    )
+    assert response["status"] == "error"
+    assert response["error"]["code"] == "validator_unavailable"

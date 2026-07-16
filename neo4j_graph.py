@@ -35,8 +35,9 @@ from compiled_memory import (
     facts_temporally_overlap,
     format_fact_rows_for_llm,
 )
-from scallop_validator import DEFAULT_RULE_PARAMETERS, RuleParameters, validate_update_detailed
+from scallop_validator import DEFAULT_RULE_PARAMETERS, RuleParameters
 from memory_artifacts import MemoryTransitionRecord, WorkingMemoryArtifact
+from validator_backend import make_validator_backend
 
 import json
 import re
@@ -215,6 +216,9 @@ class Neo4jGraph:
         database: Optional[str] = None,
         session_id: Optional[str] = None,
         stateless: bool = False,
+        validator_backend=None,
+        validator_url: Optional[str] = None,
+        require_scallop: bool = False,
     ) -> None:
         if GraphDatabase is None:
             raise RuntimeError("neo4j package not installed. Run: pip install neo4j")
@@ -229,6 +233,10 @@ class Neo4jGraph:
         self._database = database
         self.session_id = session_id or DEFAULT_SESSION_ID
         self.stateless = stateless
+        self.validator_backend = validator_backend or make_validator_backend(
+            endpoint=validator_url,
+            require_scallop=require_scallop,
+        )
         self._schema_ready = False
 
     # ------------------------------------------------------------------ lifecycle
@@ -748,7 +756,7 @@ class Neo4jGraph:
         ledger = []
         rejected = []
         for fact in proposal["new"]:
-            validation = validate_update_detailed(
+            validation = self.validator_backend.validate(
                 existing_fact_dicts, fact, rule_params=params
             )
             decision = validation.decision
@@ -759,7 +767,7 @@ class Neo4jGraph:
                 committed_fact = _fact_with_decision(
                     fact,
                     status=decision,
-                    validator="scallop",
+                    validator=self.validator_backend.info.name,
                     reason=reason,
                     replaces=replace_id,
                     rule_params_version=validation.rule_params_version,
@@ -789,7 +797,7 @@ class Neo4jGraph:
                 committed_fact = _fact_with_decision(
                     fact,
                     status=decision,
-                    validator="scallop",
+                    validator=self.validator_backend.info.name,
                     reason=reason,
                     replaces=replace_id,
                     rule_params_version=validation.rule_params_version,

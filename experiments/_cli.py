@@ -85,6 +85,11 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--neo4j-uri", default=os.getenv("NEO4J_URI", "bolt://localhost:7687"))
         p.add_argument("--neo4j-user", default=os.getenv("NEO4J_USER", "neo4j"))
         p.add_argument("--neo4j-password", default=os.getenv("NEO4J_PASSWORD"))
+        p.add_argument(
+            "--scallop-validator-url",
+            default=os.getenv("SCALLOP_VALIDATOR_URL"),
+            help="Actual-scallopy validator service used by Cell 6 (for example http://localhost:8765)",
+        )
         p.add_argument("--facts-file", type=Path, default=None,
                        help="Fallback when Neo4j is unreachable")
         p.add_argument("--hops", type=int, default=2)
@@ -235,6 +240,8 @@ def run_cell(
                 facts_file=args.facts_file,
                 memory_scope=args.memory_scope,
                 source_session_ids=args.source_session,
+                validator_url=args.scallop_validator_url,
+                require_scallop=(cell_id == 6),
             )
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)
