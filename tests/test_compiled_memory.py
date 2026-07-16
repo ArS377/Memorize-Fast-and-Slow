@@ -82,7 +82,6 @@ def test_fact_to_compiled_memory_preserves_entities():
     assert memory.provenance[0].sentence_id == "doc_1:4"
     assert memory.provenance[0].source_span_start == 0
     assert memory.extractor_model == "extractor-x"
-    return True
 
 
 def test_compiled_memory_round_trips_to_fact_contract():
@@ -105,7 +104,6 @@ def test_compiled_memory_round_trips_to_fact_contract():
         round_trip["compiled_memory"]["temporal"]["observed_at"]
         == compiled_fact["compiled_memory"]["temporal"]["observed_at"]
     )
-    return True
 
 
 def test_temporal_scope_overlap_semantics():
@@ -116,7 +114,6 @@ def test_temporal_scope_overlap_semantics():
     assert not old_job.overlaps(new_job)
     assert old_job.overlaps(overlapping_job)
     assert new_job.overlaps(overlapping_job)
-    return True
 
 
 def test_scallop_projection_contains_memory_relations():
@@ -137,7 +134,6 @@ def test_scallop_projection_contains_memory_relations():
     assert relationship[2] == "WORKS_AT"
     assert relations["validity"][0] == ("fact_1", "2025-01-01", "")
     assert relations["confidence"][0] == ("fact_1", "supported", 0.91)
-    return True
 
 
 def test_neo4j_properties_include_compiled_memory_json():
@@ -160,7 +156,6 @@ def test_neo4j_properties_include_compiled_memory_json():
     assert props["verifier_model"] == "verifier-x"
     assert props["run_id"] == "run_test"
     assert props["provenance_quality"] > 0.8
-    return True
 
 
 def test_weighted_confidence_and_context_ranking_use_evidence_quality():
@@ -198,7 +193,6 @@ def test_weighted_confidence_and_context_ranking_use_evidence_quality():
     assert formatted.splitlines()[0] == "[F1] A -RELATED_TO-> C"
     assert "confidence=" in formatted
     assert "provenance=" in formatted
-    return True
 
 
 def test_explicit_confidence_scores_are_normalized_to_unit_interval():
@@ -214,7 +208,6 @@ def test_explicit_confidence_scores_are_normalized_to_unit_interval():
     assert memory.confidence.score == 0.91
     props = compiled_memory_to_neo4j_properties(memory)
     assert props["confidence_score"] == 0.91
-    return True
 
 
 def test_weighted_confidence_score_is_not_scored_twice():
@@ -238,7 +231,6 @@ def test_weighted_confidence_score_is_not_scored_twice():
 
     assert compiled["confidence_method"] == "weighted_evidence_v1"
     assert evidence_strength_score(compiled) == compiled["confidence_score"]
-    return True
 
 
 def main():
@@ -256,11 +248,9 @@ def main():
     for name, fn in tests:
         print(f"Running {name}...")
         try:
-            if fn():
-                passed += 1
-                print("  PASSED\n")
-            else:
-                print("  FAILED\n")
+            fn()
+            passed += 1
+            print("  PASSED\n")
         except Exception as exc:
             print(f"  FAILED: {exc}\n")
     print(f"Results: {passed}/{len(tests)} tests passed")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -110,8 +111,6 @@ class FakeRLMClient:
         events: Optional[List[str]] = None,
         subcall_response: str = "Subcall confirms choice A using fact f1.",
     ) -> None:
-        from rlm.core.types import ModelUsageSummary, UsageSummary
-
         self.model_name = "Qwen/Qwen3-4B"
         self.timeout = 30.0
         self.completions = FakeCompletions(responses, events=events)
@@ -120,8 +119,14 @@ class FakeRLMClient:
         )
         self.subcall_response = subcall_response
         self.subcall_prompts: List[Any] = []
-        self._model_usage = ModelUsageSummary(0, 0, 0)
-        self._usage = UsageSummary(model_usage_summaries={self.model_name: self._model_usage})
+        self._model_usage = SimpleNamespace(
+            total_calls=0,
+            total_input_tokens=0,
+            total_output_tokens=0,
+        )
+        self._usage = SimpleNamespace(
+            model_usage_summaries={self.model_name: self._model_usage}
+        )
 
     def completion(self, prompt: Any, model: Optional[str] = None) -> str:
         self.subcall_prompts.append(prompt)
@@ -360,6 +365,9 @@ def test_scope_arguments_are_rejected_and_valid_empty_is_not_an_error() -> None:
 
 
 def test_native_tool_call_runs_inside_real_rlm_repl_trajectory(tmp_path: Path) -> None:
+    if importlib.util.find_spec("rlm") is None:
+        import pytest
+        pytest.skip("rlms runtime is not installed")
     events: List[str] = []
     source = _source(events=events)
     repl_action = """```repl
@@ -410,6 +418,9 @@ print(analysis)
 
 
 def test_uncited_or_fabricated_final_answer_is_not_accepted(tmp_path: Path) -> None:
+    if importlib.util.find_spec("rlm") is None:
+        import pytest
+        pytest.skip("rlms runtime is not installed")
     base_client = FakeRLMClient(
         [
             _response(

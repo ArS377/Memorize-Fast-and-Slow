@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 import time
 from pathlib import Path
@@ -36,81 +35,13 @@ from typing import Any, Dict, List, Optional
 from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
+from experiments.common import format_question, load_examples
 from experiments.rlm_answerer import rlm_answer
-from experiments.graph_context import format_fact_rows
-
-
-# ------------------------------------------------------------------ helpers
-
-def load_examples(path: Path, limit: Optional[int]) -> List[Dict[str, Any]]:
-    examples = []
-    with path.open() as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                examples.append(json.loads(line))
-            if limit and len(examples) >= limit:
-                break
-    return examples
-
-
-def load_facts_from_jsonl(path: Path) -> List[Dict[str, Any]]:
-    """Fallback: load verified facts from a JSONL file instead of Neo4j."""
-    facts = []
-    with path.open() as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                facts.append(json.loads(line))
-    return facts
-
-
-def format_question(ex: Dict[str, Any]) -> str:
-    return (
-        f"Question: {ex.get('question', '')}\n"
-        f"A) {ex.get('choice_A', '')}\n"
-        f"B) {ex.get('choice_B', '')}\n"
-        f"C) {ex.get('choice_C', '')}\n"
-        f"D) {ex.get('choice_D', '')}\n"
-        f"\nAnswer with only the letter A, B, C, or D."
-    )
-
-
-
-def extract_seed_entities(ex: Dict[str, Any]) -> List[str]:
-    """
-    Extract seed entities from the question text to seed the graph query.
-    Simple heuristic: capitalized words/phrases + choice option content.
-    For Week 2 this is a stub — Week 3 can replace with NER.
-    """
-    question = ex.get("question", "")
-    # Extract capitalized multi-word phrases as candidate entities
-    entities = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', question)
-    # Also add any quoted strings
-    entities += re.findall(r'"([^"]+)"', question)
-    # Deduplicate and filter short ones
-    seen = set()
-    result = []
-    for e in entities:
-        e = e.strip()
-        if len(e) > 2 and e not in seen:
-            seen.add(e)
-            result.append(e)
-    return result[:10]  # cap at 10 seed entities
-
-
-def format_facts_from_jsonl(
-    facts: List[Dict[str, Any]],
-    example_id: str,
-    max_chars: int = 4000,
-) -> str:
-    """
-    Format verified facts from JSONL for LLM ingestion.
-    Filters to facts from the current example, mirrors Neo4jGraph.format_context_for_llm().
-    """
-    relevant = [f for f in facts if f.get("example_id") == example_id]
-
-    return format_fact_rows(relevant, max_chars=max_chars)
+from experiments.graph_context import (
+    extract_seed_entities,
+    format_facts_from_jsonl,
+    load_facts_from_jsonl,
+)
 
 
 # ------------------------------------------------------------------ main
@@ -186,7 +117,9 @@ def main():
     print(f"Model:   {args.model}", file=sys.stderr)
     print(f"Context: {'Neo4j graph' if graph else args.facts_file}", file=sys.stderr)
 
-    examples = load_examples(args.input, args.limit)
+    examples = load_examples(args.input)
+    if args.limit is not None:
+        examples = examples[: args.limit]
     print(f"Loaded {len(examples)} examples", file=sys.stderr)
 
     results = []

@@ -151,7 +151,7 @@ def test_neo4j_query_generation():
         assert f"[r:`{expected_rel_type}`" in query
     
     print("Neo4j query generation test passed.")
-    return True
+    pipeline.close()
 
 def test_predicate_sanitization_in_neo4j():
     """Test that predicates are properly sanitized for Neo4j relationship types."""
@@ -176,7 +176,6 @@ def test_predicate_sanitization_in_neo4j():
         assert "`" in query_part and sanitized in query_part
     
     print("Predicate sanitization for Neo4j test passed.")
-    return True
 
 def test_fact_id_generation():
     """Test that fact IDs are generated consistently."""
@@ -223,7 +222,6 @@ def test_fact_id_generation():
     ), "Top-level temporal bounds should participate in fact IDs"
     
     print("Fact ID generation test passed.")
-    return True
 
 def main():
     """Run all Neo4j formatting tests."""
@@ -241,11 +239,9 @@ def main():
     for test_name, test_func in tests:
         print(f"Running {test_name}...")
         try:
-            if test_func():
-                passed += 1
-                print(f"  PASSED\n")
-            else:
-                print(f"  FAILED\n")
+            test_func()
+            passed += 1
+            print(f"  PASSED\n")
         except Exception as e:
             print(f"  ERROR: {e}\n")
     

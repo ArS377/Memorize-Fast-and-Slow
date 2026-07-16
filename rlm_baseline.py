@@ -22,7 +22,6 @@ Usage (vllm-metal):
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 import time
 from pathlib import Path
@@ -30,31 +29,8 @@ from pathlib import Path
 from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
+from experiments.common import format_question, load_examples
 from experiments.rlm_answerer import rlm_answer
-
-
-def load_examples(path: Path, limit: int | None) -> list[dict]:
-    examples = []
-    with path.open() as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                examples.append(json.loads(line))
-            if limit and len(examples) >= limit:
-                break
-    return examples
-
-
-def format_question(ex: dict) -> str:
-    """Format LongBench multiple-choice question as the RLM root_prompt."""
-    return (
-        f"Question: {ex.get('question', '')}\n"
-        f"A) {ex.get('choice_A', '')}\n"
-        f"B) {ex.get('choice_B', '')}\n"
-        f"C) {ex.get('choice_C', '')}\n"
-        f"D) {ex.get('choice_D', '')}\n"
-        f"\nAnswer with only the letter A, B, C, or D."
-    )
 
 
 
@@ -95,7 +71,9 @@ def main():
     print(f"Max depth: {args.max_depth}, Max iterations: {args.max_iterations}",
           file=sys.stderr)
 
-    examples = load_examples(args.input, args.limit)
+    examples = load_examples(args.input)
+    if args.limit is not None:
+        examples = examples[: args.limit]
     print(f"Loaded {len(examples)} examples", file=sys.stderr)
 
     results = []

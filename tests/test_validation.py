@@ -48,12 +48,9 @@ def test_self_reflection_questions():
     ]
     
     for question in required_questions:
-        if question not in prompt:
-            print(f"ERROR: Missing self-reflection question: {question}")
-            return False
+        assert question in prompt, f"Missing self-reflection question: {question}"
     
     print("All required self-reflection questions are present in verification prompt.")
-    return True
 
 def test_fact_extraction_format():
     """Test that extraction produces the required format."""
@@ -91,12 +88,9 @@ def test_fact_extraction_format():
     ]
     
     for field in required_fields:
-        if field not in prompt:
-            print(f"ERROR: Missing required field in extraction prompt: {field}")
-            return False
+        assert field in prompt, f"Missing required field in extraction prompt: {field}"
     
     print("All required fields are present in extraction prompt.")
-    return True
 
 def test_status_normalization():
     """Test status normalization function."""
@@ -120,12 +114,11 @@ def test_status_normalization():
     
     for input_val, expected in test_cases:
         result = pipe.normalize_status(input_val)
-        if result != expected:
-            print(f"ERROR: normalize_status({input_val}) = {result}, expected {expected}")
-            return False
+        assert result == expected, (
+            f"normalize_status({input_val}) = {result}, expected {expected}"
+        )
     
     print("Status normalization works correctly.")
-    return True
 
 def test_predicate_sanitization():
     """Test predicate sanitization function."""
@@ -144,12 +137,11 @@ def test_predicate_sanitization():
     
     for input_val, expected in test_cases:
         result = pipe.sanitize_predicate(input_val)
-        if result != expected:
-            print(f"ERROR: sanitize_predicate('{input_val}') = '{result}', expected '{expected}'")
-            return False
+        assert result == expected, (
+            f"sanitize_predicate('{input_val}') = '{result}', expected '{expected}'"
+        )
     
     print("Predicate sanitization works correctly.")
-    return True
 
 def test_neo4j_format():
     """Test that facts are formatted correctly for Neo4j insertion."""
@@ -179,12 +171,9 @@ def test_neo4j_format():
     ]
     
     for field in neo4j_required_fields:
-        if field not in fact:
-            print(f"ERROR: Missing required Neo4j field: {field}")
-            return False
+        assert field in fact, f"Missing required Neo4j field: {field}"
     
     print("Neo4j format validation passed.")
-    return True
 
 
 def test_temporal_functional_facts_can_coexist_without_overlap():
@@ -215,17 +204,16 @@ def test_temporal_functional_facts_can_coexist_without_overlap():
     }
 
     decision, reason, replace_id = validate_update(existing, new_non_overlapping)
-    if decision != "accept":
-        print(f"ERROR: non-overlapping temporal fact should be accepted: {decision}, {reason}, {replace_id}")
-        return False
+    assert decision == "accept", (
+        f"non-overlapping temporal fact should be accepted: {decision}, {reason}, {replace_id}"
+    )
 
     decision, reason, replace_id = validate_update(existing, new_overlapping)
-    if decision not in {"reject", "replace"}:
-        print(f"ERROR: overlapping temporal fact should conflict: {decision}, {reason}, {replace_id}")
-        return False
+    assert decision in {"reject", "replace"}, (
+        f"overlapping temporal fact should conflict: {decision}, {reason}, {replace_id}"
+    )
 
     print("Temporal functional validation works correctly.")
-    return True
 
 
 def test_temporal_alive_dead_conflict_requires_overlap():
@@ -252,17 +240,16 @@ def test_temporal_alive_dead_conflict_requires_overlap():
     }
 
     decision, reason, replace_id = validate_update(existing, later_dead)
-    if decision != "accept":
-        print(f"ERROR: non-overlapping alive/dead facts should be accepted: {decision}, {reason}, {replace_id}")
-        return False
+    assert decision == "accept", (
+        f"non-overlapping alive/dead facts should be accepted: {decision}, {reason}, {replace_id}"
+    )
 
     decision, reason, replace_id = validate_update(existing, overlapping_dead)
-    if decision != "reject":
-        print(f"ERROR: overlapping alive/dead facts should reject: {decision}, {reason}, {replace_id}")
-        return False
+    assert decision == "reject", (
+        f"overlapping alive/dead facts should reject: {decision}, {reason}, {replace_id}"
+    )
 
     print("Temporal alive/dead validation works correctly.")
-    return True
 
 
 def main():
@@ -284,11 +271,12 @@ def main():
     
     for test_name, test_func in tests:
         print(f"Running {test_name}...")
-        if test_func():
+        try:
+            test_func()
             passed += 1
             print(f"  PASSED\n")
-        else:
-            print(f"  FAILED\n")
+        except AssertionError as exc:
+            print(f"  FAILED: {exc}\n")
     
     print(f"Results: {passed}/{total} tests passed")
     
