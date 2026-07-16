@@ -1,0 +1,12 @@
+{
+  "query": "Where is Kalamang spoken?",
+  "seed_entities": [
+    "Kalamang"
+  ],
+  "predicates": [
+    "SPOKEN_IN"
+  ],
+  "retrieval_mode": "sparse",
+  "top_k": 10,
+  "hops": 2
+}

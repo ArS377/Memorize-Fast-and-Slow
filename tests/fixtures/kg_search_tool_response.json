@@ -1,0 +1,75 @@
+{
+  "status": "ok",
+  "tool": "search_knowledge_graph",
+  "request": {
+    "query": "Where is Kalamang spoken?",
+    "seed_entities": [
+      "Kalamang"
+    ],
+    "predicates": [
+      "SPOKEN_IN"
+    ],
+    "retrieval_mode": "sparse",
+    "top_k": 10,
+    "hops": 2
+  },
+  "scope": {
+    "example_id": "ex1",
+    "session_id": "session-1",
+    "memory_scope": "example"
+  },
+  "results": [
+    {
+      "rank": 1,
+      "fact_id": "fact-kalamang",
+      "subject": "Kalamang",
+      "predicate": "SPOKEN_IN",
+      "object": "East Indonesia",
+      "support_text": "Kalamang is spoken in East Indonesia.",
+      "support_text_truncated": false,
+      "document_id": "doc-language",
+      "provenance": [
+        {
+          "title": "Language notes",
+          "document_id": "doc-language",
+          "sent_id": 7,
+          "sentence_id": "doc-language:7",
+          "source_span_start": 0,
+          "source_span_end": 40
+        }
+      ],
+      "provenance_truncated": false,
+      "retrieval_mode": "sparse",
+      "score": 0.8168,
+      "graph_path": {
+        "nodes": [
+          "Kalamang",
+          "East Indonesia"
+        ],
+        "edges": [
+          {
+            "fact_id": "fact-kalamang",
+            "predicate": "SPOKEN_IN",
+            "source": "Kalamang",
+            "target": "East Indonesia"
+          }
+        ]
+      },
+      "scallop": {
+        "decision": "accept",
+        "validator": "scallop",
+        "reason": "No contradiction found.",
+        "rule_version": "rules.v1"
+      },
+      "scope": {
+        "example_id": "ex1",
+        "session_id": "session-1",
+        "memory_scope": "example"
+      }
+    }
+  ],
+  "result_count": 1,
+  "truncated": false,
+  "empty_reason": null,
+  "error": null
+}
