@@ -580,6 +580,55 @@ def test_create_derived_session_replays_prior_rejections_with_new_rules() -> Non
     print("PASS test_create_derived_session_replays_prior_rejections_with_new_rules")
 
 
+def test_export_facts_is_complete_and_deterministic() -> None:
+    graph = make_graph(session_id="sess_test")
+    graph._driver.canned_results = [MockResult([
+        {
+            "subject": "B",
+            "predicate": "RELATED_TO",
+            "object": "C",
+            "fact_id": "f2",
+            "example_id": "ex2",
+            "session_id": "sess_test",
+            "support_text": "support two",
+            "provenance_json": json.dumps([{"document_id": "doc2"}]),
+            "qualifiers_json": json.dumps({"kind": "secondary"}),
+            "normalization_notes": "normalized",
+            "verification_reason": "verified",
+            "decision_status": "accept",
+            "decision_validator": "scallop",
+            "decision_reason": "valid",
+            "rule_params_version": "rules.v1",
+        },
+        {
+            "subject": "A",
+            "predicate": "RELATED_TO",
+            "object": "B",
+            "fact_id": "f1",
+            "example_id": "ex1",
+            "session_id": "sess_test",
+            "support_text": "support one",
+            "provenance_json": "[]",
+            "qualifiers_json": "{}",
+        },
+    ])]
+
+    rows = graph.export_facts(session_id="sess_test")
+
+    assert [row["fact_id"] for row in rows] == ["f1", "f2"]
+    assert rows[1]["qualifiers"] == {"kind": "secondary"}
+    assert rows[1]["normalization_notes"] == "normalized"
+    assert rows[1]["verification_reason"] == "verified"
+    assert rows[1]["decision_status"] == "accept"
+    query, params = graph._driver.queries[-1]
+    assert "r.qualifiers_json AS qualifiers_json" in query
+    assert "r.normalization_notes AS normalization_notes" in query
+    assert "r.decision_status AS decision_status" in query
+    assert "ORDER BY" in query
+    assert params["session_id"] == "sess_test"
+
+
+
 def test_query_context_one_hop_filters_by_example_and_session() -> None:
     graph = make_graph(session_id="sess_test")
     canned = MockResult([
@@ -767,6 +816,7 @@ def main() -> int:
         test_persistent_validation_context_is_session_scoped,
         test_validate_update_detailed_exposes_rejection_label_and_rule_version,
         test_create_derived_session_replays_prior_rejections_with_new_rules,
+        test_export_facts_is_complete_and_deterministic,
         test_query_context_one_hop_filters_by_example_and_session,
         test_query_context_multi_hop_uses_bounded_path,
         test_format_context_for_llm_is_deterministic_and_truncates,

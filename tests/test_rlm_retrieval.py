@@ -233,7 +233,7 @@ def test_native_tool_protocol_starts_with_question_and_returns_structured_result
     assert result["status"] == "ok"
     assert set(result) == {
         "status", "tool", "request", "scope", "results", "result_count",
-        "working_memory", "truncated", "empty_reason", "error",
+        "working_memory", "truncated", "empty_reason", "retrieval", "error",
     }
     assert result["results"][0]["fact_id"] == "f1"
     assert result["results"][0]["document_id"] == "doc-1"
@@ -557,6 +557,8 @@ def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
     assert "--qwen-tool-retrieval" in enabled
     assert "--max-tool-calls" in enabled
     assert "--rlm-retrieval" not in enabled
+    assert enabled[enabled.index("--retrieval-mode") + 1] == "hybrid"
+    assert enabled[enabled.index("--dense-failure-policy") + 1] == "error"
     assert "--fixed-kg-retrieval" in fixed
 
 

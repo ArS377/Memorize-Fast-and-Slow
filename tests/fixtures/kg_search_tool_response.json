@@ -9,7 +9,6 @@
     "predicates": [
       "SPOKEN_IN"
     ],
-    "retrieval_mode": "sparse",
     "top_k": 10,
     "hops": 2
   },
@@ -50,6 +49,14 @@
         "utility": 0.25,
         "total": 0.8488
       },
+      "sparse_rank": 1,
+      "sparse_score": 0.8488,
+      "dense_rank": null,
+      "dense_similarity": null,
+      "rrf_score": null,
+      "matched_branches": [
+        "sparse"
+      ],
       "graph_path": {
         "nodes": [
           "Kalamang",
@@ -117,12 +124,41 @@
     "budget": {
       "top_k": 10,
       "hops": 2,
-      "result_json_chars": 966,
+      "result_json_chars": 1093,
       "truncated": false
     }
   },
   "result_count": 1,
   "truncated": false,
   "empty_reason": null,
+  "retrieval": {
+    "configured_mode": "sparse",
+    "effective_mode": "sparse",
+    "degraded": false,
+    "branch_counts": {
+      "sparse": 1,
+      "dense": 0
+    },
+    "branch_latency_seconds": {
+      "sparse": 0.0,
+      "dense": 0.0
+    },
+    "rrf": {
+      "k": 60,
+      "branch_candidate_multiplier": 3,
+      "branch_candidate_cap": 50
+    },
+    "dense_index_identity": [],
+    "warning": null,
+    "branch_fact_ids": {
+      "sparse": [
+        "fact-kalamang"
+      ],
+      "dense": []
+    },
+    "result_fact_ids": [
+      "fact-kalamang"
+    ]
+  },
   "error": null
 }

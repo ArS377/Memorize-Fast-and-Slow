@@ -1,4 +1,4 @@
-"""Stable, model-independent tool contract for sparse KG retrieval.
+"""Stable, model-independent tool contract for KG retrieval.
 
 The module intentionally has no OpenAI, Qwen, vLLM, Neo4j, or RLM imports.
 Agent code supplies a ``GraphSource``-compatible object and receives a plain
@@ -17,8 +17,8 @@ from experiments.graph_context import GraphSource, extract_seed_entities
 
 
 TOOL_NAME = "search_knowledge_graph"
-TOOL_VERSION = "search_knowledge_graph.v1"
-DEFAULT_RETRIEVAL_MODE = "sparse"
+TOOL_VERSION = "search_knowledge_graph.v2"
+DEFAULT_RETRIEVAL_MODE = "hybrid"
 DEFAULT_TOP_K = 10
 DEFAULT_HOPS = 2
 
@@ -81,12 +81,6 @@ SEARCH_KNOWLEDGE_GRAPH_TOOL: Dict[str, Any] = {
                     "default": [],
                     "description": "Optional UPPER_SNAKE_CASE relationship filters.",
                 },
-                "retrieval_mode": {
-                    "type": "string",
-                    "enum": [DEFAULT_RETRIEVAL_MODE],
-                    "default": DEFAULT_RETRIEVAL_MODE,
-                    "description": "Retrieval implementation. Only sparse is available.",
-                },
                 "top_k": {
                     "type": "integer",
                     "minimum": 1,
@@ -128,6 +122,7 @@ class SearchToolResponse(TypedDict):
     result_count: int
     truncated: bool
     empty_reason: Optional[str]
+    retrieval: Dict[str, Any]
     error: Optional[SearchToolError]
 
 
@@ -135,10 +130,36 @@ _ALLOWED_ARGUMENTS = {
     "query",
     "seed_entities",
     "predicates",
-    "retrieval_mode",
     "top_k",
     "hops",
 }
+
+
+def _configured_mode(graph_source: GraphSource) -> str:
+    config = getattr(graph_source, "retrieval_config", None)
+    return str(getattr(config, "mode", "sparse"))
+
+
+def _retrieval_metadata(graph_source: GraphSource) -> Dict[str, Any]:
+    summary = getattr(graph_source, "retrieval_summary", None)
+    if callable(summary):
+        value = summary()
+        if isinstance(value, dict):
+            return value
+    mode = _configured_mode(graph_source)
+    indexes = getattr(graph_source, "dense_indexes", {}) or {}
+    return {
+        "configured_mode": mode,
+        "effective_mode": mode,
+        "degraded": False,
+        "branch_counts": {"sparse": 0, "dense": 0},
+        "branch_latency_seconds": {"sparse": 0.0, "dense": 0.0},
+        "rrf": None,
+        "dense_index_identity": [
+            indexes[key].manifest.identity for key in sorted(indexes)
+        ],
+        "warning": None,
+    }
 
 
 def _scope(graph_source: GraphSource, example_id: str) -> Dict[str, Any]:
@@ -180,6 +201,7 @@ def _error_response(
         "result_count": 0,
         "truncated": False,
         "empty_reason": None,
+        "retrieval": _retrieval_metadata(graph_source),
         "error": error,
     }
 
@@ -254,10 +276,6 @@ def _validate_arguments(arguments: Any) -> tuple[Optional[Dict[str, Any]], List[
         errors=errors,
     )
 
-    retrieval_mode = arguments.get("retrieval_mode", DEFAULT_RETRIEVAL_MODE)
-    if retrieval_mode != DEFAULT_RETRIEVAL_MODE:
-        errors.append("retrieval_mode must be 'sparse'")
-
     top_k = arguments.get("top_k", DEFAULT_TOP_K)
     if isinstance(top_k, bool) or not isinstance(top_k, int):
         errors.append("top_k must be an integer")
@@ -277,7 +295,6 @@ def _validate_arguments(arguments: Any) -> tuple[Optional[Dict[str, Any]], List[
         "query": query,
         "seed_entities": seed_entities,
         "predicates": predicates,
-        "retrieval_mode": DEFAULT_RETRIEVAL_MODE,
         "top_k": top_k,
         "hops": hops,
     }, []
@@ -349,6 +366,7 @@ def _result_record(
     scope: Dict[str, Any],
     query: str,
     seed_entities: List[str],
+    retrieval_metadata: Dict[str, Any],
 ) -> Dict[str, Any]:
     subject = str(row.get("subject", ""))
     predicate = str(row.get("predicate", ""))
@@ -367,11 +385,17 @@ def _result_record(
     )
     full_support_text = str(row.get("support_text", ""))
     support_text = full_support_text[:MAX_SUPPORT_TEXT_CHARS]
-    score_components = retrieval_score_components(
-        row,
-        query=query,
-        seed_entities=seed_entities,
-    )
+    branch = row.get("_retrieval")
+    branch = branch if isinstance(branch, dict) else {}
+    score_components = branch.get("score_components")
+    if not isinstance(score_components, dict):
+        score_components = retrieval_score_components(
+            row,
+            query=query,
+            seed_entities=seed_entities,
+        )
+    score_components = _json_safe(score_components)
+    score = float(branch.get("score", score_components["total"]))
 
     return {
         "rank": rank,
@@ -389,9 +413,15 @@ def _result_record(
         "provenance_truncated": provenance_count > MAX_PROVENANCE_ENTRIES,
         "valid_from": _first_nonempty(row.get("valid_from")),
         "valid_to": _first_nonempty(row.get("valid_to")),
-        "retrieval_mode": DEFAULT_RETRIEVAL_MODE,
-        "score": score_components["total"],
+        "retrieval_mode": retrieval_metadata["effective_mode"],
+        "score": score,
         "score_components": score_components,
+        "sparse_rank": branch.get("sparse_rank"),
+        "sparse_score": branch.get("sparse_score"),
+        "dense_rank": branch.get("dense_rank"),
+        "dense_similarity": branch.get("dense_similarity"),
+        "rrf_score": branch.get("rrf_score"),
+        "matched_branches": list(branch.get("matched_branches", [])),
         "graph_path": {
             "nodes": [subject, object_value],
             "edges": [
@@ -439,14 +469,19 @@ def _shape_working_memory(
         if temporal["valid_from"] or temporal["valid_to"]:
             temporal_intervals.append(temporal)
         constraint_trace.append({"fact_id": fact_id, **result["scallop"]})
-    scores = [float(result.get("score", 0.0)) for result in results]
+    evidence_scores = [
+        float(result.get("score_components", {}).get("evidence_strength", 0.0))
+        for result in results
+    ]
     return {
         "entity": request["seed_entities"][0] if request["seed_entities"] else None,
         "relevant_fact_ids": [result["fact_id"] for result in results],
         "excluded_claims": [],
         "temporal_scope": {"intervals": temporal_intervals},
         "confidence": (
-            "supported" if scores and sum(scores) / len(scores) >= 0.5 else "uncertain"
+            "supported"
+            if evidence_scores and sum(evidence_scores) / len(evidence_scores) >= 0.5
+            else "uncertain"
         ),
         "citations": citations,
         "constraint_trace": constraint_trace,
@@ -467,7 +502,7 @@ def execute_search_knowledge_graph(
     graph_source: GraphSource,
     example_id: str,
 ) -> SearchToolResponse:
-    """Validate and execute one sparse knowledge-graph search tool call.
+    """Validate and execute one knowledge-graph search tool call.
 
     ``example_id`` and the source's ``session_id`` are trusted application
     context, not model-controlled arguments. The returned object is safe to
@@ -489,8 +524,10 @@ def execute_search_knowledge_graph(
         seeds = extract_seed_entities({"question": request["query"]})[:MAX_SEED_ENTITIES]
     request["seed_entities"] = seeds
     scope = _scope(graph_source, example_id)
+    configured_mode = _configured_mode(graph_source)
 
-    if not seeds:
+    if configured_mode == "sparse" and not seeds:
+        retrieval_metadata = _retrieval_metadata(graph_source)
         return {
             "status": "ok",
             "tool": TOOL_NAME,
@@ -503,21 +540,45 @@ def execute_search_knowledge_graph(
             "result_count": 0,
             "truncated": False,
             "empty_reason": "no_seed_entities",
+            "retrieval": retrieval_metadata,
             "error": None,
         }
 
     try:
-        rows = graph_source.rows_for(
-            seed_entities=seeds,
-            example_id=str(example_id),
-            hops=request["hops"],
-            limit_triples=min(MAX_TOP_K, request["top_k"] * 3),
-            predicates=request["predicates"],
-        )
+        shared_retrieve = getattr(graph_source, "retrieve", None)
+        if callable(shared_retrieve):
+            outcome = shared_retrieve(
+                query=request["query"],
+                seed_entities=seeds,
+                example_id=str(example_id),
+                hops=request["hops"],
+                top_k=request["top_k"],
+                predicates=request["predicates"],
+            )
+            rows = outcome.rows
+            retrieval_metadata = dict(outcome.metadata)
+        else:
+            rows = graph_source.rows_for(
+                seed_entities=seeds,
+                example_id=str(example_id),
+                hops=request["hops"],
+                limit_triples=request["top_k"],
+                predicates=request["predicates"],
+            )
+            retrieval_metadata = _retrieval_metadata(graph_source)
+            if isinstance(rows, list):
+                rows = sorted(
+                    rows,
+                    key=lambda row: (
+                        -retrieval_score_components(
+                            dict(row), query=request["query"], seed_entities=seeds
+                        )["total"],
+                        str(row.get("fact_id", "")),
+                    ),
+                )
     except Exception as exc:
         is_timeout = isinstance(exc, TimeoutError) or any(
-            "timeout" in cls.__name__.lower()
-            for cls in type(exc).__mro__
+            "timeout" in cls.__name__.lower() for cls in type(exc).__mro__
         )
         if is_timeout:
             return _error_response(
@@ -526,6 +587,21 @@ def execute_search_knowledge_graph(
                 code="backend_timeout",
                 message="Knowledge graph retrieval timed out.",
                 retryable=True,
+                request=request,
+            )
+        dense_code = str(getattr(exc, "code", ""))
+        if dense_code in {
+            "dense_index_unavailable",
+            "dense_index_mismatch",
+            "dense_index_corrupt",
+            "dense_backend_failure",
+        }:
+            return _error_response(
+                graph_source=graph_source,
+                example_id=example_id,
+                code=dense_code,
+                message="Dense knowledge graph retrieval failed.",
+                retryable=dense_code in {"dense_index_unavailable", "dense_backend_failure"},
                 request=request,
             )
         return _error_response(
@@ -549,25 +625,17 @@ def execute_search_knowledge_graph(
             request=request,
         )
 
-    ranked_rows = sorted(
-        rows,
-        key=lambda row: (
-            -retrieval_score_components(
-                dict(row), query=request["query"], seed_entities=seeds
-            )["total"],
-            str(row.get("fact_id", "")),
-        ),
-    )
     results: List[Dict[str, Any]] = []
     results_json_chars = 2
     truncated = False
-    for row in ranked_rows[: request["top_k"]]:
+    for row in rows[: request["top_k"]]:
         record = _result_record(
             dict(row),
             rank=len(results) + 1,
             scope=scope,
             query=request["query"],
             seed_entities=seeds,
+            retrieval_metadata=retrieval_metadata,
         )
         encoded = json.dumps(record, ensure_ascii=False, separators=(",", ":"))
         added_chars = len(encoded) + (1 if results else 0)
@@ -579,7 +647,7 @@ def execute_search_knowledge_graph(
         if record["support_text_truncated"] or record["provenance_truncated"]:
             truncated = True
 
-    if len(ranked_rows) > len(results):
+    if len(rows) > len(results):
         truncated = True
 
     response: SearchToolResponse = {
@@ -598,6 +666,7 @@ def execute_search_knowledge_graph(
         "result_count": len(results),
         "truncated": truncated,
         "empty_reason": "no_matches" if not results else None,
+        "retrieval": retrieval_metadata,
         "error": None,
     }
     # Keep JSON serializability as an enforced contract, not a best-effort hope.

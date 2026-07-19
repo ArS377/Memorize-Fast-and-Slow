@@ -1,9 +1,10 @@
 # Qwen Knowledge-Graph Search Tool
 
 `search_knowledge_graph` is the stable boundary between an LLM agent and the
-repository's knowledge-graph retrieval code. The tool currently exposes the
-existing sparse entity and predicate search without importing Qwen, OpenAI,
-vLLM, RLM, or Neo4j-specific APIs into the tool contract.
+repository's knowledge-graph retrieval code. Contract v2 exposes application-
+configured sparse, dense, or hybrid retrieval without importing Qwen, OpenAI,
+vLLM, RLM, or Neo4j-specific APIs into the tool contract. The model cannot
+select or override retrieval mode.
 
 The executable contract lives in
 [`experiments/kg_search_tool.py`](../experiments/kg_search_tool.py). Agent code
@@ -98,10 +99,10 @@ Use this order after a valid empty result:
 5. Stop after the agent's configured call limit and report insufficient
    evidence.
 
-The current sparse heuristic extracts capitalized phrases and quoted text from
-`query`. Lowercase paraphrases with no explicit `seed_entities` can therefore
-produce `empty_reason="no_seed_entities"`. This behavior is intentional for
-the sparse baseline and must not be described as semantic retrieval.
+In sparse mode, the entity heuristic extracts capitalized phrases and quoted
+text from `query`. Lowercase paraphrases with no explicit `seed_entities` can
+therefore produce `empty_reason="no_seed_entities"`. Dense and hybrid modes
+still execute semantic retrieval when this heuristic produces no seeds.
 
 ## Multi-hop retrieval
 
@@ -136,8 +137,8 @@ execute_search_knowledge_graph(
 ```
 
 - `arguments` is the untrusted JSON object produced by the model.
-- `graph_source` implements `GraphSource.rows_for()` and owns the trusted
-  session and memory scope.
+- `graph_source` implements `GraphSource.retrieve()` and owns trusted session,
+  memory scope, retrieval configuration, and dense-index registry.
 - `example_id` is trusted application context. It must come from the current
   benchmark example, never from model arguments.
 
@@ -148,13 +149,12 @@ execute_search_knowledge_graph(
 | `query` | string | required | 1–2,000 characters | Natural-language retrieval query. |
 | `seed_entities` | string array | `[]` | 10 items, 256 characters each | Entity names. Live Neo4j uses exact names; JSONL fallback uses case-insensitive substring matching. Empty invokes the current capitalized-phrase heuristic. |
 | `predicates` | string array | `[]` | 8 items, 128 characters each | Optional relationship filters; `GraphSource` normalizes them to `UPPER_SNAKE_CASE`. |
-| `retrieval_mode` | string | `"sparse"` | only `"sparse"` | Stable mode selector reserved for later dense and hybrid implementations. |
 | `top_k` | integer | `10` | 1–50 | Maximum number of fact records requested from the backend. |
 | `hops` | integer | `2` | 1–4 | Maximum live-graph traversal depth. |
 
 `additionalProperties` is false. In particular, `example_id`, `session_id`,
-and `memory_scope` are not valid model arguments. Attempts to provide them
-return `invalid_arguments` without querying the backend.
+`memory_scope`, and `retrieval_mode` are not valid model arguments. Attempts
+to provide them return `invalid_arguments` without querying the backend.
 
 ### Resource limits
 
@@ -188,6 +188,7 @@ Every response contains the same top-level keys:
 | `result_count` | Number of records actually returned. |
 | `truncated` | Whether backend or response limits omitted records. |
 | `empty_reason` | `"no_seed_entities"`, `"no_matches"`, or `null`. |
+| `retrieval` | Configured/effective mode, degradation warning, branch counts and latency, RRF settings, branch fact IDs, and dense-index identity. |
 | `error` | Structured error object, or `null` for completed searches. |
 
 Each result record contains:
@@ -195,16 +196,19 @@ Each result record contains:
 - `rank`, `fact_id`, `subject`, `predicate`, and `object`;
 - `support_text`, `support_text_truncated`, `document_id`, sentence/span
   `provenance`, and `provenance_truncated`;
-- `retrieval_mode`, combined `score`, and auditable `score_components` for
-  query relevance, evidence strength, provenance quality, and utility;
+- `retrieval_mode`, mode-specific `score`, auditable `score_components`,
+  `sparse_rank`, `dense_rank`, `dense_similarity`, `rrf_score`, and
+  `matched_branches`;
 - a single-relationship `graph_path`;
 - `scallop.decision`, `validator`, `reason`, and `rule_version`;
 - trusted example/session `scope`.
 
-The sparse `score` combines lexical query relevance (50%), evidence strength
-(25%), provenance quality (15%), and utility metadata (10%). The individual
-components are returned so evaluations can distinguish retrieval relevance
-from evidence quality. It is not a dense semantic-similarity score.
+Sparse `score` combines lexical query relevance (50%), evidence strength
+(25%), provenance quality (15%), and utility metadata (10%). Dense `score` is
+normalized cosine similarity. Hybrid `score` is deterministic reciprocal-rank
+fusion, `1 / (k + rank)`, summed across branches with default `k=60`.
+Evidence strength remains separate from retrieval score and is only a
+secondary hybrid tie-breaker.
 
 Successful responses also include `working_memory`, a compact shaped view with
 the entity seed, ranked fact IDs, temporal intervals, citations, Scallop
@@ -252,7 +256,11 @@ An execution failure is not an empty search:
 |---|---:|---|---|
 | `invalid_arguments` | yes | Schema, type, range, or unknown-field validation failed. | Correct the arguments before retrying. |
 | `backend_timeout` | yes | The backend raised `TimeoutError`. | Retry within the application's call budget or stop cleanly. |
-| `backend_failure` | no | Another backend exception occurred. | Do not treat it as no evidence; record the failure and stop or use an application-controlled fallback. |
+| `backend_failure` | no | Another sparse backend exception occurred. | Do not treat it as no evidence; record the failure and stop. |
+| `dense_index_unavailable` | yes | A trusted session has no usable dense sidecar. | Build the index or explicitly select sparse mode. |
+| `dense_index_mismatch` | no | Manifest identity, source SHA, digest, model revision, template, dimension, or dtype differs. | Rebuild from the authoritative snapshot. |
+| `dense_index_corrupt` | no | Sidecar files are unreadable, non-finite, or structurally unsafe. | Delete and rebuild the managed sidecar. |
+| `dense_backend_failure` | yes | The embedding package/model could not load or encode valid vectors. | Repair the local embedding runtime; hybrid may degrade only under explicit `sparse` failure policy. |
 
 Backend exception messages are not returned because they may contain Neo4j
 credentials or internal hostnames. The response includes only the exception
@@ -290,9 +298,9 @@ Focused behavior tests live in
 python3 -m pytest -q tests/test_kg_search_tool.py
 ```
 
-The tests cover schema serialization, sparse retrieval, trusted scope,
-legitimate empty results, invalid arguments, timeouts, backend failures, and
-credential-safe error reporting.
+The tests cover schema serialization, sparse/dense/hybrid retrieval, trusted
+scope, index identity and corruption checks, deterministic RRF, legitimate
+empty results, dense degradation policy, timeouts, and credential-safe errors.
 
 ## Design boundary
 
@@ -305,15 +313,15 @@ experiments/kg_search_tool.py (Person 1)
         |
         | validated trusted call
         v
-GraphSource.rows_for()
+GraphSource.retrieve()
         |
-        +-- Neo4j n-hop retrieval
-        +-- JSONL sparse fallback
+        +-- sparse branch: Neo4j n-hop or JSONL lexical fallback
+        +-- dense branch: per-session NumPy sidecar
+        +-- hybrid branch: deterministic RRF by fact_id
 ```
 
 The adapter owns validation and response normalization. `GraphSource` owns
-sparse retrieval and scope enforcement. The agent loop owns call limits,
-conversation messages, retries, duplicate-call detection, final citations,
-and trace persistence. Keeping these boundaries separate lets dense, hybrid,
-or HippoRAG implementations adopt the same contract later without coupling
-retrieval code to a specific model runtime.
+trusted configuration, scope enforcement, and index registry. The shared
+retriever owns sparse/dense execution and fusion. The agent loop owns call
+limits, conversation messages, retries, duplicate-call detection, final
+citations, and trace persistence.

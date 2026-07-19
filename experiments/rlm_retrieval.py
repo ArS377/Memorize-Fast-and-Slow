@@ -30,7 +30,7 @@ from experiments.working_memory_tool import (
 )
 
 
-TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v1"
+TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v2"
 
 SearchToolExecutor = Callable[
     [Mapping[str, Any], GraphSource, str],
@@ -214,8 +214,9 @@ contains no pre-retrieved facts. Call the native function when graph evidence
 is needed; do not print or hand-parse a JSON retrieval action. Tool results are
 retained across RLM iterations.
 
-Use precise seed entities for sparse matching. After status="ok" with an empty
-results list, reformulate with an alias or follow an intermediate entity. A
+Use precise seed entities so the configured retriever can use its entity branch.
+After status="ok" with an empty results list, reformulate with an alias or follow
+an intermediate entity. A
 status="error" response is a failed call, not a no-hit. You may make at most
 {max_tool_calls} tool calls in the entire RLM trajectory.
 
@@ -317,6 +318,12 @@ class NativeToolSession:
             "example_id": example_id,
             "session_id": graph_source.session_id,
             "memory_scope": graph_source.memory_scope,
+            "configured_retrieval_mode": graph_source.retrieval_config.mode,
+            "effective_retrieval_mode": graph_source.retrieval_config.mode,
+            "dense_index_identity": [
+                graph_source.dense_indexes[key].manifest.identity
+                for key in sorted(graph_source.dense_indexes)
+            ],
             "model": model,
             "tool_names": [SEARCH_TOOL_NAME, UPDATE_TOOL_NAME],
             "tool_choice": tool_choice,
@@ -599,9 +606,19 @@ class NativeToolSession:
         cited_fact_ids: List[str],
     ) -> QwenRLMToolOutcome:
         ordered_retrieved = sorted(self.retrieved_fact_ids)
+        retrieval_summary = self.graph_source.retrieval_summary()
         self.trace.update(
             {
                 "status": status,
+                "configured_retrieval_mode": retrieval_summary.get("configured_mode"),
+                "effective_retrieval_mode": retrieval_summary.get("effective_mode"),
+                "retrieval_degraded": retrieval_summary.get("degraded"),
+                "dense_index_identity": retrieval_summary.get("dense_index_identity", []),
+                "retrieval_branch_counts": retrieval_summary.get("branch_counts", {}),
+                "retrieval_rrf_settings": retrieval_summary.get("rrf", {}),
+                "retrieval_branch_latency_seconds": retrieval_summary.get(
+                    "branch_latency_seconds", {}
+                ),
                 "termination_reason": termination_reason,
                 "cited_fact_ids": list(cited_fact_ids),
                 "retrieved_fact_ids": ordered_retrieved,

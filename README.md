@@ -14,8 +14,10 @@
 | `download_longbench.py` | Downloads LongBench-v2 dataset from HuggingFace and saves it as `data.jsonl` |
 | `rlm_baseline.py` | Recursive Language Model baseline — calls the LLM recursively over raw context chunks (no KG) |
 | `rlm_graph_baseline.py` | RLM baseline extended with KG retrieval but without Scallop constraints |
-| `experiments/kg_search_tool.py` | Stable JSON-schema tool adapter that exposes scoped sparse KG retrieval to Qwen or another agent |
-| `experiments/qwen_tool_smoke.py` | Live fixture runner for the Qwen-first RLM/tool trajectory and sparse baseline trace |
+| `experiments/kg_search_tool.py` | Stable v2 JSON-schema tool adapter for application-configured sparse, dense, or hybrid KG retrieval |
+| `experiments/dense_retrieval.py` | Local BGE embeddings and validated per-session NumPy dense-index sidecars |
+| `experiments/hybrid_retrieval.py` | Shared sparse/dense retrieval and deterministic reciprocal-rank fusion |
+| `experiments/qwen_tool_smoke.py` | Live fixture runner for the Qwen-first RLM/tool trajectory |
 | `_demo_neo4j.py` | One-shot demo: inserts fixture facts into a live Neo4j instance and runs example queries |
 | `test.py` | Scratch file for quick vLLM / model tests |
 | `test.scl` | Scratch Scallop file for testing `.scl` syntax with `./scli` |
@@ -173,7 +175,7 @@ python3 -m experiments.run_all \
     --max-tool-calls 3 \
     --tool-choice required \
     --tool-timeout 30 \
-    --results-dir results/qwen_tool_sparse \
+    --results-dir results/qwen_tool_hybrid \
     --model Qwen/Qwen3-4B \
     --vllm-base-url http://localhost:8000/v1 \
     --neo4j-password yourpassword
@@ -192,6 +194,8 @@ python3 -m experiments.run_all \
     --neo4j-password yourpassword
 ```
 
+KG cells default to `--retrieval-mode hybrid`, using local
+`BAAI/bge-small-en-v1.5` embeddings on CPU and deterministic RRF with `k=60`.
 The native path sends the question and choices to Qwen before retrieval, then
 uses `search_knowledge_graph` and `update_working_memory`. Final answers must
 cite returned fact IDs that were selected into the working-memory artifact.
@@ -200,7 +204,55 @@ Native calls execute inside root RLM turns, retaining the REPL and recursive
 [`search_knowledge_graph` contract](docs/qwen-knowledge-graph-tool.md) and
 [`sparse smoke procedure`](docs/qwen_sparse_smoke.md).
 
-KG cells support two memory scopes:
+Dense sidecars live under each run's `dense_indexes/` directory and contain a
+manifest, `float32` vectors, and ordered fact rows. Manifests pin model identity,
+requested/resolved revision, sentence-transformers version, device, batch size,
+text-template versions, normalization/similarity settings, vector shape/dtype,
+source session, snapshot SHA-256, fact count, and ordered fact content digest.
+Mismatches rebuild from the authoritative mirror; load-time
+corruption fails explicitly. Sparse-only runs do not import or load the
+embedding model.
+
+Use sparse-only mode for an A/B baseline:
+
+```bash
+python3 -m experiments.run_all \
+    --cells 2,3,5,6 \
+    --retrieval-mode sparse \
+    --results-dir results/sparse_ablation
+```
+
+Canonical runs always use strict dense failure handling. Direct cell entry
+points may opt into an explicitly reported hybrid-to-sparse degradation with
+`--dense-failure-policy sparse`.
+
+Each KG cell writes `retrieval_eval.jsonl`; `run_all` consolidates these rows and
+emits `retrieval_report.json` plus `retrieval_report.md`. Native-tool rows use
+final cited fact IDs as an explicitly labeled relevance proxy. Fixed-context
+rows remain `unlabeled`, so their recall renders as `n/a` rather than zero.
+Run a controlled sparse/dense/hybrid comparison over the same input slice,
+seed, cells, models, and shared KG sessions. Arguments after `--` pass through
+to `run_all`; the runner locks mode, strict failure policy, output paths, and
+session IDs:
+
+```bash
+python3 -m experiments.retrieval_ablation \
+    --output-dir results/retrieval_ablation \
+    --ablation-id longbench_slice_01 \
+    -- \
+    --input data.jsonl \
+    --limit 50 \
+    --seed 0 \
+    --neo4j-password yourpassword
+```
+
+You can also compare existing sparse, dense, and hybrid runs with repeated
+`--input` values to `experiments.retrieval_report`. The report includes
+recall@1/5/10 where labels or citation proxies exist, branch candidate and
+unique-fact counts, branch overlap, fusion duplicate rate, degradation counts,
+and explicit sparse-baseline recall regression warnings.
+
+KG cells support three memory scopes:
 
 | Scope | Behavior |
 |-------|----------|

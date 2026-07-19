@@ -21,6 +21,8 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 # FIX 2: neo4j==6.1.0 does not exist; the driver is on the 5.x line.
 neo4j>=5.0.0,<6.0.0
+numpy==2.2.6
+sentence-transformers==3.4.1
 # rlms 0.0.1a1 is an empty placeholder wheel. The first real release (0.1.0)
 # and current latest (0.1.1) both require Python >=3.11. scallopy 0.2.4 only
 # ships a cp310 wheel, so a single env cannot satisfy both. Either:

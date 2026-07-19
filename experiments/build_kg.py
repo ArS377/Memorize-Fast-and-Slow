@@ -39,35 +39,25 @@ def _facts_count(graph, session_id: str) -> int:
 def _dump_session_facts(graph, session_id: str, out_path: Path) -> int:
     """Mirror committed facts to JSONL for the offline fallback."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    query = (
-        "MATCH (s:Entity)-[r]->(o:Entity) WHERE r.session_id = $sid "
-        "RETURN s.name AS subject, type(r) AS predicate, o.name AS object, "
-        "       r.fact_id AS fact_id, r.example_id AS example_id, "
-        "       r.support_text AS support_text, r.provenance_json AS provenance_json, "
-        "       r.confidence AS confidence, r.confidence_score AS confidence_score, "
-        "       r.confidence_method AS confidence_method, "
-        "       r.provenance_quality AS provenance_quality, "
-        "       r.question AS question, r.question_relevance AS question_relevance, "
-        "       r.valid_from AS valid_from, r.valid_to AS valid_to, "
-        "       r.observed_at AS observed_at, r.document_id AS document_id, "
-        "       r.extractor_model AS extractor_model, "
-        "       r.verifier_model AS verifier_model, r.run_id AS run_id"
-    )
-    n = 0
-    with graph._session() as s, out_path.open("w", encoding="utf-8") as fp:
-        for record in s.run(query, sid=session_id):
-            row = dict(record)
-            prov_raw = row.pop("provenance_json", None)
-            if isinstance(prov_raw, str) and prov_raw:
-                try:
-                    row["provenance"] = json.loads(prov_raw)
-                except json.JSONDecodeError:
-                    row["provenance"] = []
-            else:
-                row["provenance"] = []
-            fp.write(json.dumps(row, ensure_ascii=False) + "\n")
-            n += 1
-    return n
+    rows = graph.export_facts(session_id=session_id)
+    temporary = out_path.with_name(f".{out_path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as fp:
+            for row in rows:
+                fp.write(
+                    json.dumps(
+                        row,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + "\n"
+                )
+        os.replace(temporary, out_path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return len(rows)
 
 
 def build_kg(

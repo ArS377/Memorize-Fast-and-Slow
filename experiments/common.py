@@ -29,6 +29,20 @@ CELL_SCHEMA: List[str] = [
     "memory_scope",
     "orchestration_mode",
     "validator_backend",
+    "configured_retrieval_mode",
+    "effective_retrieval_mode",
+    "retrieval_degraded",
+    "embedding_model",
+    "embedding_revision",
+    "embedding_device",
+    "embedding_batch_size",
+    "dense_index_root",
+    "dense_failure_policy",
+    "rrf_k",
+    "dense_index_identity",
+    "retrieval_branch_counts",
+    "retrieval_branch_latency_seconds",
+    "retrieval_rrf_settings",
 ]
 
 # Cell metadata table (cell_id -> info). Used by the aggregator and the

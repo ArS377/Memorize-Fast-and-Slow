@@ -24,6 +24,7 @@ from typing import List, Optional
 
 from experiments.common import CELLS
 from experiments.kg_search_tool import TOOL_VERSION as SEARCH_TOOL_VERSION
+from experiments.retrieval_config import EmbeddingConfig, RetrievalConfig
 from experiments.working_memory_tool import TOOL_VERSION as MEMORY_TOOL_VERSION
 from scallop_validator import DEFAULT_RULE_PARAMETERS
 
@@ -124,7 +125,18 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             base += ["--hops", str(args.hops)]
         if args.limit_triples is not None:
             base += ["--limit-triples", str(args.limit_triples)]
-        base += ["--memory-scope", args.memory_scope]
+        base += [
+            "--memory-scope", args.memory_scope,
+            "--retrieval-mode", getattr(args, "retrieval_mode", "hybrid"),
+            "--embedding-model", getattr(args, "embedding_model", "BAAI/bge-small-en-v1.5"),
+            "--embedding-device", getattr(args, "embedding_device", "cpu"),
+            "--embedding-batch-size", str(getattr(args, "embedding_batch_size", 32)),
+            "--dense-index-root", str(getattr(args, "dense_index_root", args.results_dir / "dense_indexes")),
+            "--dense-failure-policy", getattr(args, "dense_failure_policy", "error"),
+            "--rrf-k", str(getattr(args, "rrf_k", 60)),
+        ]
+        if getattr(args, "embedding_revision", None):
+            base += ["--embedding-revision", args.embedding_revision]
         for source_session in getattr(args, "source_session", []):
             base += ["--source-session", source_session]
         if getattr(args, "scallop_validator_url", None):
@@ -180,6 +192,14 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--memory-scope", choices=["example", "session", "session_set"], default="example")
     parser.add_argument("--source-session", action="append", default=[])
     parser.add_argument("--scallop-validator-url", default=os.getenv("SCALLOP_VALIDATOR_URL"))
+    parser.add_argument("--retrieval-mode", choices=["sparse", "dense", "hybrid"], default="hybrid")
+    parser.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
+    parser.add_argument("--embedding-revision", default=None)
+    parser.add_argument("--embedding-device", default="cpu")
+    parser.add_argument("--embedding-batch-size", type=_positive_int, default=32)
+    parser.add_argument("--dense-index-root", type=Path, default=None)
+    parser.add_argument("--dense-failure-policy", choices=["error", "sparse"], default="error")
+    parser.add_argument("--rrf-k", type=_positive_int, default=60)
     parser.add_argument("--max-depth", type=int, default=2)
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
@@ -204,6 +224,24 @@ def main(argv: Optional[List[str]] = None) -> None:
     default_run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "_" + (sha or "nogit")[:7]
     args.run_id = _safe_run_id(args.run_id or default_run_id)
     args.results_dir = args.results_dir or (Path("results") / "runs" / args.run_id)
+    args.dense_index_root = args.dense_index_root or (args.results_dir / "dense_indexes")
+    if args.dense_failure_policy != "error":
+        parser.error(
+            "canonical run_all requires --dense-failure-policy error; "
+            "use a direct cell entry point for an explicitly degraded run"
+        )
+    retrieval_config = RetrievalConfig(
+        mode=args.retrieval_mode,
+        rrf_k=args.rrf_k,
+        index_root=args.dense_index_root,
+        embedding=EmbeddingConfig(
+            model=args.embedding_model,
+            requested_revision=args.embedding_revision,
+            device=args.embedding_device,
+            batch_size=args.embedding_batch_size,
+        ),
+        failure_policy=args.dense_failure_policy,
+    )
     args.kg_sessions = {
         2: args.kg_session_noscallop or f"{args.run_id}_noscallop",
         3: args.kg_session_scallop or f"{args.run_id}_scallop",
@@ -213,6 +251,9 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     cells = _parse_cells(args.cells)
     args.results_dir.mkdir(parents=True, exist_ok=True)
+    retrieval_eval_path = args.results_dir / "retrieval_eval.jsonl"
+    if retrieval_eval_path.exists():
+        retrieval_eval_path.unlink()
     orchestration_mode = "fixed" if args.fixed_kg_retrieval else "qwen_native_tools_inside_rlm"
 
     metadata = {
@@ -231,6 +272,15 @@ def main(argv: Optional[List[str]] = None) -> None:
         "hops": args.hops,
         "limit_triples": args.limit_triples,
         "memory_scope": args.memory_scope,
+        "retrieval_config": retrieval_config.to_dict(),
+        "retrieval_mode": args.retrieval_mode,
+        "embedding_model": args.embedding_model,
+        "embedding_revision": args.embedding_revision,
+        "embedding_device": args.embedding_device,
+        "embedding_batch_size": args.embedding_batch_size,
+        "dense_index_root": str(args.dense_index_root),
+        "dense_failure_policy": args.dense_failure_policy,
+        "rrf_k": args.rrf_k,
         "max_depth": args.max_depth,
         "max_iterations": args.max_iterations,
         "max_tokens": args.max_tokens,
@@ -247,6 +297,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         "tool_contract_version": f"{SEARCH_TOOL_VERSION}+{MEMORY_TOOL_VERSION}",
         "rule_version": DEFAULT_RULE_PARAMETERS.version,
         "cell_status": {str(cell): "pending" for cell in cells},
+        "cell_retrieval": {},
         "skip_kg_build": args.skip_kg_build,
         "kg_artifacts": {},
     }
@@ -292,6 +343,18 @@ def main(argv: Optional[List[str]] = None) -> None:
                 else:
                     metadata["kg_artifacts"]["scallop_path"] = str(built_path)
                     metadata["kg_artifacts"]["scallop_sha256"] = _sha256(built_path)
+                if retrieval_config.mode != "sparse":
+                    from experiments.dense_retrieval import ensure_dense_index_from_snapshot
+
+                    dense_index = ensure_dense_index_from_snapshot(
+                        built_path,
+                        index_root=retrieval_config.index_root,
+                        session_id=session,
+                        config=retrieval_config.embedding,
+                    )
+                    metadata["kg_artifacts"].setdefault("dense_indexes", {})[session] = (
+                        dense_index.manifest.identity
+                    )
             _write_manifest(args.results_dir, metadata)
 
     # Per-cell runs
@@ -308,6 +371,32 @@ def main(argv: Optional[List[str]] = None) -> None:
             "results_path": str(output),
             "results_sha256": _sha256(output),
         }
+        if cid in KG_CELL_IDS and output.exists():
+            runtime_rows = [
+                json.loads(line)
+                for line in output.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            cell_retrieval_eval = output.parent / "retrieval_eval.jsonl"
+            if cell_retrieval_eval.exists():
+                run_retrieval_eval = args.results_dir / "retrieval_eval.jsonl"
+                with run_retrieval_eval.open("a", encoding="utf-8") as combined:
+                    combined.write(cell_retrieval_eval.read_text(encoding="utf-8"))
+            metadata["cell_retrieval"][str(cid)] = [
+                {
+                    "example_id": row.get("example_id"),
+                    "configured_mode": row.get("configured_retrieval_mode"),
+                    "effective_mode": row.get("effective_retrieval_mode"),
+                    "degraded": row.get("retrieval_degraded"),
+                    "dense_index_identity": row.get("dense_index_identity"),
+                    "branch_counts": row.get("retrieval_branch_counts"),
+                    "branch_latency_seconds": row.get(
+                        "retrieval_branch_latency_seconds"
+                    ),
+                    "rrf": row.get("retrieval_rrf_settings"),
+                }
+                for row in runtime_rows
+            ]
         _write_manifest(args.results_dir, metadata)
         if rc != 0:
             print(f"[run_all] cell {cid} exited with code {rc}", file=sys.stderr)
@@ -317,6 +406,18 @@ def main(argv: Optional[List[str]] = None) -> None:
     agg_main(["--results-dir", str(args.results_dir)])
     from experiments.compliance import main as compliance_main
     compliance_main(["--results-dir", str(args.results_dir)])
+    retrieval_eval = args.results_dir / "retrieval_eval.jsonl"
+    if retrieval_eval.exists():
+        from experiments.retrieval_report import main as retrieval_report_main
+
+        retrieval_report_main(
+            ["--input", str(retrieval_eval), "--output-dir", str(args.results_dir)]
+        )
+        metadata["retrieval_report"] = {
+            "json": str(args.results_dir / "retrieval_report.json"),
+            "markdown": str(args.results_dir / "retrieval_report.md"),
+        }
+        _write_manifest(args.results_dir, metadata)
 
 
 if __name__ == "__main__":

@@ -61,6 +61,7 @@ def test_tool_schema_is_json_serializable_and_scope_free() -> None:
     properties = SEARCH_KNOWLEDGE_GRAPH_TOOL["function"]["parameters"]["properties"]
     assert "example_id" not in properties
     assert "session_id" not in properties
+    assert "retrieval_mode" not in properties
     assert SEARCH_KNOWLEDGE_GRAPH_TOOL["function"]["parameters"]["additionalProperties"] is False
 
 
@@ -79,7 +80,9 @@ def test_request_and_response_fixtures_are_valid_json() -> None:
         session_id="session-1",
         memory_scope="example",
     )
-    assert execute_search_knowledge_graph(request, source, "ex1") == response
+    actual = execute_search_knowledge_graph(request, source, "ex1")
+    actual["retrieval"]["branch_latency_seconds"] = {"sparse": 0.0, "dense": 0.0}
+    assert actual == response
 
 
 def test_adapter_returns_structured_sparse_result_without_an_llm() -> None:

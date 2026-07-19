@@ -16,6 +16,7 @@ import json
 import re
 
 from compiled_memory import context_sort_key, format_fact_rows_for_llm
+from experiments.retrieval_config import RetrievalConfig
 from memory_artifacts import MemoryScope
 
 
@@ -116,11 +117,18 @@ class GraphSource:
 
     def __init__(self, graph=None, fallback_facts: Optional[List[Dict[str, Any]]] = None,
                  session_id: Optional[str] = None, memory_scope: str = "example",
-                 source_session_ids: Optional[List[str]] = None):
+                 source_session_ids: Optional[List[str]] = None,
+                 retrieval_config: Optional[RetrievalConfig] = None,
+                 dense_indexes: Optional[Dict[str, Any]] = None,
+                 dense_failure: Optional[Exception] = None):
         self.graph = graph
         self.fallback_facts = fallback_facts
         self.session_id = session_id
         self.memory_scope = normalize_memory_scope(memory_scope)
+        self.retrieval_config = retrieval_config or RetrievalConfig(mode="sparse")
+        self.dense_indexes = dict(dense_indexes or {})
+        self.dense_failure = dense_failure
+        self._retrieval_history: List[Dict[str, Any]] = []
         requested_sessions = [str(s) for s in (source_session_ids or []) if str(s).strip()]
         self.source_session_ids = list(dict.fromkeys(requested_sessions or ([session_id] if session_id else [])))
         if self.memory_scope == "session_set" and len(self.source_session_ids) < 2:
@@ -139,6 +147,97 @@ class GraphSource:
     def is_live(self) -> bool:
         return self.graph is not None
 
+    def _record_retrieval_metadata(self, metadata: Dict[str, Any]) -> None:
+        self._retrieval_history.append(dict(metadata))
+
+    def reset_retrieval_history(self) -> None:
+        self._retrieval_history.clear()
+
+    def retrieval_summary(self) -> Dict[str, Any]:
+        configured = self.retrieval_config.mode
+        if not self._retrieval_history:
+            return {
+                "configured_mode": configured,
+                "effective_mode": configured,
+                "degraded": False,
+                "dense_index_identity": [
+                    self.dense_indexes[key].manifest.identity
+                    for key in sorted(self.dense_indexes)
+                ],
+                "branch_counts": {"sparse": 0, "dense": 0},
+                "branch_fact_ids": {"sparse": [], "dense": []},
+                "result_fact_ids": [],
+                "branch_latency_seconds": {"sparse": 0.0, "dense": 0.0},
+                "rrf": {
+                    "k": self.retrieval_config.rrf_k,
+                    "branch_candidate_multiplier": self.retrieval_config.branch_candidate_multiplier,
+                    "branch_candidate_cap": self.retrieval_config.branch_candidate_cap,
+                },
+                "warning": None,
+            }
+        effective = {str(value.get("effective_mode", configured)) for value in self._retrieval_history}
+        latency = {
+            branch: round(
+                sum(float(value.get("branch_latency_seconds", {}).get(branch, 0.0)) for value in self._retrieval_history),
+                6,
+            )
+            for branch in ("sparse", "dense")
+        }
+        counts = {
+            branch: sum(
+                int(value.get("branch_counts", {}).get(branch, 0))
+                for value in self._retrieval_history
+            )
+            for branch in ("sparse", "dense")
+        }
+        branch_fact_ids = {
+            branch: list(
+                dict.fromkeys(
+                    str(fact_id)
+                    for value in self._retrieval_history
+                    for fact_id in value.get("branch_fact_ids", {}).get(branch, [])
+                )
+            )
+            for branch in ("sparse", "dense")
+        }
+        result_fact_ids = list(
+            dict.fromkeys(
+                str(fact_id)
+                for value in self._retrieval_history
+                for fact_id in value.get("result_fact_ids", [])
+            )
+        )
+        latest = dict(self._retrieval_history[-1])
+        latest["effective_mode"] = next(iter(effective)) if len(effective) == 1 else "mixed"
+        latest["degraded"] = any(bool(value.get("degraded")) for value in self._retrieval_history)
+        latest["branch_counts"] = counts
+        latest["branch_fact_ids"] = branch_fact_ids
+        latest["result_fact_ids"] = result_fact_ids
+        latest["branch_latency_seconds"] = latency
+        return latest
+
+    def retrieve(
+        self,
+        *,
+        query: str,
+        seed_entities: List[str],
+        example_id: str,
+        hops: int = 2,
+        top_k: int = 10,
+        predicates: Optional[List[str]] = None,
+    ):
+        from experiments.hybrid_retrieval import retrieve
+
+        return retrieve(
+            self,
+            query=query,
+            seed_entities=seed_entities,
+            example_id=example_id,
+            hops=hops,
+            top_k=top_k,
+            predicates=predicates,
+        )
+
     def context_for(
         self,
         ex: Dict[str, Any],
@@ -148,27 +247,17 @@ class GraphSource:
     ) -> Tuple[str, int]:
         """Return ``(formatted_context, n_triples)`` for one example."""
         example_id = str(ex.get("_id", ""))
-        query_example_id = example_id if self.memory_scope == "example" else None
+        query = str(ex.get("question", ""))
         seeds = extract_seed_entities(ex)
-        if self.graph is not None:
-            rows = self.graph.query_context(
-                seed_entities=seeds,
-                hops=hops,
-                limit=limit_triples,
-                example_id=query_example_id,
-                session_id=self.session_id if self.memory_scope != "session_set" else None,
-                session_ids=self.source_session_ids if self.memory_scope == "session_set" else None,
-            )
-            context = self.graph.format_context_for_llm(rows, max_chars=max_chars)
-            return context, len(rows)
         # JSONL fallback uses the same scoped row path as the tool adapter.
-        rows = self.rows_for(
+        outcome = self.retrieve(
+            query=query,
             seed_entities=seeds,
             example_id=example_id,
             hops=hops,
-            limit_triples=limit_triples,
+            top_k=limit_triples,
         )
-        return format_fact_rows_for_llm(rows, max_chars=max_chars), len(rows)
+        return format_fact_rows_for_llm(outcome.rows, max_chars=max_chars), len(outcome.rows)
 
     def rows_for(
         self,
@@ -245,12 +334,15 @@ def open_graph_source(
     source_session_ids: Optional[List[str]] = None,
     validator_url: Optional[str] = None,
     require_scallop: bool = False,
+    retrieval_config: Optional[RetrievalConfig] = None,
 ) -> GraphSource:
     """Open a graph source preferring Neo4j; fall back to facts-file.
 
     Raises ``RuntimeError`` if neither is reachable.
     """
+    config = retrieval_config or RetrievalConfig()
     graph = None
+    graph_error: Optional[Exception] = None
     if neo4j_uri and neo4j_user and neo4j_password:
         try:
             from neo4j_graph import Neo4jGraph  # local import: optional dep
@@ -263,32 +355,98 @@ def open_graph_source(
                 require_scallop=require_scallop,
             )
             print(f"Connected to Neo4j at {neo4j_uri} (session={session_id})", file=sys.stderr)
-            return GraphSource(
-                graph=graph,
-                session_id=session_id,
-                memory_scope=memory_scope,
-                source_session_ids=source_session_ids,
-            )
         except Exception as e:
+            graph_error = e
             if require_scallop:
                 raise RuntimeError(f"required Scallop validator unavailable: {e}") from e
             print(f"Neo4j connection failed: {e}; trying --facts-file", file=sys.stderr)
             graph = None
 
+    facts: Optional[List[Dict[str, Any]]] = None
+    dense_source_failure: Optional[Exception] = None
     if facts_file and Path(facts_file).exists():
         facts = load_facts_from_jsonl(Path(facts_file))
+        for fact in facts:
+            if not fact.get("session_id"):
+                fact["session_id"] = session_id
         print(f"Loaded {len(facts)} facts from {facts_file}", file=sys.stderr)
-        return GraphSource(
-            fallback_facts=facts,
-            session_id=session_id,
-            memory_scope=memory_scope,
-            source_session_ids=source_session_ids,
-        )
+    elif graph is not None and config.mode != "sparse":
+        trusted = [str(value) for value in (source_session_ids or []) if str(value).strip()]
+        try:
+            facts = graph.export_facts(
+                session_ids=trusted if memory_scope == "session_set" else None,
+                session_id=None if memory_scope == "session_set" else session_id,
+            )
+        except Exception as exc:
+            from experiments.retrieval_config import DenseRetrievalError
 
-    raise RuntimeError(
-        "No graph source available. Provide either reachable --neo4j-uri/--neo4j-password, "
-        f"or --facts-file (e.g. results/kg_builds/{session_id}_facts.jsonl). "
-        f"Tip: build the KG first with: "
-        f"python -m experiments.build_kg --session {session_id} "
-        f"{'--validate' if 'scallop' in session_id else ''} --limit 50"
+            dense_source_failure = DenseRetrievalError(
+                "dense_index_unavailable",
+                "authoritative fact snapshot could not be exported",
+            )
+            graph_error = exc
+
+    if graph is None and facts is None:
+        raise RuntimeError(
+            "No graph source available. Provide either reachable --neo4j-uri/--neo4j-password, "
+            f"or --facts-file (e.g. results/kg_builds/{session_id}_facts.jsonl). "
+            f"Tip: build the KG first with: "
+            f"python -m experiments.build_kg --session {session_id} "
+            f"{'--validate' if 'scallop' in session_id else ''} --limit 50"
+        ) from graph_error
+
+    trusted_sessions = [str(value) for value in (source_session_ids or []) if str(value).strip()]
+    trusted_sessions = trusted_sessions or [session_id]
+    dense_indexes: Dict[str, Any] = {}
+    dense_failure: Optional[Exception] = None
+    if config.mode != "sparse":
+        try:
+            if dense_source_failure is not None:
+                raise dense_source_failure
+            from experiments.dense_retrieval import (
+                ensure_dense_index,
+                ensure_dense_index_from_snapshot,
+            )
+
+            available_facts = facts or []
+            for trusted_session in trusted_sessions:
+                if facts_file and len(trusted_sessions) == 1:
+                    dense_indexes[trusted_session] = ensure_dense_index_from_snapshot(
+                        Path(facts_file),
+                        index_root=config.index_root,
+                        session_id=trusted_session,
+                        config=config.embedding,
+                    )
+                    continue
+                session_facts = [
+                    fact for fact in available_facts
+                    if str(fact.get("session_id", trusted_session)) == trusted_session
+                ]
+                dense_indexes[trusted_session] = ensure_dense_index(
+                    index_root=config.index_root,
+                    session_id=trusted_session,
+                    facts=session_facts,
+                    config=config.embedding,
+                )
+        except Exception as exc:
+            from experiments.retrieval_config import DenseRetrievalError
+
+            dense_failure = (
+                exc
+                if isinstance(exc, DenseRetrievalError)
+                else DenseRetrievalError(
+                    "dense_backend_failure",
+                    "dense retrieval initialization failed",
+                )
+            )
+
+    return GraphSource(
+        graph=graph,
+        fallback_facts=facts,
+        session_id=session_id,
+        memory_scope=memory_scope,
+        source_session_ids=source_session_ids,
+        retrieval_config=config,
+        dense_indexes=dense_indexes,
+        dense_failure=dense_failure,
     )

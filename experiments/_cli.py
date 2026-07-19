@@ -23,6 +23,7 @@ from experiments.common import (
     truncate_context,
     write_result_row,
 )
+from experiments.retrieval_config import EmbeddingConfig, RetrievalConfig
 
 
 def _positive_int(value: str) -> int:
@@ -113,6 +114,14 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
             default=[],
             help="Trusted source session; repeat at least twice with --memory-scope session_set",
         )
+        p.add_argument("--retrieval-mode", choices=["sparse", "dense", "hybrid"], default="hybrid")
+        p.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
+        p.add_argument("--embedding-revision", default=None)
+        p.add_argument("--embedding-device", default="cpu")
+        p.add_argument("--embedding-batch-size", type=_positive_int, default=32)
+        p.add_argument("--dense-index-root", type=Path, default=Path("results/dense_indexes"))
+        p.add_argument("--dense-failure-policy", choices=["error", "sparse"], default="error")
+        p.add_argument("--rrf-k", type=_positive_int, default=60)
 
     # RLM cells
     if kind == "rlm":
@@ -234,7 +243,20 @@ def run_cell(
 
     graph_source = None
     validator_backend_label = "n/a"
+    retrieval_config = None
     if retrieval == "kg":
+        retrieval_config = RetrievalConfig(
+            mode=args.retrieval_mode,
+            rrf_k=args.rrf_k,
+            index_root=args.dense_index_root,
+            embedding=EmbeddingConfig(
+                model=args.embedding_model,
+                requested_revision=args.embedding_revision,
+                device=args.embedding_device,
+                batch_size=args.embedding_batch_size,
+            ),
+            failure_policy=args.dense_failure_policy,
+        )
         from experiments.graph_context import open_graph_source
         try:
             graph_source = open_graph_source(
@@ -247,6 +269,7 @@ def run_cell(
                 source_session_ids=args.source_session,
                 validator_url=args.scallop_validator_url,
                 require_scallop=(cell_id == 6),
+                retrieval_config=retrieval_config,
             )
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)
@@ -258,12 +281,17 @@ def run_cell(
         )
 
     n_correct = 0
+    retrieval_eval_path = out_path.parent / "retrieval_eval.jsonl"
+    if graph_source is not None:
+        retrieval_eval_path.write_text("", encoding="utf-8")
     try:
         with out_path.open("w", encoding="utf-8") as out:
             for i, ex in enumerate(examples, start=1):
                 example_id = str(ex.get("_id", f"ex_{i}"))
                 gold = str(ex.get("answer", "")).strip().upper()
                 question = format_question(ex)
+                if graph_source is not None:
+                    graph_source.reset_retrieval_history()
 
                 # Build memory/context.
                 if retrieval == "raw":
@@ -290,6 +318,8 @@ def run_cell(
                 t0 = time.time()
                 error: Optional[str] = None
                 predicted = ""
+                relevant_fact_ids: List[str] = []
+                relevance_source = "unlabeled"
                 try:
                     if qwen_tool_mode:
                         from experiments.rlm_retrieval import qwen_rlm_tool_answer
@@ -324,6 +354,8 @@ def run_cell(
                         error = outcome.error
                         n_triples = outcome.retrieved_fact_count
                         n_context_chars = outcome.tool_result_chars
+                        relevant_fact_ids = list(getattr(outcome, "cited_fact_ids", []))
+                        relevance_source = "cited_fact_ids" if relevant_fact_ids else "unlabeled"
                         print(
                             f"  [{i}/{len(examples)}] tool_trace={trace_path} "
                             f"termination={outcome.termination_reason}",
@@ -366,6 +398,42 @@ def run_cell(
                 if correct:
                     n_correct += 1
 
+                retrieval_summary = (
+                    graph_source.retrieval_summary() if graph_source is not None else {}
+                )
+                if graph_source is not None:
+                    branch_fact_ids = retrieval_summary.get("branch_fact_ids", {})
+                    with retrieval_eval_path.open("a", encoding="utf-8") as retrieval_eval:
+                        retrieval_eval.write(
+                            json.dumps(
+                                {
+                                    "cell_id": cell_id,
+                                    "example_id": example_id,
+                                    "mode": retrieval_summary.get("effective_mode"),
+                                    "configured_mode": retrieval_summary.get("configured_mode"),
+                                    "degraded": retrieval_summary.get("degraded", False),
+                                    "retrieved_fact_ids": retrieval_summary.get("result_fact_ids", []),
+                                    "relevant_fact_ids": relevant_fact_ids,
+                                    "relevance_source": relevance_source,
+                                    "sparse_fact_ids": branch_fact_ids.get("sparse", []),
+                                    "dense_fact_ids": branch_fact_ids.get("dense", []),
+                                    "pre_fusion_fact_ids": (
+                                        list(branch_fact_ids.get("sparse", []))
+                                        + list(branch_fact_ids.get("dense", []))
+                                    ),
+                                    "branch_counts": retrieval_summary.get("branch_counts", {}),
+                                    "branch_latency_seconds": retrieval_summary.get(
+                                        "branch_latency_seconds", {}
+                                    ),
+                                    "dense_index_identity": retrieval_summary.get(
+                                        "dense_index_identity", []
+                                    ),
+                                },
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            )
+                            + "\n"
+                        )
                 write_result_row(
                     out,
                     cell_id=cell_id,
@@ -386,6 +454,37 @@ def run_cell(
                         else "fixed_context"
                     ),
                     validator_backend=validator_backend_label,
+                    configured_retrieval_mode=(
+                        retrieval_config.mode if retrieval_config is not None else None
+                    ),
+                    effective_retrieval_mode=retrieval_summary.get("effective_mode"),
+                    retrieval_degraded=retrieval_summary.get("degraded"),
+                    embedding_model=(
+                        retrieval_config.embedding.model if retrieval_config is not None else None
+                    ),
+                    embedding_revision=(
+                        retrieval_config.embedding.requested_revision
+                        if retrieval_config is not None else None
+                    ),
+                    embedding_device=(
+                        retrieval_config.embedding.device if retrieval_config is not None else None
+                    ),
+                    embedding_batch_size=(
+                        retrieval_config.embedding.batch_size if retrieval_config is not None else None
+                    ),
+                    dense_index_root=(
+                        str(retrieval_config.index_root) if retrieval_config is not None else None
+                    ),
+                    dense_failure_policy=(
+                        retrieval_config.failure_policy if retrieval_config is not None else None
+                    ),
+                    rrf_k=(retrieval_config.rrf_k if retrieval_config is not None else None),
+                    dense_index_identity=retrieval_summary.get("dense_index_identity"),
+                    retrieval_branch_counts=retrieval_summary.get("branch_counts"),
+                    retrieval_branch_latency_seconds=retrieval_summary.get(
+                        "branch_latency_seconds"
+                    ),
+                    retrieval_rrf_settings=retrieval_summary.get("rrf"),
                 )
                 status = "OK " if correct else "x  "
                 print(

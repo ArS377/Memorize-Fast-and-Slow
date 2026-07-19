@@ -872,12 +872,24 @@ class Neo4jGraph:
             "rejected": rejected,
         }
 
-    def session_facts(self, session_id: Optional[str] = None) -> List[Fact]:
-        """Return all committed facts in one session."""
-        sid = session_id or self.session_id
+    def export_facts(
+        self,
+        session_id: Optional[str] = None,
+        session_ids: Optional[List[str]] = None,
+    ) -> List[Fact]:
+        requested = [str(value) for value in (session_ids or []) if str(value).strip()]
+        if session_id is not None and requested:
+            raise ValueError("provide session_id or session_ids, not both")
+        trusted_sessions = requested or [str(session_id or self.session_id)]
+        where_clause = (
+            "WHERE r.session_id IN $session_ids\n"
+            if requested
+            else "WHERE r.session_id = $session_id\n"
+        )
         query = (
             "MATCH (s:Entity)-[r]->(o:Entity)\n"
-            "WHERE r.session_id = $session_id\n"
+            + where_clause
+            +
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
             "       r.example_id AS example_id, r.question AS question,\n"
@@ -896,11 +908,33 @@ class Neo4jGraph:
             "       r.observed_at AS observed_at, r.document_id AS document_id,\n"
             "       r.extractor_model AS extractor_model,\n"
             "       r.verifier_model AS verifier_model, r.run_id AS run_id,\n"
-            "       r.compiled_memory_json AS compiled_memory_json"
+            "       r.decision_status AS decision_status,\n"
+            "       r.decision_validator AS decision_validator,\n"
+            "       r.decision_reason AS decision_reason,\n"
+            "       r.rule_params_version AS rule_params_version,\n"
+            "       r.compiled_memory_json AS compiled_memory_json\n"
+            "ORDER BY coalesce(r.session_id, ''), coalesce(r.example_id, ''), "
+            "coalesce(r.fact_id, '')"
         )
         with self._session() as session:
-            result = session.run(query, session_id=sid)
-            return [_record_to_fact(dict(record)) for record in result]
+            result = session.run(
+                query,
+                session_ids=trusted_sessions,
+                session_id=trusted_sessions[0],
+            )
+            facts = [_record_to_fact(dict(record)) for record in result]
+        return sorted(
+            facts,
+            key=lambda fact: (
+                str(fact.get("session_id", "")),
+                str(fact.get("example_id", "")),
+                str(fact.get("fact_id", "")),
+            ),
+        )
+
+    def session_facts(self, session_id: Optional[str] = None) -> List[Fact]:
+        """Return all committed facts in one session."""
+        return self.export_facts(session_id=session_id)
 
     def create_derived_session(
         self,
