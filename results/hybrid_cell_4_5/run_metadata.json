@@ -1,0 +1,2089 @@
+{
+  "timestamp": "2026-07-20T07:23:57.050698+00:00",
+  "run_id": "hybrid_cell5",
+  "git_sha": "a48ad49a03c0d8cc9f968d9f6b99f8975d59a9b3",
+  "input": "data.jsonl",
+  "input_sha256": "b44c490b8498c3e7e4097fa3f94d83491bccc14d69cc8682fb7a4ee0cc392cdb",
+  "limit": 50,
+  "seed": 0,
+  "model": "Qwen/Qwen3-4B",
+  "vllm_base_url": "http://localhost:8000/v1",
+  "neo4j_uri": "bolt://localhost:7688",
+  "cells": [
+    4,
+    5
+  ],
+  "raw_max_chars": 32000,
+  "hops": 2,
+  "limit_triples": 50,
+  "memory_scope": "example",
+  "retrieval_config": {
+    "mode": "hybrid",
+    "rrf_k": 60,
+    "branch_candidate_multiplier": 3,
+    "branch_candidate_cap": 50,
+    "index_root": "results/runs/hybrid_cell5/dense_indexes",
+    "embedding": {
+      "model": "BAAI/bge-small-en-v1.5",
+      "requested_revision": null,
+      "device": "cpu",
+      "batch_size": 32,
+      "normalize": true,
+      "fact_template_version": "fact_text.v1",
+      "query_template_version": "bge_query.v1"
+    },
+    "failure_policy": "error"
+  },
+  "retrieval_mode": "hybrid",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "embedding_revision": null,
+  "embedding_device": "cpu",
+  "embedding_batch_size": 32,
+  "dense_index_root": "results/runs/hybrid_cell5/dense_indexes",
+  "dense_failure_policy": "error",
+  "rrf_k": 60,
+  "max_depth": 2,
+  "max_iterations": 10,
+  "max_tokens": 64000,
+  "orchestration_mode": "fixed",
+  "qwen_tool_retrieval": false,
+  "fixed_kg_retrieval": true,
+  "max_tool_calls": 3,
+  "tool_choice": "required",
+  "tool_timeout": 30.0,
+  "tool_trace_dir": null,
+  "tool_max_tokens": 2048,
+  "kg_sessions": {
+    "2": "hybrid_cell5_noscallop",
+    "3": "hybrid_cell5_scallop",
+    "5": "hybrid_cell5_noscallop",
+    "6": "hybrid_cell5_scallop"
+  },
+  "scallop_validator_url": null,
+  "tool_contract_version": "search_knowledge_graph.v2+update_working_memory.v1",
+  "rule_version": "rules.v1",
+  "cell_status": {
+    "4": "complete",
+    "5": "complete"
+  },
+  "cell_retrieval": {
+    "5": [
+      {
+        "example_id": "66ead7bd5a08c7b9b35dca7a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.141,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66eae4de5a08c7b9b35dd12d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 28
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66eb873c5a08c7b9b35dd849",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 9,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.143,
+          "dense": 0.058
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebb0e55a08c7b9b35ddd6a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 16
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.026
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebbe4f5a08c7b9b35de533",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc04a5a08c7b9b35de740",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 16
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc0c95a08c7b9b35de7f3",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 6
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc3165a08c7b9b35deb38",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 15
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.038
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc4af5a08c7b9b35dede0",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc7445a08c7b9b35df155",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.046
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc95f5a08c7b9b35df497",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 22
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.005,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebca1e5a08c7b9b35df5e8",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 14,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.013,
+          "dense": 0.098
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebcc1e5a08c7b9b35df87d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebcc335a08c7b9b35df8b6",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 16,
+          "dense": 19
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.014,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebce825a08c7b9b35dfc75",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd0825a08c7b9b35dfe9d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 10
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd0ea5a08c7b9b35dff57",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 8,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.022,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd22e5a08c7b9b35e0126",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 10
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.018,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd2475a08c7b9b35e0155",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.026
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd2975a08c7b9b35e01e3",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 6
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd3075a08c7b9b35e02bd",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd34d5a08c7b9b35e035d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 16
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd3ba5a08c7b9b35e0446",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 0
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.0
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd49a5a08c7b9b35e0550",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd5125a08c7b9b35e0616",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 7
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd55f5a08c7b9b35e0698",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 2,
+          "dense": 2
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.005,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd5675a08c7b9b35e06bf",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 12
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.014,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd92d5a08c7b9b35e0bf0",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 15,
+          "dense": 15
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.009,
+          "dense": 0.037
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd9895a08c7b9b35e0c7c",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebda775a08c7b9b35e0dcb",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdadd5a08c7b9b35e0e5b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 15
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.037
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdd1c5a08c7b9b35e113b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 18
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.05
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebde0f5a08c7b9b35e1256",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.038
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdfb65a08c7b9b35e140a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 13
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe0fb5a08c7b9b35e14f5",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.016,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe30a5a08c7b9b35e1693",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 17
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.028
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe68d5a08c7b9b35e190b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 15,
+          "dense": 22
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.026,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebeb5a5a08c7b9b35e1ba5",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 11
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebed525a08c7b9b35e1cb4",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 7
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.037
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebee0a5a08c7b9b35e1d05",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 2,
+          "dense": 20
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.059
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebf9bf5a08c7b9b35e1f85",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec052a5a08c7b9b35e29c7",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 1,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0874821e116aacb194a4",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.052
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec088c821e116aacb194d9",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 6
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec09ec821e116aacb19620",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 25
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.041
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0c4c821e116aacb1994a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 6
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0d4b821e116aacb19af8",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 20
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0d51821e116aacb19b0f",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 18
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.016,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0f3c821e116aacb19d70",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 1,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.028
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0f7f821e116aacb19dde",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hybrid_cell5_noscallop",
+            "source_snapshot_sha256": "46f3f4b138b0d5225100f1494fda564f56b274a489667283e14ae811d9a7f35a",
+            "ordered_fact_digest": "9a3b8a8a2df655c658c57de2c5836d64c4beff747174a0c7856f138db782e4e8",
+            "fact_count": 562
+          }
+        ],
+        "branch_counts": {
+          "sparse": 7,
+          "dense": 20
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.006,
+          "dense": 0.048
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      }
+    ]
+  },
+  "skip_kg_build": true,
+  "kg_artifacts": {},
+  "cell_artifacts": {
+    "4": {
+      "results_path": "results/runs/hybrid_cell5/cell4_rlm_raw/results.jsonl",
+      "results_sha256": "0beb17f131dbdd64fe567e664b6b251fa3ed69fb2021eea2274a2d61f64594f9"
+    },
+    "5": {
+      "results_path": "results/runs/hybrid_cell5/cell5_rlm_kg_noscallop/results.jsonl",
+      "results_sha256": "2f8d71c366e13f91d78af15fdfcaea75e365cc6252577afda626854576acc050"
+    }
+  },
+  "retrieval_report": {
+    "json": "results/runs/hybrid_cell5/retrieval_report.json",
+    "markdown": "results/runs/hybrid_cell5/retrieval_report.md"
+  }
+}
