@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from experiments.graph_context import GraphSource, format_facts_from_jsonl
+from experiments.retrieval_config import RetrievalConfig
 
 
 FACTS = [
@@ -43,6 +44,20 @@ def test_graph_source_reports_zero_triples_for_missing_example() -> None:
 
     assert context == ""
     assert n_triples == 0
+
+
+def test_graph_source_does_not_report_configured_mode_as_executed() -> None:
+    source = GraphSource(
+        fallback_facts=FACTS,
+        session_id="pilot_scallop",
+        retrieval_config=RetrievalConfig(mode="hybrid"),
+    )
+
+    summary = source.retrieval_summary()
+
+    assert summary["configured_mode"] == "hybrid"
+    assert summary["effective_mode"] is None
+    assert summary["branch_counts"] == {"sparse": 0, "dense": 0}
 
 
 def test_graph_source_session_scope_uses_fallback_across_examples() -> None:

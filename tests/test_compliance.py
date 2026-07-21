@@ -6,7 +6,12 @@ from experiments.common import CELLS, cell_output_path
 from experiments.compliance import audit_run
 
 
-def _write_run(tmp_path, *, mismatch: bool = False):
+def _write_run(
+    tmp_path,
+    *,
+    mismatch: bool = False,
+    missing_hybrid_execution_cell: int | None = None,
+):
     metadata = {
         "run_id": "test_run",
         "git_sha": "abc123",
@@ -15,6 +20,8 @@ def _write_run(tmp_path, *, mismatch: bool = False):
         "memory_scope": "example",
         "tool_contract_version": "tools.v1",
         "rule_version": "rules.v1",
+        "retrieval_mode": "hybrid",
+        "retrieval_config": {"mode": "hybrid"},
         "skip_kg_build": False,
         "kg_artifacts": {"candidate_sha256": "cafe"},
     }
@@ -31,6 +38,20 @@ def _write_run(tmp_path, *, mismatch: bool = False):
                 "qwen_native_tools_inside_rlm" if cell["cell_id"] in {5, 6} else "fixed_context"
             ),
             "validator_backend": "scallop" if cell["cell_id"] == 6 else "n/a",
+            "configured_retrieval_mode": (
+                "hybrid" if cell["retrieval"] == "kg" else None
+            ),
+            "effective_retrieval_mode": (
+                None
+                if cell["cell_id"] == missing_hybrid_execution_cell
+                else "hybrid" if cell["retrieval"] == "kg" else None
+            ),
+            "retrieval_degraded": False if cell["retrieval"] == "kg" else None,
+            "dense_index_identity": (
+                [{"source_session_id": f"session-{cell['cell_id']}"}]
+                if cell["retrieval"] == "kg"
+                else None
+            ),
         }
         path.write_text(json.dumps(row) + "\n", encoding="utf-8")
 
@@ -45,5 +66,15 @@ def test_compliance_detects_population_mismatch(tmp_path) -> None:
     _write_run(tmp_path, mismatch=True)
     report = audit_run(tmp_path)
     check = next(item for item in report["checks"] if item["id"] == "identical_example_population")
+    assert check["passed"] is False
+    assert report["passed"] is False
+
+
+def test_compliance_rejects_configured_but_unexecuted_hybrid_retrieval(tmp_path) -> None:
+    _write_run(tmp_path, missing_hybrid_execution_cell=5)
+
+    report = audit_run(tmp_path)
+
+    check = next(item for item in report["checks"] if item["id"] == "cell_5_retrieval_execution")
     assert check["passed"] is False
     assert report["passed"] is False

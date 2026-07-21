@@ -67,6 +67,35 @@ EXAMPLE = {
 }
 
 
+class FakeHybridIndex:
+    def __init__(self, session_id: str) -> None:
+        self.session_id = session_id
+        self.manifest = SimpleNamespace(
+            identity={"source_session_id": session_id, "schema_version": "test.v1"}
+        )
+
+    def search(self, query: str, *, top_k: int, scope: Any, predicates=None):
+        row = dict(FACTS[0])
+        row["session_id"] = self.session_id
+        row["_dense_similarity"] = 0.95
+        return [row]
+
+
+def _hybrid_graph_source(open_kwargs: Dict[str, Any], source_class=GraphSource) -> GraphSource:
+    session_id = str(open_kwargs["session_id"])
+    facts = [{**fact, "session_id": session_id} for fact in FACTS]
+    source = source_class(
+        fallback_facts=facts,
+        session_id=session_id,
+        memory_scope=open_kwargs["memory_scope"],
+        source_session_ids=open_kwargs["source_session_ids"],
+        retrieval_config=open_kwargs["retrieval_config"],
+        dense_indexes={session_id: FakeHybridIndex(session_id)},
+    )
+    assert source.retrieval_config.mode == "hybrid"
+    return source
+
+
 def _tool_call(call_id: str, arguments: Any, name: str = "search_knowledge_graph") -> Any:
     if not isinstance(arguments, str):
         arguments = json.dumps(arguments)
@@ -620,38 +649,75 @@ def test_cell_runner_does_not_pre_retrieve_and_persists_integrated_trace(
     assert persisted["orchestration"] == "qwen_native_tool_inside_rlm"
 
 
+def test_cell2_and_cell3_execute_hybrid_retrieval_before_flat_qwen(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.jsonl"
+    input_path.write_text(json.dumps({**EXAMPLE, "answer": "A"}) + "\n", encoding="utf-8")
+
+    with patch("openai.OpenAI", return_value=object()), patch(
+        "experiments.graph_context.open_graph_source",
+        side_effect=lambda **kwargs: _hybrid_graph_source(kwargs),
+    ), patch("experiments.flat_answerer.flat_answer", return_value=("A", "A")):
+        for cell_id, label, session in [
+            (2, "flat_kg_noscallop", "pilot_noscallop"),
+            (3, "flat_kg_scallop", "pilot_scallop"),
+        ]:
+            output_path = tmp_path / f"cell{cell_id}" / "results.jsonl"
+            run_cell(
+                cell_id=cell_id,
+                label=label,
+                kind="flat",
+                retrieval="kg",
+                session_id=session,
+                argv=["--input", str(input_path), "--output", str(output_path), "--no-aggregate"],
+            )
+            result = json.loads(output_path.read_text(encoding="utf-8"))
+            assert result["configured_retrieval_mode"] == "hybrid"
+            assert result["effective_retrieval_mode"] == "hybrid"
+            assert result["retrieval_degraded"] is False
+            assert result["retrieval_branch_counts"] == {"sparse": 1, "dense": 1}
+            assert result["dense_index_identity"]
+
+
 def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path: Path) -> None:
     class NoPreRetrievalSource(GraphSource):
         def context_for(self, *args, **kwargs):
             raise AssertionError("cell 6 must use integrated retrieval by default")
 
-    source = NoPreRetrievalSource(
-        fallback_facts=FACTS,
-        session_id="pilot_scallop",
-        memory_scope="example",
-    )
-    outcome = SimpleNamespace(
-        predicted="A",
-        error=None,
-        retrieved_fact_count=1,
-        tool_result_chars=300,
-        trace={
-            "orchestration": "qwen_native_tool_inside_rlm",
-            "termination_reason": "supported_final_answer",
-        },
-        termination_reason="supported_final_answer",
+    def hybrid_answer(**kwargs):
+        graph_source = kwargs["graph_source"]
+        retrieval = graph_source.retrieve(
+            query=EXAMPLE["question"],
+            seed_entities=["Kalamang"],
+            example_id=EXAMPLE["_id"],
+            hops=2,
+            top_k=10,
+        )
+        return SimpleNamespace(
+            predicted="A",
+            error=None,
+            retrieved_fact_count=len(retrieval.rows),
+            tool_result_chars=300,
+            cited_fact_ids=[row["fact_id"] for row in retrieval.rows],
+            trace={
+                "orchestration": "qwen_native_tool_inside_rlm",
+                "termination_reason": "supported_final_answer",
+            },
+            termination_reason="supported_final_answer",
     )
     input_path = tmp_path / "input.jsonl"
-    output_path = tmp_path / "cell6" / "results.jsonl"
     input_path.write_text(json.dumps({**EXAMPLE, "answer": "A"}) + "\n", encoding="utf-8")
 
-    with patch("experiments.graph_context.open_graph_source", return_value=source), patch(
-        "experiments.rlm_retrieval.qwen_rlm_tool_answer", return_value=outcome
+    with patch(
+        "experiments.graph_context.open_graph_source",
+        side_effect=lambda **kwargs: _hybrid_graph_source(kwargs, NoPreRetrievalSource),
+    ), patch(
+        "experiments.rlm_retrieval.qwen_rlm_tool_answer", side_effect=hybrid_answer
     ) as answer:
         for cell_id, label, session in [
             (5, "rlm_kg_noscallop", "pilot_noscallop"),
             (6, "rlm_kg_scallop", "pilot_scallop"),
         ]:
+            output_path = tmp_path / f"cell{cell_id}" / "results.jsonl"
             run_cell(
                 cell_id=cell_id,
                 label=label,
@@ -660,8 +726,13 @@ def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path
                 session_id=session,
                 argv=["--input", str(input_path), "--output", str(output_path), "--no-aggregate"],
             )
+            result = json.loads(output_path.read_text(encoding="utf-8"))
+            assert result["predicted"] == "A"
+            assert result["n_triples"] == 1
+            assert result["configured_retrieval_mode"] == "hybrid"
+            assert result["effective_retrieval_mode"] == "hybrid"
+            assert result["retrieval_degraded"] is False
+            assert result["retrieval_branch_counts"] == {"sparse": 1, "dense": 1}
+            assert result["dense_index_identity"]
 
-    result = json.loads(output_path.read_text(encoding="utf-8"))
     assert answer.call_count == 2
-    assert result["predicted"] == "A"
-    assert result["n_triples"] == 1

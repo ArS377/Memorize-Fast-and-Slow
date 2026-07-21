@@ -158,7 +158,10 @@ class GraphSource:
         if not self._retrieval_history:
             return {
                 "configured_mode": configured,
-                "effective_mode": configured,
+                # Configuration is not execution evidence.  Keep this unset until
+                # retrieve() records an actual branch run so compliance cannot
+                # mistake an initialized dense index for a completed retrieval.
+                "effective_mode": None,
                 "degraded": False,
                 "dense_index_identity": [
                     self.dense_indexes[key].manifest.identity

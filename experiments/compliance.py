@@ -38,6 +38,9 @@ def audit_run(results_dir: Path) -> Dict[str, Any]:
     check("tool_contract", bool(metadata.get("tool_contract_version")), "tool schema version is recorded")
     check("rule_version", bool(metadata.get("rule_version")), "symbolic rule version is recorded")
 
+    retrieval_config = metadata.get("retrieval_config") or {}
+    expected_retrieval_mode = metadata.get("retrieval_mode") or retrieval_config.get("mode")
+
     example_sets: Dict[int, List[str]] = {}
     rows_by_cell: Dict[int, List[Dict[str, Any]]] = {}
     for cell in CELLS:
@@ -59,6 +62,33 @@ def audit_run(results_dir: Path) -> Dict[str, Any]:
             bool(rows) and not any(row.get("error") for row in rows),
             f"{sum(1 for row in rows if row.get('error'))} execution errors",
         )
+        if cell["retrieval"] == "kg":
+            configured_modes = {row.get("configured_retrieval_mode") for row in rows}
+            effective_modes = {row.get("effective_retrieval_mode") for row in rows}
+            degraded_rows = sum(bool(row.get("retrieval_degraded")) for row in rows)
+            identities_present = all(bool(row.get("dense_index_identity")) for row in rows)
+            mode_matches = bool(rows) and bool(expected_retrieval_mode) and configured_modes == {
+                expected_retrieval_mode
+            }
+            execution_matches = bool(rows) and effective_modes == {expected_retrieval_mode}
+            if expected_retrieval_mode in {"dense", "hybrid"}:
+                execution_matches = execution_matches and identities_present
+            check(
+                f"cell_{cid}_retrieval_configuration",
+                mode_matches,
+                (
+                    f"expected {expected_retrieval_mode!r}; "
+                    f"configured modes: {sorted(str(value) for value in configured_modes)}"
+                ),
+            )
+            check(
+                f"cell_{cid}_retrieval_execution",
+                execution_matches and degraded_rows == 0,
+                (
+                    f"effective modes: {sorted(str(value) for value in effective_modes)}; "
+                    f"degraded rows: {degraded_rows}; dense identities present: {identities_present}"
+                ),
+            )
 
     populations = list(example_sets.values())
     check(
