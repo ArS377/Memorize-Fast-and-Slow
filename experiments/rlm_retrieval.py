@@ -17,6 +17,7 @@ from dataclasses import asdict, dataclass, is_dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
+from experiments.epistemic_state import EpistemicStateTracker, StateTransition
 from experiments.graph_context import GraphSource
 from experiments.kg_search_tool import (
     SEARCH_KNOWLEDGE_GRAPH_TOOL,
@@ -30,7 +31,7 @@ from experiments.working_memory_tool import (
 )
 
 
-TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v2"
+TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v3"
 
 SearchToolExecutor = Callable[
     [Mapping[str, Any], GraphSource, str],
@@ -54,6 +55,11 @@ class QwenRLMToolOutcome:
     tool_result_chars: int
     trace: Dict[str, Any]
     working_memory_artifact_ids: List[str]
+    diagnostic_predicted: str = ""
+    termination_mode: str = "external_budget"
+    order_gap_final: Optional[float] = None
+    order_gap_window_mean: Optional[float] = None
+    rlm_completion_count: int = 0
 
 
 def _tool_error(
@@ -226,10 +232,16 @@ arguments. Derived facts must cite selected returned fact IDs. The application,
 not the model, owns memory scope and decides whether Scallop gates the update.
 
 You may use the RLM REPL, `llm_query`, and `rlm_query` to reason over returned
-facts. The terminal RLM answer must be one of:
+facts. To finish, do not answer in prose. Emit one `repl` code block that sets
+the RLM answer and marks it ready, for example:
 
-FINAL(FINAL_ANSWER: <A|B|C|D>\nCITED_FACT_IDS: <returned fact IDs>)
-FINAL(EVIDENCE_INSUFFICIENT: <brief reason>)
+```repl
+answer["content"] = "FINAL_ANSWER: <A|B|C|D>\\nCITED_FACT_IDS: <returned fact IDs>"
+answer["ready"] = True
+```
+
+For insufficient evidence, set `answer["content"]` to
+`EVIDENCE_INSUFFICIENT: <brief reason>` and set `answer["ready"] = True`.
 
 Never accept an answer supported by a fact ID that was not returned by the
 native tool.
@@ -239,6 +251,11 @@ native tool.
 _FINAL_ANSWER_RE = re.compile(r"^\s*FINAL_ANSWER\s*:\s*([ABCD])\s*$", re.MULTILINE)
 _CITATIONS_RE = re.compile(r"^\s*CITED_FACT_IDS\s*:\s*(.+?)\s*$", re.MULTILINE)
 _INSUFFICIENT_RE = re.compile(r"^\s*EVIDENCE_INSUFFICIENT\s*:", re.MULTILINE)
+_PROSE_ANSWER_RE = re.compile(
+    r"\b(?:the\s+)?(?:final\s+answer|correct\s+answer|answer)\s*"
+    r"(?:is|:|-)\s*\(?([ABCD])\)?\b",
+    re.IGNORECASE,
+)
 
 
 def _parse_final_response(content: str) -> Tuple[str, List[str], bool]:
@@ -261,6 +278,26 @@ def _parse_final_response(content: str) -> Tuple[str, List[str], bool]:
     return answer_match.group(1), citations, False
 
 
+def _parse_candidate_answer(content: str) -> str:
+    """Extract only an explicitly labelled multiple-choice answer from prose."""
+    text = str(content or "")
+    structured = re.search(r"\bFINAL_ANSWER\s*:\s*([ABCD])\b", text)
+    if structured:
+        return structured.group(1).upper()
+    matches = list(_PROSE_ANSWER_RE.finditer(text))
+    return matches[-1].group(1).upper() if matches else ""
+
+
+def _rlm_ready_block(content: str) -> str:
+    encoded = json.dumps(str(content), ensure_ascii=False)
+    return (
+        "```repl\n"
+        f'answer["content"] = {encoded}\n'
+        'answer["ready"] = True\n'
+        "```"
+    )
+
+
 class NativeToolSession:
     """State shared by native tool calls across one root RLM completion."""
 
@@ -280,6 +317,12 @@ class NativeToolSession:
         execute_update_tool: Callable[..., Mapping[str, Any]] = execute_update_working_memory,
         validate_memory_updates: bool = True,
         require_memory_update: bool = False,
+        question: str = "",
+        choices: Optional[Mapping[str, Any]] = None,
+        termination_mode: str = "order_gap",
+        order_gap_epsilon: float = 0.025,
+        order_gap_window: int = 2,
+        order_gap_min_iterations: int = 2,
     ) -> None:
         if max_tool_calls < 1:
             raise ValueError("max_tool_calls must be at least 1")
@@ -289,6 +332,8 @@ class NativeToolSession:
             raise ValueError("max_completion_tokens must be at least 1")
         if tool_choice not in {"auto", "required"}:
             raise ValueError("tool_choice must be 'auto' or 'required'")
+        if termination_mode not in {"order_gap", "external_budget"}:
+            raise ValueError("termination_mode must be 'order_gap' or 'external_budget'")
 
         self.model = model
         self.graph_source = graph_source
@@ -303,6 +348,14 @@ class NativeToolSession:
         self.execute_update_tool = execute_update_tool
         self.validate_memory_updates = validate_memory_updates
         self.require_memory_update = require_memory_update
+        self.termination_mode = termination_mode
+        self.state_tracker = EpistemicStateTracker(
+            question=question,
+            choices=choices,
+            epsilon=order_gap_epsilon,
+            window=order_gap_window,
+            min_iterations=order_gap_min_iterations,
+        )
         self.seen_calls: Set[str] = set()
         self.retrieved_fact_ids: Set[str] = set()
         self.retrieved_facts: Dict[str, Dict[str, Any]] = {}
@@ -313,6 +366,8 @@ class NativeToolSession:
         self.tool_result_chars = 0
         self.evidence_responses: List[Dict[str, Any]] = []
         self.model_completion_count = 0
+        self.diagnostic_predicted = ""
+        self.controller_termination_reason: Optional[str] = None
         self.trace: Dict[str, Any] = {
             "schema_version": TRACE_SCHEMA_VERSION,
             "example_id": example_id,
@@ -328,6 +383,12 @@ class NativeToolSession:
             "tool_names": [SEARCH_TOOL_NAME, UPDATE_TOOL_NAME],
             "tool_choice": tool_choice,
             "max_tool_calls": max_tool_calls,
+            "termination_mode": termination_mode,
+            "order_gap_config": {
+                "epsilon": order_gap_epsilon,
+                "window": order_gap_window,
+                "min_iterations": order_gap_min_iterations,
+            },
             "orchestration": "qwen_native_tool_inside_rlm",
             "events": [],
         }
@@ -340,17 +401,98 @@ class NativeToolSession:
         else:
             messages.insert(0, {"role": "system", "content": instructions})
 
-        if self.evidence_responses:
-            evidence = json.dumps(self.evidence_responses, ensure_ascii=False, separators=(",", ":"))
-            reminder = (
-                "\n\nNative knowledge-graph responses retained from earlier RLM iterations:\n"
-                f"{evidence}"
-            )
-            if messages and messages[-1].get("role") in {"user", "assistant"}:
-                messages[-1]["content"] = f"{messages[-1].get('content') or ''}{reminder}"
-            else:
-                messages.append({"role": "user", "content": reminder.strip()})
+        state_view = json.dumps(
+            self.state_tracker.state.prompt_view(),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        reminder = (
+            "\n\nController-owned epistemic state from prior RLM iterations:\n"
+            f"{state_view}"
+        )
+        if messages and messages[-1].get("role") in {"user", "assistant"}:
+            messages[-1]["content"] = f"{messages[-1].get('content') or ''}{reminder}"
+        else:
+            messages.append({"role": "user", "content": reminder.strip()})
         return messages
+
+    def _observe_epistemic(
+        self,
+        evidence: Mapping[str, Any],
+        *,
+        completion_index: int,
+        native_turn: int,
+        completion_boundary: bool,
+    ) -> StateTransition:
+        transition = self.state_tracker.observe(
+            evidence, completion_boundary=completion_boundary
+        )
+        self.trace["events"].append(
+            {
+                "event": "epistemic_transition",
+                "rlm_completion": completion_index,
+                "native_turn": native_turn,
+                "evidence_kind": evidence.get("kind"),
+                "completion_boundary": completion_boundary,
+                "order_gap": transition.order_gap,
+                "window_mean": self.state_tracker.window_mean,
+                "before_digest": transition.before_digest,
+                "after_digest": transition.after_digest,
+                "state_snapshot": transition.state_snapshot,
+            }
+        )
+        return transition
+
+    def _state_based_completion(self, content: str) -> Optional[str]:
+        if self.termination_mode != "order_gap" or not self.state_tracker.stable:
+            return None
+        state = self.state_tracker.state
+        successful_search = state.successful_searches > 0
+        eligible_ids = (
+            sorted(self.working_memory_fact_ids)
+            if self.require_memory_update
+            else sorted(self.retrieved_fact_ids)
+        )
+        coverage = {
+            "successful_search": successful_search,
+            "candidate": self.diagnostic_predicted or None,
+            "eligible_fact_ids": eligible_ids,
+            "require_memory_update": self.require_memory_update,
+            "passed": successful_search,
+        }
+        self.trace["events"].append(
+            {
+                "event": "order_gap_coverage",
+                "rlm_completion": self.model_completion_count,
+                "window_mean": self.state_tracker.window_mean,
+                **coverage,
+            }
+        )
+        if not successful_search:
+            return None
+        if self.diagnostic_predicted and eligible_ids:
+            self.controller_termination_reason = "order_gap_supported_answer"
+            final_content = (
+                f"FINAL_ANSWER: {self.diagnostic_predicted}\n"
+                f"CITED_FACT_IDS: {', '.join(eligible_ids)}"
+            )
+        else:
+            self.controller_termination_reason = "order_gap_evidence_insufficient"
+            final_content = (
+                "EVIDENCE_INSUFFICIENT: the epistemic state settled without "
+                "a citable committed answer"
+            )
+        self.trace["events"].append(
+            {
+                "event": "order_gap_stop",
+                "rlm_completion": self.model_completion_count,
+                "reason": self.controller_termination_reason,
+                "diagnostic_predicted": self.diagnostic_predicted,
+                "eligible_fact_ids": eligible_ids,
+                "window_mean": self.state_tracker.window_mean,
+            }
+        )
+        return _rlm_ready_block(final_content)
 
     def _track_response(self, base_client: Any, response: Any) -> None:
         track_cost = getattr(base_client, "_track_cost", None)
@@ -424,6 +566,22 @@ class NativeToolSession:
                 content = str(assistant_message.get("content") or "")
                 if not content.strip():
                     raise RuntimeError("Qwen returned neither tool calls nor text")
+                candidate = _parse_candidate_answer(content)
+                if candidate:
+                    self.diagnostic_predicted = candidate
+                self._observe_epistemic(
+                    {"kind": "model", "candidate": candidate, "content": content},
+                    completion_index=completion_index,
+                    native_turn=native_turn,
+                    completion_boundary=True,
+                )
+                if (
+                    'answer["ready"]' not in content
+                    and "FINAL(" not in content
+                ):
+                    state_completion = self._state_based_completion(content)
+                    if state_completion is not None:
+                        return state_completion
                 return content
 
             for index, raw_call in enumerate(tool_calls, start=1):
@@ -564,6 +722,16 @@ class NativeToolSession:
                     {"role": "tool", "tool_call_id": call_id, "content": tool_content}
                 )
                 self.evidence_responses.append(tool_response)
+                if name in {SEARCH_TOOL_NAME, UPDATE_TOOL_NAME}:
+                    self._observe_epistemic(
+                        {
+                            "kind": "search" if name == SEARCH_TOOL_NAME else "memory",
+                            "response": tool_response,
+                        },
+                        completion_index=completion_index,
+                        native_turn=native_turn,
+                        completion_boundary=False,
+                    )
                 self.trace["events"].append(
                     {
                         "event": "tool_result",
@@ -628,6 +796,15 @@ class NativeToolSession:
                 "working_memory_fact_ids": sorted(self.working_memory_fact_ids),
                 "tool_result_chars": self.tool_result_chars,
                 "rlm_model_completion_count": self.model_completion_count,
+                "diagnostic_predicted": self.diagnostic_predicted,
+                "termination_mode": self.termination_mode,
+                "order_gap_final": (
+                    self.state_tracker.completion_gaps[-1]
+                    if self.state_tracker.completion_gaps
+                    else None
+                ),
+                "order_gap_window_mean": self.state_tracker.window_mean,
+                "epistemic_state": self.state_tracker.to_dict(),
                 "error": error,
             }
         )
@@ -652,6 +829,15 @@ class NativeToolSession:
             tool_result_chars=self.tool_result_chars,
             trace=self.trace,
             working_memory_artifact_ids=list(self.working_memory_artifact_ids),
+            diagnostic_predicted=self.diagnostic_predicted,
+            termination_mode=self.termination_mode,
+            order_gap_final=(
+                self.state_tracker.completion_gaps[-1]
+                if self.state_tracker.completion_gaps
+                else None
+            ),
+            order_gap_window_mean=self.state_tracker.window_mean,
+            rlm_completion_count=self.model_completion_count,
         )
 
 
@@ -708,12 +894,18 @@ def make_qwen_tool_rlm(
     log_dir: Path,
     verbose: bool,
     tool_session: NativeToolSession,
+    model_timeout: float = 90.0,
+    model_max_retries: int = 0,
 ) -> Any:
     """Create an RLM whose root Qwen calls the KG tool natively."""
     if backend != "openai":
         raise ValueError(
             "native Qwen/vLLM tool calls require --backend openai with the vLLM base URL"
         )
+    if model_timeout <= 0:
+        raise ValueError("model_timeout must be positive")
+    if model_max_retries < 0:
+        raise ValueError("model_max_retries must not be negative")
 
     from rlm.core.rlm import RLM
     from rlm.logger.rlm_logger import RLMLogger
@@ -724,7 +916,15 @@ def make_qwen_tool_rlm(
     Path(log_dir).mkdir(parents=True, exist_ok=True)
     rlm = NativeToolRLM(
         backend=backend,
-        backend_kwargs={"model_name": model, "base_url": base_url, "api_key": api_key},
+        backend_kwargs={
+            "model_name": model,
+            "base_url": base_url,
+            "api_key": api_key,
+            # A stalled guided-decoding request must not consume the OpenAI
+            # client's 300s timeout plus two automatic retries per example.
+            "timeout": model_timeout,
+            "max_retries": model_max_retries,
+        },
         environment="local",
         max_depth=max_depth,
         max_iterations=max_iterations,
@@ -753,6 +953,12 @@ def qwen_rlm_tool_answer(
     tool_choice: str = "auto",
     tool_timeout: float = 30.0,
     max_completion_tokens: int = 2048,
+    model_timeout: float = 90.0,
+    model_max_retries: int = 0,
+    termination_mode: str = "order_gap",
+    order_gap_epsilon: float = 0.025,
+    order_gap_window: int = 2,
+    order_gap_min_iterations: int = 2,
     tool_schema: Optional[Mapping[str, Any]] = None,
     execute_tool: SearchToolExecutor = execute_search_knowledge_graph,
     update_tool_schema: Mapping[str, Any] = UPDATE_WORKING_MEMORY_TOOL,
@@ -776,6 +982,15 @@ def qwen_rlm_tool_answer(
         execute_update_tool=execute_update_tool,
         validate_memory_updates=validate_memory_updates,
         require_memory_update=require_memory_update,
+        question=str(example.get("question") or ""),
+        choices={
+            letter: str(example.get(f"choice_{letter}") or "")
+            for letter in ("A", "B", "C", "D")
+        },
+        termination_mode=termination_mode,
+        order_gap_epsilon=order_gap_epsilon,
+        order_gap_window=order_gap_window,
+        order_gap_min_iterations=order_gap_min_iterations,
     )
     rlm = make_qwen_tool_rlm(
         backend=backend,
@@ -788,6 +1003,8 @@ def qwen_rlm_tool_answer(
         log_dir=log_dir,
         verbose=verbose,
         tool_session=session,
+        model_timeout=model_timeout,
+        model_max_retries=model_max_retries,
     )
 
     root_prompt = _question_message(example)
@@ -821,7 +1038,9 @@ def qwen_rlm_tool_answer(
             predicted="",
             raw_answer=raw_answer,
             error=None,
-            termination_reason="evidence_insufficient",
+            termination_reason=(
+                session.controller_termination_reason or "evidence_insufficient"
+            ),
             cited_fact_ids=[],
         )
 
@@ -838,7 +1057,9 @@ def qwen_rlm_tool_answer(
             predicted=predicted,
             raw_answer=raw_answer,
             error=None,
-            termination_reason="supported_final_answer",
+            termination_reason=(
+                session.controller_termination_reason or "supported_final_answer"
+            ),
             cited_fact_ids=citations,
         )
 

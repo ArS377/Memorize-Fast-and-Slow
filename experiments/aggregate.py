@@ -22,7 +22,7 @@ from experiments.common import CELLS, cell_output_path
 SUMMARY_COLUMNS = [
     "cell_id", "label", "retrieval", "validator", "recursion",
     "n_examples", "n_answered", "accuracy", "mean_latency_s",
-    "mean_triples", "n_errors",
+    "mean_triples", "n_errors", "n_diagnostic_answered", "diagnostic_accuracy",
 ]
 
 
@@ -42,6 +42,12 @@ def _summarize_rows(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     n_answered = len(answered)
     correct = sum(1 for r in answered if r.get("correct"))
     accuracy = (correct / n_answered) if n_answered else None
+    diagnostic_answered = [r for r in rows if r.get("diagnostic_predicted")]
+    n_diagnostic_answered = len(diagnostic_answered)
+    diagnostic_correct = sum(1 for r in diagnostic_answered if r.get("diagnostic_correct"))
+    diagnostic_accuracy = (
+        diagnostic_correct / n_diagnostic_answered if n_diagnostic_answered else None
+    )
     latencies = [r.get("elapsed_seconds") for r in rows if isinstance(r.get("elapsed_seconds"), (int, float))]
     mean_latency = (sum(latencies) / len(latencies)) if latencies else None
     triples = [r.get("n_triples") for r in rows if isinstance(r.get("n_triples"), (int, float))]
@@ -54,6 +60,8 @@ def _summarize_rows(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "mean_latency_s": mean_latency,
         "mean_triples": mean_triples,
         "n_errors": n_errors,
+        "n_diagnostic_answered": n_diagnostic_answered,
+        "diagnostic_accuracy": diagnostic_accuracy,
     }
 
 
@@ -74,6 +82,8 @@ def collect_summary(results_dir: Path) -> List[Dict[str, Any]]:
             "mean_latency_s": None,
             "mean_triples": None,
             "n_errors": 0,
+            "n_diagnostic_answered": 0,
+            "diagnostic_accuracy": None,
         }
         if path.exists():
             try:
@@ -92,7 +102,7 @@ def write_summary_csv(summary: List[Dict[str, Any]], path: Path) -> None:
         w.writeheader()
         for row in summary:
             out_row = dict(row)
-            for k in ("accuracy", "mean_latency_s", "mean_triples"):
+            for k in ("accuracy", "mean_latency_s", "mean_triples", "diagnostic_accuracy"):
                 v = out_row.get(k)
                 if isinstance(v, float):
                     out_row[k] = f"{v:.4f}"

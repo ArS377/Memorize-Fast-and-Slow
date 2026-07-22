@@ -204,6 +204,25 @@ Native calls execute inside root RLM turns, retaining the REPL and recursive
 [`search_knowledge_graph` contract](docs/qwen-knowledge-graph-tool.md) and
 [`sparse smoke procedure`](docs/qwen_sparse_smoke.md).
 
+Cells 5 and 6 also share controller-owned epistemic state and order-gap
+termination. Retrieved claims, partial answers, open questions, support,
+requirements, and contradictions persist across root RLM iterations. By
+default the controller stops after a two-completion window whose mean
+order-gap is at most `0.025`, provided at least one graph search completed.
+A settled answer is accepted only when its fact IDs were retrieved and
+committed to working memory; otherwise the official result is
+`evidence_insufficient` and Qwen's explicit multiple-choice candidate is
+retained only as a diagnostic prediction. The 64k token and iteration limits
+remain safety budgets rather than the normal stopping rule.
+Aggregate CSVs report this separately as `diagnostic_accuracy`; it never
+contributes to the official `accuracy` column.
+
+Use `--termination-mode external_budget` to reproduce the legacy stopping
+behavior. The state-based controls are `--order-gap-epsilon`,
+`--order-gap-window`, and `--order-gap-min-iterations`; `run_all` propagates
+them to both recursive KG cells and records them in the run manifest. Cell 6
+uses this same main pipeline with Scallop validation enabled.
+
 Dense sidecars live under each run's `dense_indexes/` directory and contain a
 manifest, `float32` vectors, and ordered fact rows. Manifests pin model identity,
 requested/resolved revision, sentence-transformers version, device, batch size,

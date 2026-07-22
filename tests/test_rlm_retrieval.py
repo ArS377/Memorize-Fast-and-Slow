@@ -16,6 +16,8 @@ from experiments.kg_search_tool import (
 )
 from experiments.rlm_retrieval import (
     NativeToolSession,
+    _native_tool_instructions,
+    make_qwen_tool_rlm,
     qwen_rlm_tool_answer,
 )
 from experiments.run_all import _common_cell_args
@@ -222,6 +224,47 @@ def _tool_messages(request: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [message for message in request["messages"] if message["role"] == "tool"]
 
 
+def test_native_tool_instructions_use_the_rlm_completion_protocol() -> None:
+    instructions = _native_tool_instructions(3)
+
+    assert 'answer["ready"] = True' in instructions
+    assert "FINAL_ANSWER:" in instructions
+    assert "do not answer in prose" in instructions
+
+
+def test_native_tool_rlm_disables_automatic_model_retries(tmp_path: Path) -> None:
+    if importlib.util.find_spec("rlm") is None:
+        import pytest
+        pytest.skip("rlms runtime is not installed")
+
+    captured: List[Dict[str, Any]] = []
+    client = FakeRLMClient([])
+
+    def get_client(_backend: str, backend_kwargs: Dict[str, Any]) -> FakeRLMClient:
+        captured.append(dict(backend_kwargs))
+        return client
+
+    with patch("rlm.core.rlm.get_client", side_effect=get_client):
+        make_qwen_tool_rlm(
+            backend="openai",
+            model="Qwen/Qwen3-4B",
+            base_url="http://localhost:8000/v1",
+            api_key="EMPTY",
+            max_depth=1,
+            max_iterations=1,
+            max_tokens=100,
+            log_dir=tmp_path / "rlm_logs",
+            verbose=False,
+            tool_session=_session(client),
+            model_timeout=45.0,
+            model_max_retries=0,
+        )
+
+    assert captured
+    assert captured[0]["timeout"] == 45.0
+    assert captured[0]["max_retries"] == 0
+
+
 def test_native_tool_protocol_starts_with_question_and_returns_structured_results() -> None:
     client = FakeRLMClient(
         [
@@ -313,6 +356,104 @@ def test_empty_result_is_explicit_and_can_be_reformulated() -> None:
         event.get("event") == "retry" and event.get("reason") == "valid_empty_result"
         for event in session.trace["events"]
     )
+
+
+def test_order_gap_stops_repeated_no_evidence_prose() -> None:
+    prose = "The graph returned no relevant facts. Therefore, the correct answer is C."
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "call-empty",
+                        {"query": "missing", "seed_entities": ["Missing"]},
+                    )
+                ]
+            ),
+            _response(content=prose),
+            _response(content=prose),
+        ]
+    )
+    session = _session(client, require_memory_update=True)
+
+    assert session.complete(client, _messages()) == prose
+    completion = session.complete(client, _messages())
+
+    assert 'answer["ready"] = True' in completion
+    assert "EVIDENCE_INSUFFICIENT:" in completion
+    assert session.diagnostic_predicted == "C"
+    assert session.controller_termination_reason == "order_gap_evidence_insufficient"
+    assert session.state_tracker.stable is True
+    assert any(
+        event.get("event") == "order_gap_stop" for event in session.trace["events"]
+    )
+
+
+def test_order_gap_converts_stable_supported_prose_to_rlm_completion() -> None:
+    prose = "The returned fact supports the option. The correct answer is A."
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "update",
+                        {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                        name="update_working_memory",
+                    )
+                ]
+            ),
+            _response(content=prose),
+            _response(content=prose),
+            _response(content=prose),
+        ]
+    )
+    session = _session(
+        client,
+        require_memory_update=True,
+        validate_memory_updates=False,
+    )
+
+    assert session.complete(client, _messages()) == prose
+    assert session.complete(client, _messages()) == prose
+    completion = session.complete(client, _messages())
+
+    assert 'answer["ready"] = True' in completion
+    assert "FINAL_ANSWER: A" in completion
+    assert "CITED_FACT_IDS: f1" in completion
+    assert session.controller_termination_reason == "order_gap_supported_answer"
+    assert session.working_memory_fact_ids == {"f1"}
+
+
+def test_external_budget_mode_does_not_synthesize_completion() -> None:
+    prose = "The graph returned no facts. The correct answer is B."
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call("empty", {"query": "missing", "seed_entities": ["Missing"]})
+                ]
+            ),
+            _response(content=prose),
+            _response(content=prose),
+        ]
+    )
+    session = _session(
+        client,
+        require_memory_update=True,
+        termination_mode="external_budget",
+    )
+
+    assert session.complete(client, _messages()) == prose
+    assert session.complete(client, _messages()) == prose
+    assert session.controller_termination_reason is None
 
 
 def test_search_then_working_memory_update_uses_only_returned_facts() -> None:
@@ -529,6 +670,10 @@ def test_cli_exposes_one_integrated_retrieval_flag() -> None:
             "required",
             "--tool-timeout",
             "2.5",
+            "--model-timeout",
+            "45",
+            "--model-max-retries",
+            "0",
             "--tool-trace-dir",
             "traces",
         ]
@@ -537,6 +682,12 @@ def test_cli_exposes_one_integrated_retrieval_flag() -> None:
     assert enabled.max_tool_calls == 4
     assert enabled.tool_choice == "required"
     assert enabled.tool_timeout == 2.5
+    assert enabled.model_timeout == 45.0
+    assert enabled.model_max_retries == 0
+    assert enabled.termination_mode == "order_gap"
+    assert enabled.order_gap_epsilon == 0.025
+    assert enabled.order_gap_window == 2
+    assert enabled.order_gap_min_iterations == 2
     assert enabled.tool_trace_dir == Path("traces")
     assert "--rlm-retrieval" not in parser.format_help()
     assert "--rlm-retrieval-steps" not in parser.format_help()
@@ -576,6 +727,8 @@ def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
         "tool_choice": "auto",
         "tool_timeout": 30.0,
         "tool_max_tokens": 2048,
+        "model_timeout": 90.0,
+        "model_max_retries": 0,
         "tool_trace_dir": None,
     }
     enabled = _common_cell_args(SimpleNamespace(**common, qwen_tool_retrieval=True), 5)
@@ -588,6 +741,9 @@ def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
     assert "--rlm-retrieval" not in enabled
     assert enabled[enabled.index("--retrieval-mode") + 1] == "hybrid"
     assert enabled[enabled.index("--dense-failure-policy") + 1] == "error"
+    assert enabled[enabled.index("--termination-mode") + 1] == "order_gap"
+    assert enabled[enabled.index("--order-gap-epsilon") + 1] == "0.025"
+    assert enabled[enabled.index("--order-gap-window") + 1] == "2"
     assert "--fixed-kg-retrieval" in fixed
 
 

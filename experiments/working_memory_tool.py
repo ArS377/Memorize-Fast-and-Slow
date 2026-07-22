@@ -42,8 +42,11 @@ UPDATE_WORKING_MEMORY_TOOL: Dict[str, Any] = {
                     "type": "object",
                     "additionalProperties": False,
                     "properties": {
-                        "valid_from": {"type": ["string", "null"]},
-                        "valid_to": {"type": ["string", "null"]},
+                        # Hermes/vLLM requires JSON Schema ``type`` to be a
+                        # string. These fields are optional, so omission is the
+                        # portable representation of an unset bound.
+                        "valid_from": {"type": "string"},
+                        "valid_to": {"type": "string"},
                     },
                     "default": {},
                 },

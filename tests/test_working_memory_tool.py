@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from experiments.graph_context import GraphSource
-from experiments.working_memory_tool import execute_update_working_memory
+from experiments.working_memory_tool import (
+    UPDATE_WORKING_MEMORY_TOOL,
+    execute_update_working_memory,
+)
 
 
 FACT = {
@@ -11,6 +14,20 @@ FACT = {
     "object": "CompanyX",
     "provenance": [{"document_id": "doc", "sentence_id": "doc:1"}],
 }
+
+
+def test_tool_schema_uses_hermes_compatible_string_types() -> None:
+    def visit(value):
+        if isinstance(value, dict):
+            if "type" in value:
+                assert isinstance(value["type"], str)
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+
+    visit(UPDATE_WORKING_MEMORY_TOOL)
 
 
 def test_update_compiles_only_returned_fact_ids() -> None:

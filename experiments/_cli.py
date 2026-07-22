@@ -40,6 +40,13 @@ def _positive_float(value: str) -> float:
     return parsed
 
 
+def _nonnegative_float(value: str) -> float:
+    parsed = float(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must not be negative")
+    return parsed
+
+
 def _write_tool_trace(
     trace_dir: Path,
     *,
@@ -182,6 +189,44 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
                 default=2048,
                 help="Maximum completion tokens for each Qwen tool-loop turn",
             )
+            p.add_argument(
+                "--model-timeout",
+                type=_positive_float,
+                default=90.0,
+                help="Maximum seconds for one native Qwen model completion",
+            )
+            p.add_argument(
+                "--model-max-retries",
+                type=int,
+                choices=range(0, 4),
+                default=0,
+                metavar="{0,1,2,3}",
+                help="Retries for one native Qwen model completion (default: 0)",
+            )
+            p.add_argument(
+                "--termination-mode",
+                choices=["order_gap", "external_budget"],
+                default="order_gap",
+                help="State-derived stopping or the legacy external RLM budgets",
+            )
+            p.add_argument(
+                "--order-gap-epsilon",
+                type=_nonnegative_float,
+                default=0.025,
+                help="Maximum windowed order-gap considered settled",
+            )
+            p.add_argument(
+                "--order-gap-window",
+                type=_positive_int,
+                default=2,
+                help="Number of root RLM completions in the stopping window",
+            )
+            p.add_argument(
+                "--order-gap-min-iterations",
+                type=_positive_int,
+                default=2,
+                help="Minimum root RLM completions before state-based stopping",
+            )
 
     return p
 
@@ -320,6 +365,12 @@ def run_cell(
                 predicted = ""
                 relevant_fact_ids: List[str] = []
                 relevance_source = "unlabeled"
+                termination_mode: Optional[str] = None
+                termination_reason: Optional[str] = None
+                order_gap_final: Optional[float] = None
+                order_gap_window_mean: Optional[float] = None
+                rlm_completion_count: Optional[int] = None
+                diagnostic_predicted = ""
                 try:
                     if qwen_tool_mode:
                         from experiments.rlm_retrieval import qwen_rlm_tool_answer
@@ -340,6 +391,12 @@ def run_cell(
                             tool_choice=args.tool_choice,
                             tool_timeout=args.tool_timeout,
                             max_completion_tokens=args.tool_max_tokens,
+                            model_timeout=args.model_timeout,
+                            model_max_retries=args.model_max_retries,
+                            termination_mode=args.termination_mode,
+                            order_gap_epsilon=args.order_gap_epsilon,
+                            order_gap_window=args.order_gap_window,
+                            order_gap_min_iterations=args.order_gap_min_iterations,
                             validate_memory_updates=(cell_id == 6),
                             require_memory_update=True,
                         )
@@ -356,6 +413,18 @@ def run_cell(
                         n_context_chars = outcome.tool_result_chars
                         relevant_fact_ids = list(getattr(outcome, "cited_fact_ids", []))
                         relevance_source = "cited_fact_ids" if relevant_fact_ids else "unlabeled"
+                        termination_mode = getattr(outcome, "termination_mode", None)
+                        termination_reason = getattr(outcome, "termination_reason", None)
+                        order_gap_final = getattr(outcome, "order_gap_final", None)
+                        order_gap_window_mean = getattr(
+                            outcome, "order_gap_window_mean", None
+                        )
+                        rlm_completion_count = getattr(
+                            outcome, "rlm_completion_count", None
+                        )
+                        diagnostic_predicted = str(
+                            getattr(outcome, "diagnostic_predicted", "") or ""
+                        )
                         print(
                             f"  [{i}/{len(examples)}] tool_trace={trace_path} "
                             f"termination={outcome.termination_reason}",
@@ -395,6 +464,7 @@ def run_cell(
 
                 elapsed = round(time.time() - t0, 2)
                 correct = bool(predicted) and predicted == gold and not error
+                diagnostic_correct = bool(diagnostic_predicted) and diagnostic_predicted == gold
                 if correct:
                     n_correct += 1
 
@@ -485,6 +555,13 @@ def run_cell(
                         "branch_latency_seconds"
                     ),
                     retrieval_rrf_settings=retrieval_summary.get("rrf"),
+                    termination_mode=termination_mode,
+                    termination_reason=termination_reason,
+                    order_gap_final=order_gap_final,
+                    order_gap_window_mean=order_gap_window_mean,
+                    rlm_completion_count=rlm_completion_count,
+                    diagnostic_predicted=diagnostic_predicted or None,
+                    diagnostic_correct=diagnostic_correct if diagnostic_predicted else None,
                 )
                 status = "OK " if correct else "x  "
                 print(

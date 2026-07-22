@@ -71,6 +71,13 @@ def _positive_float(value: str) -> float:
     return parsed
 
 
+def _nonnegative_float(value: str) -> float:
+    parsed = float(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must not be negative")
+    return parsed
+
+
 def _git_sha() -> Optional[str]:
     try:
         out = subprocess.check_output(
@@ -159,6 +166,14 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
                     "--tool-choice", args.tool_choice,
                     "--tool-timeout", str(args.tool_timeout),
                     "--tool-max-tokens", str(args.tool_max_tokens),
+                    "--model-timeout", str(args.model_timeout),
+                    "--model-max-retries", str(args.model_max_retries),
+                    "--termination-mode", getattr(args, "termination_mode", "order_gap"),
+                    "--order-gap-epsilon", str(getattr(args, "order_gap_epsilon", 0.025)),
+                    "--order-gap-window", str(getattr(args, "order_gap_window", 2)),
+                    "--order-gap-min-iterations", str(
+                        getattr(args, "order_gap_min_iterations", 2)
+                    ),
                 ]
                 if args.tool_trace_dir is not None:
                     base += ["--tool-trace-dir", str(args.tool_trace_dir / f"cell{cell_id}")]
@@ -218,6 +233,16 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--tool-timeout", type=_positive_float, default=30.0)
     parser.add_argument("--tool-trace-dir", type=Path, default=None)
     parser.add_argument("--tool-max-tokens", type=_positive_int, default=2048)
+    parser.add_argument("--model-timeout", type=_positive_float, default=90.0)
+    parser.add_argument("--model-max-retries", type=int, choices=range(0, 4), default=0)
+    parser.add_argument(
+        "--termination-mode",
+        choices=["order_gap", "external_budget"],
+        default="order_gap",
+    )
+    parser.add_argument("--order-gap-epsilon", type=_nonnegative_float, default=0.025)
+    parser.add_argument("--order-gap-window", type=_positive_int, default=2)
+    parser.add_argument("--order-gap-min-iterations", type=_positive_int, default=2)
     args = parser.parse_args(argv)
 
     sha = _git_sha()
@@ -292,6 +317,10 @@ def main(argv: Optional[List[str]] = None) -> None:
         "tool_timeout": args.tool_timeout,
         "tool_trace_dir": str(args.tool_trace_dir) if args.tool_trace_dir else None,
         "tool_max_tokens": args.tool_max_tokens,
+        "termination_mode": args.termination_mode,
+        "order_gap_epsilon": args.order_gap_epsilon,
+        "order_gap_window": args.order_gap_window,
+        "order_gap_min_iterations": args.order_gap_min_iterations,
         "kg_sessions": args.kg_sessions,
         "scallop_validator_url": args.scallop_validator_url,
         "tool_contract_version": f"{SEARCH_TOOL_VERSION}+{MEMORY_TOOL_VERSION}",

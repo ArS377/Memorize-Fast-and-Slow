@@ -43,6 +43,13 @@ CELL_SCHEMA: List[str] = [
     "retrieval_branch_counts",
     "retrieval_branch_latency_seconds",
     "retrieval_rrf_settings",
+    "termination_mode",
+    "termination_reason",
+    "order_gap_final",
+    "order_gap_window_mean",
+    "rlm_completion_count",
+    "diagnostic_predicted",
+    "diagnostic_correct",
 ]
 
 # Cell metadata table (cell_id -> info). Used by the aggregator and the
