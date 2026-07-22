@@ -133,6 +133,15 @@ class FakeCompletions:
         return next(self.responses)
 
 
+class FakeModelUsage(SimpleNamespace):
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "total_calls": self.total_calls,
+            "total_input_tokens": self.total_input_tokens,
+            "total_output_tokens": self.total_output_tokens,
+        }
+
+
 class FakeRLMClient:
     """Enough of rlms' OpenAIClient interface for an actual RLM trajectory."""
 
@@ -151,14 +160,24 @@ class FakeRLMClient:
         )
         self.subcall_response = subcall_response
         self.subcall_prompts: List[Any] = []
-        self._model_usage = SimpleNamespace(
+        self._model_usage = FakeModelUsage(
             total_calls=0,
             total_input_tokens=0,
             total_output_tokens=0,
+            total_cost=None,
         )
         self._usage = SimpleNamespace(
             model_usage_summaries={self.model_name: self._model_usage}
         )
+        self._usage.to_dict = lambda: {
+            "model_usage_summaries": {
+                self.model_name: {
+                    "total_calls": self._model_usage.total_calls,
+                    "total_input_tokens": self._model_usage.total_input_tokens,
+                    "total_output_tokens": self._model_usage.total_output_tokens,
+                }
+            }
+        }
 
     def completion(self, prompt: Any, model: Optional[str] = None) -> str:
         self.subcall_prompts.append(prompt)
@@ -208,6 +227,10 @@ def _session(client: FakeRLMClient, **overrides: Any) -> NativeToolSession:
         "max_completion_tokens": 2048,
         "tool_schema": SEARCH_KNOWLEDGE_GRAPH_TOOL,
         "execute_tool": execute_search_knowledge_graph,
+        "question": EXAMPLE["question"],
+        "choices": {
+            letter: EXAMPLE[f"choice_{letter}"] for letter in "ABCD"
+        },
     }
     values.update(overrides)
     return NativeToolSession(**values)
@@ -237,32 +260,24 @@ def test_native_tool_rlm_disables_automatic_model_retries(tmp_path: Path) -> Non
         import pytest
         pytest.skip("rlms runtime is not installed")
 
-    captured: List[Dict[str, Any]] = []
     client = FakeRLMClient([])
+    rlm = make_qwen_tool_rlm(
+        backend="openai",
+        model="Qwen/Qwen3-4B",
+        base_url="http://localhost:8000/v1",
+        api_key="EMPTY",
+        max_depth=1,
+        max_iterations=1,
+        max_tokens=100,
+        log_dir=tmp_path / "rlm_logs",
+        verbose=False,
+        tool_session=_session(client),
+        model_timeout=45.0,
+        model_max_retries=0,
+    )
 
-    def get_client(_backend: str, backend_kwargs: Dict[str, Any]) -> FakeRLMClient:
-        captured.append(dict(backend_kwargs))
-        return client
-
-    with patch("rlm.core.rlm.get_client", side_effect=get_client):
-        make_qwen_tool_rlm(
-            backend="openai",
-            model="Qwen/Qwen3-4B",
-            base_url="http://localhost:8000/v1",
-            api_key="EMPTY",
-            max_depth=1,
-            max_iterations=1,
-            max_tokens=100,
-            log_dir=tmp_path / "rlm_logs",
-            verbose=False,
-            tool_session=_session(client),
-            model_timeout=45.0,
-            model_max_retries=0,
-        )
-
-    assert captured
-    assert captured[0]["timeout"] == 45.0
-    assert captured[0]["max_retries"] == 0
+    assert rlm.backend_kwargs["timeout"] == 45.0
+    assert rlm.backend_kwargs["max_retries"] == 0
 
 
 def test_native_tool_protocol_starts_with_question_and_returns_structured_results() -> None:
@@ -390,6 +405,49 @@ def test_order_gap_stops_repeated_no_evidence_prose() -> None:
 
 
 def test_order_gap_converts_stable_supported_prose_to_rlm_completion() -> None:
+    structured = "FINAL_ANSWER: A\nCITED_FACT_IDS: f1"
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "update",
+                        {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                        name="update_working_memory",
+                    )
+                ]
+            ),
+            _response(content=structured),
+            _response(content=structured),
+            _response(content=structured),
+        ]
+    )
+    session = _session(
+        client,
+        require_memory_update=True,
+        validate_memory_updates=False,
+    )
+
+    assert session.complete(client, _messages()) == structured
+    assert session.complete(client, _messages()) == structured
+    completion = session.complete(client, _messages())
+
+    assert 'answer["ready"] = True' in completion
+    assert "FINAL_ANSWER: A" in completion
+    assert "CITED_FACT_IDS: f1" in completion
+    assert session.controller_termination_reason == "order_gap_supported_answer"
+    assert session.working_memory_fact_ids == {"f1"}
+
+
+def test_order_gap_does_not_attach_committed_facts_to_uncited_prose() -> None:
     prose = "The returned fact supports the option. The correct answer is A."
     client = FakeRLMClient(
         [
@@ -412,7 +470,6 @@ def test_order_gap_converts_stable_supported_prose_to_rlm_completion() -> None:
             ),
             _response(content=prose),
             _response(content=prose),
-            _response(content=prose),
         ]
     )
     session = _session(
@@ -422,14 +479,35 @@ def test_order_gap_converts_stable_supported_prose_to_rlm_completion() -> None:
     )
 
     assert session.complete(client, _messages()) == prose
-    assert session.complete(client, _messages()) == prose
     completion = session.complete(client, _messages())
 
-    assert 'answer["ready"] = True' in completion
-    assert "FINAL_ANSWER: A" in completion
-    assert "CITED_FACT_IDS: f1" in completion
-    assert session.controller_termination_reason == "order_gap_supported_answer"
-    assert session.working_memory_fact_ids == {"f1"}
+    assert "EVIDENCE_INSUFFICIENT:" in completion
+    assert "FINAL_ANSWER:" not in completion
+    assert session.diagnostic_predicted == "A"
+    assert session.controller_termination_reason == "order_gap_evidence_insufficient"
+
+
+def test_required_tool_choice_applies_only_until_the_first_search() -> None:
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(content="Continue reasoning with f1."),
+        ]
+    )
+    session = _session(client, tool_choice="required")
+
+    session.complete(client, _messages())
+
+    assert client.completions.requests[0]["tool_choice"] == "required"
+    assert client.completions.requests[1]["tool_choice"] == "auto"
+    assert session.tool_call_count == 1
 
 
 def test_external_budget_mode_does_not_synthesize_completion() -> None:
@@ -465,7 +543,12 @@ def test_search_then_working_memory_update_uses_only_returned_facts() -> None:
                 {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
                 name="update_working_memory",
             )]),
-            _response(content="FINAL(FINAL_ANSWER: A\nCITED_FACT_IDS: f1)"),
+            _response(
+                content='''```repl
+answer["content"] = "FINAL_ANSWER: A\\nCITED_FACT_IDS: f1"
+answer["ready"] = True
+```'''
+            ),
         ]
     )
     session = _session(
@@ -481,6 +564,133 @@ def test_search_then_working_memory_update_uses_only_returned_facts() -> None:
     assert [tool["function"]["name"] for tool in client.completions.requests[0]["tools"]] == [
         "search_knowledge_graph", "update_working_memory"
     ]
+
+
+def test_qwen_text_tool_wrapper_uses_the_validated_tool_path() -> None:
+    text_update = (
+        "<tool_call>\n"
+        + json.dumps(
+            {
+                "name": "update_working_memory",
+                "arguments": {
+                    "entity": "Kalamang",
+                    "selected_fact_ids": ["f1"],
+                },
+            }
+        )
+        + "\n</tool_call>"
+    )
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(content=text_update),
+            _response(
+                content='''```repl
+answer["content"] = "FINAL_ANSWER: A\\nCITED_FACT_IDS: f1"
+answer["ready"] = True
+```'''
+            ),
+        ]
+    )
+    session = _session(
+        client,
+        require_memory_update=True,
+        validate_memory_updates=False,
+    )
+
+    content = session.complete(client, _messages())
+
+    assert "FINAL_ANSWER: A" in content
+    assert session.tool_call_count == 2
+    assert session.working_memory_fact_ids == {"f1"}
+    assert any(
+        event.get("event") == "text_tool_call_adapted"
+        for event in session.trace["events"]
+    )
+    adapted_message = client.completions.requests[2]["messages"][-2]
+    assert adapted_message["content"] is None
+    assert adapted_message["tool_calls"][0]["function"]["name"] == "update_working_memory"
+
+
+def test_order_gap_rejects_early_ready_and_owns_the_final_stop() -> None:
+    bare_ready = '''```repl
+answer["content"] = "A) East Indonesia"
+answer["ready"] = True
+```'''
+    supported_ready = '''```repl
+answer["content"] = "FINAL_ANSWER: A) East Indonesia"
+answer["ready"] = True
+```'''
+    text_update = (
+        "<tool_call>\n"
+        + json.dumps(
+            {
+                "name": "update_working_memory",
+                "arguments": {
+                    "entity": "Kalamang",
+                    "selected_fact_ids": ["f1"],
+                },
+            }
+        )
+        + "\n</tool_call>"
+    )
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(content=bare_ready),
+            _response(content=text_update),
+            _response(content=supported_ready),
+            _response(content=supported_ready),
+            _response(content=supported_ready),
+        ]
+    )
+    session = _session(
+        client,
+        tool_choice="required",
+        require_memory_update=True,
+        validate_memory_updates=False,
+    )
+
+    proposed = "FINAL_ANSWER: A\nCITED_FACT_IDS: f1"
+    assert session.complete(client, _messages()) == proposed
+    assert session.complete(client, _messages()) == proposed
+    completion = session.complete(client, _messages())
+
+    assert 'answer["ready"] = True' in completion
+    assert session.controller_termination_reason == "order_gap_supported_answer"
+    assert session.working_memory_fact_ids == {"f1"}
+    assert any(
+        event.get("event") == "invalid_ready_rejected"
+        for event in session.trace["events"]
+    )
+    assert any(
+        event.get("event") == "model_ready_deferred"
+        for event in session.trace["events"]
+    )
+    assert any(
+        event.get("event") == "citations_grounded" and event.get("synthesized")
+        for event in session.trace["events"]
+    )
+    memory_request = client.completions.requests[2]
+    assert memory_request["tool_choice"] == "required"
+    assert [tool["function"]["name"] for tool in memory_request["tools"]] == [
+        "update_working_memory"
+    ]
+    assert "tools" not in client.completions.requests[-1]
 
 
 def test_malformed_and_duplicate_calls_return_tool_errors() -> None:
@@ -583,7 +793,12 @@ print(analysis)
                 ]
             ),
             _response(content=repl_action),
-            _response(content="FINAL(FINAL_ANSWER: A\nCITED_FACT_IDS: f1)"),
+            _response(
+                content='''```repl
+answer["content"] = "FINAL_ANSWER: A\\nCITED_FACT_IDS: f1"
+answer["ready"] = True
+```'''
+            ),
         ],
         events=events,
     )
@@ -601,13 +816,12 @@ print(analysis)
             verbose=False,
             graph_source=source,
             example=EXAMPLE,
+            termination_mode="external_budget",
         )
 
     assert events[:2] == ["model", "retrieval"], outcome.error
     assert base_client.subcall_prompts == ["Check whether returned fact f1 supports a choice"]
-    assert "Subcall confirms choice A" in json.dumps(
-        base_client.completions.requests[2]["messages"]
-    )
+    assert len(base_client.completions.requests) == 3
     assert outcome.status == "supported"
     assert outcome.predicted == "A"
     assert outcome.cited_fact_ids == ["f1"]
@@ -629,7 +843,12 @@ def test_uncited_or_fabricated_final_answer_is_not_accepted(tmp_path: Path) -> N
                     )
                 ]
             ),
-            _response(content="FINAL(FINAL_ANSWER: A\nCITED_FACT_IDS: fabricated)"),
+            _response(
+                content='''```repl
+answer["content"] = "FINAL_ANSWER: A\\nCITED_FACT_IDS: fabricated"
+answer["ready"] = True
+```'''
+            ),
         ]
     )
 
@@ -646,6 +865,7 @@ def test_uncited_or_fabricated_final_answer_is_not_accepted(tmp_path: Path) -> N
             verbose=False,
             graph_source=_source(),
             example=EXAMPLE,
+            termination_mode="external_budget",
         )
 
     assert outcome.status == "error"

@@ -270,10 +270,12 @@ def build_kg(
                 file=sys.stderr,
             )
 
+        reconciled = graph.reconcile_fact_decisions(session_id) if validate else 0
         n = _dump_session_facts(graph, session_id, out_path)
         print(
             f"[build_kg] done. session={session_id} committed={total_committed} "
-            f"mirrored={n} -> {out_path}; rejections -> {rejections_path}",
+            f"reconciled={reconciled} mirrored={n} -> {out_path}; "
+            f"rejections -> {rejections_path}",
             file=sys.stderr,
         )
         return out_path

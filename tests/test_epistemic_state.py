@@ -112,12 +112,73 @@ def test_supported_answer_requires_consolidation_before_gap_settles() -> None:
     )
 
     first = tracker.observe(
-        {"kind": "model", "candidate": "A"}, completion_boundary=True
+        {"kind": "model", "candidate": "A", "cited_fact_ids": ["f1"]},
+        completion_boundary=True,
     )
-    tracker.observe({"kind": "model", "candidate": "A"}, completion_boundary=True)
-    tracker.observe({"kind": "model", "candidate": "A"}, completion_boundary=True)
+    tracker.observe(
+        {"kind": "model", "candidate": "A", "cited_fact_ids": ["f1"]},
+        completion_boundary=True,
+    )
+    tracker.observe(
+        {"kind": "model", "candidate": "A", "cited_fact_ids": ["f1"]},
+        completion_boundary=True,
+    )
 
     assert first.order_gap > tracker.epsilon
     assert tracker.stable is True
     assert tracker.state.summary()["root_status"] == "resolved"
     assert tracker.state.committed_fact_ids == ["f1"]
+
+
+def test_committed_fact_is_not_automatically_support_for_an_uncited_answer() -> None:
+    tracker = EpistemicStateTracker(
+        question="Where is Kalamang spoken?",
+        choices={"A": "East Indonesia"},
+    )
+    tracker.observe(
+        _search_response(_fact("f1", "East Indonesia")), completion_boundary=False
+    )
+    tracker.observe(
+        {
+            "kind": "memory",
+            "response": {
+                "status": "ok",
+                "artifact": {"selected_fact_ids": ["f1"], "excluded_fact_ids": []},
+            },
+        },
+        completion_boundary=False,
+    )
+
+    tracker.observe(
+        {"kind": "model", "candidate": "A", "cited_fact_ids": []},
+        completion_boundary=True,
+    )
+
+    assert tracker.state.summary()["root_status"] == "open"
+    assert not any(
+        edge.target == "answer:A" and edge.edge_type == "supports"
+        for edge in tracker.state.edges.values()
+    )
+
+
+def test_prompt_view_prioritises_selected_claims_and_bounds_support_text() -> None:
+    state = EpistemicState(question="Which fact matters?")
+    state = expand(
+        state,
+        _search_response(
+            *(
+                {
+                    **_fact(f"f{index:02d}", f"place-{index}", 0.5),
+                    "support_text": "x" * 1_000,
+                }
+                for index in range(30)
+            )
+        ),
+    )
+    state.nodes["claim:f29"].attributes["selected"] = True
+
+    view = state.prompt_view()
+
+    assert len(view["claims"]) == 25
+    assert view["claims"][0]["fact_id"] == "f29"
+    assert len(view["claims"][0]["support_text"]) == 400

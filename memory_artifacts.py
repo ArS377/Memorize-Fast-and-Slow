@@ -132,6 +132,13 @@ def _provenance_for(fact: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return [dict(entry) for entry in provenance if isinstance(entry, dict)]
 
 
+def _triple_key(fact: Mapping[str, Any]) -> Tuple[str, str, str]:
+    return tuple(
+        " ".join(str(fact.get(field, "")).split()).casefold()
+        for field in ("subject", "predicate", "object")
+    )
+
+
 def _compile_derived_facts(
     raw_facts: Any,
     known: Mapping[str, Fact],
@@ -225,12 +232,31 @@ def compile_working_memory(
             missing.append(fact_id)
         for entry in entries:
             citations.append({"fact_id": fact_id, **entry})
-    derived = _compile_derived_facts(arguments.get("derived_facts", []), known, selected)
+    proposed_derived = _compile_derived_facts(
+        arguments.get("derived_facts", []), known, selected
+    )
+    selected_triples = {_triple_key(known[fact_id]) for fact_id in selected}
+    redundant_derived = [
+        fact for fact in proposed_derived if _triple_key(fact) in selected_triples
+    ]
+    derived = [
+        fact for fact in proposed_derived if _triple_key(fact) not in selected_triples
+    ]
     revision = (prior_artifact.revision + 1) if prior_artifact else 1
     prior_id = prior_artifact.artifact_id if prior_artifact else None
     artifact_id = stable_id(
         "working_memory",
-        [scope.to_dict(), entity, selected, excluded, temporal_scope, revision, prior_id],
+        [
+            scope.to_dict(),
+            entity,
+            selected,
+            excluded,
+            temporal_scope,
+            confidence,
+            derived,
+            revision,
+            prior_id,
+        ],
         length=24,
     )
     trace = [
@@ -242,6 +268,22 @@ def compile_working_memory(
             "fact_ids": missing,
         },
     ]
+    if proposed_derived:
+        trace.append(
+            {
+                "check": "derived_fact_novelty",
+                "status": "omitted_redundant" if redundant_derived else "passed",
+                "omitted_count": len(redundant_derived),
+                "omitted_triples": [
+                    {
+                        "subject": fact["subject"],
+                        "predicate": fact["predicate"],
+                        "object": fact["object"],
+                    }
+                    for fact in redundant_derived
+                ],
+            }
+        )
     return WorkingMemoryArtifact(
         artifact_id=artifact_id,
         revision=revision,

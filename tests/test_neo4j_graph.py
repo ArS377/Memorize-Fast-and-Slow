@@ -477,6 +477,20 @@ def test_persistent_validation_context_is_session_scoped() -> None:
     print("PASS test_persistent_validation_context_is_session_scoped")
 
 
+def test_reconcile_fact_decisions_refreshes_relationship_metadata() -> None:
+    graph = make_graph(session_id="sess_test")
+    graph._driver.canned_results = [MockResult([{"reconciled": 3}])]
+
+    reconciled = graph.reconcile_fact_decisions()
+
+    assert reconciled == 3
+    query, params = graph._driver.queries[-1]
+    assert "d.committed = true" in query
+    assert "r.decision_status = latest.decision" in query
+    assert params["session_id"] == "sess_test"
+    assert params["validator"] == graph.validator_backend.info.name
+
+
 def test_validate_update_detailed_exposes_rejection_label_and_rule_version() -> None:
     candidate = {
         "subject": "Kalamang",

@@ -105,6 +105,7 @@ def main() -> None:
             session_id=args.session,
             validate=True,
         )
+        reconciled = graph.reconcile_fact_decisions(args.session)
         after = session_fact_count(graph, args.session)
     finally:
         graph.close()
@@ -117,6 +118,7 @@ def main() -> None:
                 "replaced_session": bool(args.replace_session),
                 "committed_now": int(result.get("committed", 0)),
                 "rejected_now": len(result.get("rejected", [])),
+                "reconciled": reconciled,
                 "graph_count_after": after,
                 "session": args.session,
                 "validator": "scallopy",

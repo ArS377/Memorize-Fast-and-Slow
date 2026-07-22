@@ -69,16 +69,6 @@ def format_facts_from_jsonl(
     return format_fact_rows_for_llm(relevant, max_chars=max_chars)
 
 
-def _row_key(row: Dict[str, Any]) -> str:
-    fact_id = str(row.get("fact_id", ""))
-    if fact_id:
-        return fact_id
-    return "|".join(
-        str(row.get(k, ""))
-        for k in ("example_id", "subject", "predicate", "object", "support_text")
-    )
-
-
 def format_fact_rows(
     rows: List[Dict[str, Any]],
     max_chars: int = 4000,

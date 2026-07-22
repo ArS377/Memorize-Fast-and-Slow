@@ -327,6 +327,13 @@ def _decision_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
         decision = compiled.get("decision")
     decision = decision if isinstance(decision, dict) else {}
 
+    rule_version = _first_nonempty(
+        row.get("rule_params_version"),
+        decision.get("rule_params_version"),
+        compiled.get("rule_params_version"),
+    )
+    if str(rule_version).casefold() in {"none", "null"}:
+        rule_version = None
     return {
         "decision": _first_nonempty(
             row.get("decision_status"),
@@ -340,11 +347,7 @@ def _decision_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
             row.get("decision_reason"),
             decision.get("reason"),
         ),
-        "rule_version": _first_nonempty(
-            row.get("rule_params_version"),
-            decision.get("rule_params_version"),
-            compiled.get("rule_params_version"),
-        ),
+        "rule_version": rule_version,
     }
 
 

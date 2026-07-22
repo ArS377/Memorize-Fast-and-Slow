@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from bisect import insort
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -85,14 +86,28 @@ def iter_pilot_examples(
     seed: int = 0,  # reserved for future randomization; deterministic for now
 ) -> List[Dict[str, Any]]:
     """Stable pilot slice: sort all examples by ``_id`` and take the first
-    ``limit``. This guarantees that every cell scores on identical example
-    IDs without needing to coordinate via a side-channel.
+    ``limit``. Limited runs retain only the requested examples in memory, which
+    matters for LongBench rows with very large contexts. This guarantees that
+    every cell scores on identical example IDs without a side-channel.
     """
-    examples = load_examples(path)
-    examples.sort(key=lambda ex: str(ex.get("_id", "")))
-    if limit is not None:
-        examples = examples[:limit]
-    return examples
+    if limit is None:
+        examples = load_examples(path)
+        examples.sort(key=lambda ex: str(ex.get("_id", "")))
+        return examples
+    if limit <= 0:
+        return []
+
+    selected: List[tuple[tuple[str, int], Dict[str, Any]]] = []
+    with Path(path).open(encoding="utf-8") as handle:
+        for position, line in enumerate(handle):
+            line = line.strip()
+            if not line:
+                continue
+            example = json.loads(line)
+            insort(selected, ((str(example.get("_id", "")), position), example))
+            if len(selected) > limit:
+                selected.pop()
+    return [example for _key, example in selected]
 
 
 def format_question(ex: Dict[str, Any]) -> str:

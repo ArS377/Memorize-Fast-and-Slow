@@ -806,7 +806,7 @@ def fact_to_compiled_memory(fact: Fact) -> CompiledRelationship:
         decision_raw = {}
     decision = ValidationDecision(
         status=str(decision_raw.get("status", "proposed")),
-        validator=str(decision_raw.get("validator", "scallop")),
+        validator=str(decision_raw.get("validator", "none")),
         reason=decision_raw.get("reason"),
         replaces=decision_raw.get("replaces"),
     )

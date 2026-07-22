@@ -86,7 +86,7 @@ def _fact_to_params(fact: Fact, session_id: str) -> Dict[str, Any]:
     params.update(compiled_props)
     # Preserve the public fact_id contract when callers pass an existing ID.
     params["fact_id"] = str(fact["fact_id"])
-    params["rule_params_version"] = str(fact.get("rule_params_version", ""))
+    params["rule_params_version"] = str(fact.get("rule_params_version") or "")
     return params
 
 
@@ -366,6 +366,31 @@ class Neo4jGraph:
                 session.run(query, **params)
                 count += 1
         return count
+
+    def reconcile_fact_decisions(self, session_id: Optional[str] = None) -> int:
+        """Refresh relationship decision fields from committed audit-ledger rows."""
+        sid = session_id or self.session_id
+        query = (
+            "MATCH (d:DecisionLedger)\n"
+            "WHERE d.session_id = $session_id AND d.committed = true\n"
+            "  AND d.decision IN ['accept', 'replace']\n"
+            "WITH d ORDER BY d.created_at DESC\n"
+            "WITH d.candidate_fact_id AS fact_id, collect(d)[0] AS latest\n"
+            "MATCH ()-[r]->()\n"
+            "WHERE r.session_id = $session_id AND r.fact_id = fact_id\n"
+            "SET r.decision_status = latest.decision,\n"
+            "    r.decision_validator = $validator,\n"
+            "    r.decision_reason = latest.reason,\n"
+            "    r.rule_params_version = latest.rule_params_version\n"
+            "RETURN count(r) AS reconciled"
+        )
+        with self._session() as session:
+            record = session.run(
+                query,
+                session_id=sid,
+                validator=self.validator_backend.info.name,
+            ).single()
+        return int(record.get("reconciled", 0) if record else 0)
 
     def _record_decision_ledger(
         self,

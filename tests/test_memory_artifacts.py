@@ -98,3 +98,74 @@ def test_artifact_revisions_and_transition_lineage_are_deterministic() -> None:
     assert transition.before_artifact_id == first.artifact_id
     assert transition.after_artifact_id == second.artifact_id
     assert transition.committed is True
+
+
+def test_redundant_derived_selected_fact_is_an_audited_noop() -> None:
+    scope = MemoryScope(mode="example", session_ids=("run",), example_id="ex1")
+    without_derived = compile_working_memory(
+        {"entity": "Alice", "selected_fact_ids": ["f1"]}, FACTS, scope
+    )
+    redundant = compile_working_memory(
+        {
+            "entity": "Alice",
+            "selected_fact_ids": ["f1"],
+            "derived_facts": [
+                {
+                    "subject": " Alice ",
+                    "predicate": "works_at",
+                    "object": "CompanyX",
+                    "support_fact_ids": ["f1"],
+                }
+            ],
+        },
+        FACTS,
+        scope,
+    )
+
+    assert redundant.derived_facts == []
+    assert redundant.artifact_id == without_derived.artifact_id
+    novelty = next(
+        entry
+        for entry in redundant.constraint_trace
+        if entry["check"] == "derived_fact_novelty"
+    )
+    assert novelty["status"] == "omitted_redundant"
+    assert novelty["omitted_count"] == 1
+
+
+def test_novel_derived_content_changes_artifact_identity() -> None:
+    scope = MemoryScope(mode="example", session_ids=("run",), example_id="ex1")
+    first = compile_working_memory(
+        {
+            "entity": "Alice",
+            "selected_fact_ids": ["f1"],
+            "derived_facts": [
+                {
+                    "subject": "Alice",
+                    "predicate": "HAS_EMPLOYER",
+                    "object": "CompanyX",
+                    "support_fact_ids": ["f1"],
+                }
+            ],
+        },
+        FACTS,
+        scope,
+    )
+    second = compile_working_memory(
+        {
+            "entity": "Alice",
+            "selected_fact_ids": ["f1"],
+            "derived_facts": [
+                {
+                    "subject": "Alice",
+                    "predicate": "IS_EMPLOYED_BY",
+                    "object": "CompanyX",
+                    "support_fact_ids": ["f1"],
+                }
+            ],
+        },
+        FACTS,
+        scope,
+    )
+
+    assert first.artifact_id != second.artifact_id

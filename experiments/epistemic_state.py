@@ -19,9 +19,9 @@ import numpy as np
 
 
 NODE_TYPES = ("claim", "partial_answer", "open_question")
-EDGE_TYPES = ("supports", "requires", "contradicts")
 TEXT_FEATURES = 64
 MAX_EMBEDDED_NODES = 256
+MAX_PROMPT_SUPPORT_CHARS = 400
 
 
 def _clamp_confidence(value: Any, default: float = 0.5) -> float:
@@ -172,20 +172,29 @@ class EpistemicState:
             "root_status": self.nodes["open:root"].attributes.get("status", "open"),
         }
 
-    def prompt_view(self, max_claims: int = 50) -> Dict[str, Any]:
+    def prompt_view(self, max_claims: int = 25) -> Dict[str, Any]:
+        claim_nodes = sorted(
+            (node for node in self.nodes.values() if node.node_type == "claim"),
+            key=lambda node: (
+                not bool(node.attributes.get("selected")),
+                -node.confidence,
+                node.node_id,
+            ),
+        )[:max_claims]
         claims = [
             {
                 "fact_id": node.attributes.get("fact_id"),
                 "subject": node.attributes.get("subject"),
                 "predicate": node.attributes.get("predicate"),
                 "object": node.attributes.get("object"),
-                "support_text": node.attributes.get("support_text"),
+                "support_text": str(node.attributes.get("support_text") or "")[
+                    :MAX_PROMPT_SUPPORT_CHARS
+                ],
                 "confidence": round(node.confidence, 6),
                 "selected": bool(node.attributes.get("selected")),
             }
-            for node in sorted(self.nodes.values(), key=lambda value: value.node_id)
-            if node.node_type == "claim"
-        ][:max_claims]
+            for node in claim_nodes
+        ]
         return {**self.summary(), "claims": claims}
 
 
@@ -332,6 +341,23 @@ def expand(state: EpistemicState, evidence: Mapping[str, Any]) -> EpistemicState
                 attributes={"choice": choice, "answer_text": answer_text},
             )
         state.current_answer_id = answer_id
+        cited_fact_ids = [
+            str(value)
+            for value in evidence.get("cited_fact_ids", [])
+            if str(value).strip()
+        ]
+        committed = set(state.committed_fact_ids)
+        for fact_id in cited_fact_ids:
+            claim = state.nodes.get(f"claim:{fact_id}")
+            if claim is not None and fact_id in committed:
+                state.add_edge(
+                    EpistemicEdge(
+                        source=claim.node_id,
+                        target=answer_id,
+                        edge_type="supports",
+                        confidence=claim.confidence,
+                    )
+                )
         return state
 
     return state
@@ -399,21 +425,17 @@ def consolidate(state: EpistemicState) -> EpistemicState:
 
     current = state.nodes.get(state.current_answer_id or "")
     if current is not None:
+        committed = set(state.committed_fact_ids)
         supported = 0
-        for fact_id in state.committed_fact_ids:
-            claim_id = f"claim:{fact_id}"
-            claim = state.nodes.get(claim_id)
-            if claim is None:
-                continue
-            state.add_edge(
-                EpistemicEdge(
-                    source=claim_id,
-                    target=current.node_id,
-                    edge_type="supports",
-                    confidence=claim.confidence,
-                )
-            )
-            supported += 1
+        for edge in state.edges.values():
+            claim = state.nodes.get(edge.source)
+            if (
+                edge.target == current.node_id
+                and edge.edge_type == "supports"
+                and claim is not None
+                and claim.attributes.get("fact_id") in committed
+            ):
+                supported += 1
         current.confidence = min(1.0, 0.5 + 0.1 * supported)
         if supported:
             state.nodes["open:root"].attributes["status"] = "resolved"
@@ -438,10 +460,8 @@ def consolidate(state: EpistemicState) -> EpistemicState:
 def _state_vector(state: EpistemicState, node_order: Sequence[str]) -> np.ndarray:
     node_width = len(NODE_TYPES) + 1 + TEXT_FEATURES
     node_block = np.zeros((len(node_order), node_width), dtype=np.float64)
-    edge_block = np.zeros((len(EDGE_TYPES), len(node_order), len(node_order)), dtype=np.float64)
     index = {node_id: position for position, node_id in enumerate(node_order)}
     type_index = {value: position for position, value in enumerate(NODE_TYPES)}
-    edge_index = {value: position for position, value in enumerate(EDGE_TYPES)}
     for node_id, position in index.items():
         node = state.nodes.get(node_id)
         if node is None:
@@ -449,11 +469,6 @@ def _state_vector(state: EpistemicState, node_order: Sequence[str]) -> np.ndarra
         node_block[position, type_index[node.node_type]] = 1.0
         node_block[position, len(NODE_TYPES)] = node.confidence
         node_block[position, len(NODE_TYPES) + 1 :] = _text_features(node.label)
-    for edge in state.edges.values():
-        if edge.source in index and edge.target in index:
-            edge_block[
-                edge_index[edge.edge_type], index[edge.source], index[edge.target]
-            ] = edge.confidence
     controls = np.array(
         [
             min(state.successful_searches, 10) / 10.0,
@@ -464,13 +479,37 @@ def _state_vector(state: EpistemicState, node_order: Sequence[str]) -> np.ndarra
         ],
         dtype=np.float64,
     )
-    return np.concatenate((node_block.ravel(), edge_block.ravel(), controls))
+    return np.concatenate((node_block.ravel(), controls))
+
+
+def _edge_vector(
+    state: EpistemicState,
+    edge_order: Sequence[Tuple[str, str, str]],
+) -> np.ndarray:
+    return np.fromiter(
+        (
+            state.edges[key].confidence if key in state.edges else 0.0
+            for key in edge_order
+        ),
+        dtype=np.float64,
+        count=len(edge_order),
+    )
 
 
 def state_distance(left: EpistemicState, right: EpistemicState) -> float:
     node_order = sorted(set(left.nodes).union(right.nodes))[:MAX_EMBEDDED_NODES]
-    left_vector = _state_vector(left, node_order)
-    right_vector = _state_vector(right, node_order)
+    embedded_nodes = set(node_order)
+    edge_order = sorted(
+        key
+        for key in set(left.edges).union(right.edges)
+        if key[0] in embedded_nodes and key[1] in embedded_nodes
+    )
+    left_vector = np.concatenate(
+        (_state_vector(left, node_order), _edge_vector(left, edge_order))
+    )
+    right_vector = np.concatenate(
+        (_state_vector(right, node_order), _edge_vector(right, edge_order))
+    )
     denominator = max(float(np.linalg.norm(left_vector)), float(np.linalg.norm(right_vector)), 1.0)
     return float(np.linalg.norm(left_vector - right_vector) / denominator)
 
@@ -480,7 +519,7 @@ class StateTransition:
     order_gap: float
     before_digest: str
     after_digest: str
-    state_snapshot: Dict[str, Any]
+    state_summary: Dict[str, Any]
 
 
 class EpistemicStateTracker:
@@ -526,7 +565,7 @@ class EpistemicStateTracker:
             order_gap=gap,
             before_digest=before.digest(),
             after_digest=actual.digest(),
-            state_snapshot=actual.to_dict(),
+            state_summary=actual.summary(),
         )
 
     @property

@@ -8,6 +8,7 @@ the former prompt-parsed retrieval planner; it is not a separate answerer.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import time
@@ -31,7 +32,7 @@ from experiments.working_memory_tool import (
 )
 
 
-TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v3"
+TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v4"
 
 SearchToolExecutor = Callable[
     [Mapping[str, Any], GraphSource, str],
@@ -154,6 +155,44 @@ def _parse_arguments(raw_arguments: Any) -> Tuple[Optional[Dict[str, Any]], Opti
     return parsed, None
 
 
+_TEXT_TOOL_CALL_RE = re.compile(
+    r"\A\s*<tool_call>\s*(\{.*\})\s*</tool_call>\s*\Z",
+    re.DOTALL,
+)
+
+
+def _parse_text_tool_call(content: str, *, fallback_id: str) -> Optional[Dict[str, Any]]:
+    """Adapt Qwen's documented text wrapper when vLLM does not parse it.
+
+    Some vLLM configurations return Qwen's native ``<tool_call>`` wrapper as
+    assistant text under ``tool_choice=auto``. Accept only a full-message,
+    single JSON wrapper; all normal argument and tool-name validation still
+    happens in the regular execution path.
+    """
+    match = _TEXT_TOOL_CALL_RE.fullmatch(str(content or ""))
+    if match is None:
+        return None
+    try:
+        payload = json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, Mapping):
+        return None
+    name = str(payload.get("name") or "").strip()
+    arguments = payload.get("arguments", {})
+    if not name or not isinstance(arguments, (str, Mapping)):
+        return None
+    if isinstance(arguments, Mapping):
+        arguments = json.dumps(
+            dict(arguments), ensure_ascii=False, separators=(",", ":")
+        )
+    return {
+        "id": fallback_id,
+        "type": "function",
+        "function": {"name": name, "arguments": arguments},
+    }
+
+
 def _normalise_tool_response(response: Any) -> Dict[str, Any]:
     if isinstance(response, Mapping):
         output = dict(response)
@@ -248,7 +287,10 @@ native tool.
 """.strip()
 
 
-_FINAL_ANSWER_RE = re.compile(r"^\s*FINAL_ANSWER\s*:\s*([ABCD])\s*$", re.MULTILINE)
+_FINAL_ANSWER_RE = re.compile(
+    r"^\s*FINAL_ANSWER\s*:\s*([ABCD])(?=\s|\)|$).*$",
+    re.MULTILINE,
+)
 _CITATIONS_RE = re.compile(r"^\s*CITED_FACT_IDS\s*:\s*(.+?)\s*$", re.MULTILINE)
 _INSUFFICIENT_RE = re.compile(r"^\s*EVIDENCE_INSUFFICIENT\s*:", re.MULTILINE)
 _PROSE_ANSWER_RE = re.compile(
@@ -256,6 +298,32 @@ _PROSE_ANSWER_RE = re.compile(
     r"(?:is|:|-)\s*\(?([ABCD])\)?\b",
     re.IGNORECASE,
 )
+_GROUNDING_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "in",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "this",
+    "to",
+    "was",
+    "were",
+    "which",
+    "with",
+}
 
 
 def _parse_final_response(content: str) -> Tuple[str, List[str], bool]:
@@ -288,6 +356,35 @@ def _parse_candidate_answer(content: str) -> str:
     return matches[-1].group(1).upper() if matches else ""
 
 
+def _grounding_text(value: Any) -> str:
+    return " ".join(
+        re.findall(r"[^\W_]+", str(value or "").casefold(), flags=re.UNICODE)
+    )
+
+
+def _grounding_score(choice: str, fact: Mapping[str, Any]) -> float:
+    choice_text = _grounding_text(choice)
+    fact_text = _grounding_text(
+        " ".join(
+            str(fact.get(field) or "")
+            for field in ("subject", "predicate", "object", "support_text")
+        )
+    )
+    if not choice_text or not fact_text:
+        return 0.0
+    if len(choice_text) >= 4 and choice_text in fact_text:
+        return 1.0
+    choice_tokens = {
+        token
+        for token in choice_text.split()
+        if token not in _GROUNDING_STOPWORDS
+    }
+    if not choice_tokens:
+        return 0.0
+    fact_tokens = set(fact_text.split())
+    return len(choice_tokens.intersection(fact_tokens)) / len(choice_tokens)
+
+
 def _rlm_ready_block(content: str) -> str:
     encoded = json.dumps(str(content), ensure_ascii=False)
     return (
@@ -296,6 +393,48 @@ def _rlm_ready_block(content: str) -> str:
         'answer["ready"] = True\n'
         "```"
     )
+
+
+_REPL_BLOCK_RE = re.compile(r"```repl\s*(.*?)```", re.DOTALL | re.IGNORECASE)
+
+
+def _answer_assignment_key(target: ast.expr) -> Optional[str]:
+    if not isinstance(target, ast.Subscript):
+        return None
+    if not isinstance(target.value, ast.Name) or target.value.id != "answer":
+        return None
+    try:
+        key = ast.literal_eval(target.slice)
+    except (ValueError, TypeError):
+        return None
+    return str(key) if key in {"content", "ready"} else None
+
+
+def _ready_answer_payload(response: str) -> Optional[str]:
+    """Read a constant RLM answer assignment without executing model code."""
+    for code in _REPL_BLOCK_RE.findall(str(response or "")):
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            continue
+        assignments: List[Tuple[int, str, Any]] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign):
+                continue
+            try:
+                value = ast.literal_eval(node.value)
+            except (ValueError, TypeError):
+                continue
+            for target in node.targets:
+                key = _answer_assignment_key(target)
+                if key is not None:
+                    assignments.append((node.lineno, key, value))
+        values: Dict[str, Any] = {}
+        for _line, key, value in sorted(assignments):
+            values[key] = value
+        if values.get("ready") is True and isinstance(values.get("content"), str):
+            return values["content"]
+    return None
 
 
 class NativeToolSession:
@@ -361,10 +500,8 @@ class NativeToolSession:
         self.retrieved_facts: Dict[str, Dict[str, Any]] = {}
         self.working_memory_artifact_ids: List[str] = []
         self.working_memory_fact_ids: Set[str] = set()
-        self.prior_artifact = None
         self.tool_call_count = 0
         self.tool_result_chars = 0
-        self.evidence_responses: List[Dict[str, Any]] = []
         self.model_completion_count = 0
         self.diagnostic_predicted = ""
         self.controller_termination_reason: Optional[str] = None
@@ -374,7 +511,7 @@ class NativeToolSession:
             "session_id": graph_source.session_id,
             "memory_scope": graph_source.memory_scope,
             "configured_retrieval_mode": graph_source.retrieval_config.mode,
-            "effective_retrieval_mode": graph_source.retrieval_config.mode,
+            "effective_retrieval_mode": None,
             "dense_index_identity": [
                 graph_source.dense_indexes[key].manifest.identity
                 for key in sorted(graph_source.dense_indexes)
@@ -438,27 +575,38 @@ class NativeToolSession:
                 "window_mean": self.state_tracker.window_mean,
                 "before_digest": transition.before_digest,
                 "after_digest": transition.after_digest,
-                "state_snapshot": transition.state_snapshot,
+                "state_summary": transition.state_summary,
             }
         )
         return transition
 
-    def _state_based_completion(self, content: str) -> Optional[str]:
+    def _state_based_completion(
+        self,
+        *,
+        predicted: str,
+        citations: List[str],
+    ) -> Optional[str]:
         if self.termination_mode != "order_gap" or not self.state_tracker.stable:
             return None
         state = self.state_tracker.state
         successful_search = state.successful_searches > 0
-        eligible_ids = (
-            sorted(self.working_memory_fact_ids)
-            if self.require_memory_update
-            else sorted(self.retrieved_fact_ids)
+        cited_ids = list(dict.fromkeys(citations))
+        cited_set = set(cited_ids)
+        citations_retrieved = bool(cited_ids) and cited_set <= self.retrieved_fact_ids
+        citations_committed = (
+            not self.require_memory_update or cited_set <= self.working_memory_fact_ids
+        )
+        supported = bool(
+            predicted and citations_retrieved and citations_committed
         )
         coverage = {
             "successful_search": successful_search,
             "candidate": self.diagnostic_predicted or None,
-            "eligible_fact_ids": eligible_ids,
+            "cited_fact_ids": cited_ids,
+            "citations_retrieved": citations_retrieved,
+            "citations_committed": citations_committed,
             "require_memory_update": self.require_memory_update,
-            "passed": successful_search,
+            "passed": successful_search and supported,
         }
         self.trace["events"].append(
             {
@@ -470,11 +618,11 @@ class NativeToolSession:
         )
         if not successful_search:
             return None
-        if self.diagnostic_predicted and eligible_ids:
+        if supported:
             self.controller_termination_reason = "order_gap_supported_answer"
             final_content = (
-                f"FINAL_ANSWER: {self.diagnostic_predicted}\n"
-                f"CITED_FACT_IDS: {', '.join(eligible_ids)}"
+                f"FINAL_ANSWER: {predicted}\n"
+                f"CITED_FACT_IDS: {', '.join(cited_ids)}"
             )
         else:
             self.controller_termination_reason = "order_gap_evidence_insufficient"
@@ -488,11 +636,96 @@ class NativeToolSession:
                 "rlm_completion": self.model_completion_count,
                 "reason": self.controller_termination_reason,
                 "diagnostic_predicted": self.diagnostic_predicted,
-                "eligible_fact_ids": eligible_ids,
+                "cited_fact_ids": cited_ids,
                 "window_mean": self.state_tracker.window_mean,
             }
         )
         return _rlm_ready_block(final_content)
+
+    def _request_tool_choice(self) -> str:
+        if (
+            self.tool_call_count >= self.max_tool_calls
+            or bool(self.working_memory_fact_ids)
+            or self.state_tracker.state.current_answer_id is not None
+        ):
+            return "none"
+        if (
+            self.tool_choice == "required"
+            and (
+                self.state_tracker.state.successful_searches == 0
+                or (
+                    self.require_memory_update
+                    and bool(self.retrieved_fact_ids)
+                    and not self.working_memory_fact_ids
+                )
+            )
+        ):
+            return "required"
+        return "auto"
+
+    def _request_tools(self, request_tool_choice: str) -> List[Dict[str, Any]]:
+        if (
+            request_tool_choice == "required"
+            and self.state_tracker.state.successful_searches > 0
+            and self.require_memory_update
+            and not self.working_memory_fact_ids
+        ):
+            return [self.update_tool_schema]
+        return [self.tool_schema, self.update_tool_schema]
+
+    def _grounded_fact_ids(self, predicted: str) -> List[str]:
+        choice = str(self.state_tracker.state.choices.get(predicted) or "")
+        ranked = sorted(
+            (
+                (_grounding_score(choice, self.retrieved_facts[fact_id]), fact_id)
+                for fact_id in self.working_memory_fact_ids
+                if fact_id in self.retrieved_facts
+            ),
+            key=lambda item: (-item[0], item[1]),
+        )
+        return [fact_id for score, fact_id in ranked if score >= 0.2]
+
+    def _resolve_citations(
+        self,
+        predicted: str,
+        citations: List[str],
+    ) -> Tuple[List[str], bool]:
+        if not predicted:
+            return list(dict.fromkeys(citations)), False
+        grounded = self._grounded_fact_ids(predicted)
+        grounded_set = set(grounded)
+        provided = list(dict.fromkeys(citations))
+        if provided:
+            return [fact_id for fact_id in provided if fact_id in grounded_set], False
+        return grounded[:3], bool(grounded)
+
+    def _completion_errors(self, predicted: str, citations: List[str]) -> List[str]:
+        errors: List[str] = []
+        cited = set(citations)
+        if not predicted:
+            errors.append("use the exact FINAL_ANSWER and CITED_FACT_IDS format")
+        if not citations:
+            errors.append("cite at least one returned fact ID")
+        unknown = sorted(cited - self.retrieved_fact_ids)
+        if unknown:
+            errors.append("unknown fact IDs: " + ", ".join(unknown))
+        missing = sorted(cited - self.working_memory_fact_ids)
+        if self.require_memory_update and missing:
+            errors.append(
+                "fact IDs not committed to working memory: " + ", ".join(missing)
+            )
+        return errors
+
+    def _completion_correction(self, errors: List[str]) -> str:
+        retrieved = ", ".join(sorted(self.retrieved_fact_ids)) or "none"
+        committed = ", ".join(sorted(self.working_memory_fact_ids)) or "none"
+        return (
+            "The controller rejected that ready signal: "
+            + "; ".join(errors)
+            + ". Do not set answer[\"ready\"] yet. If evidence supports an option, "
+            f"first call {UPDATE_TOOL_NAME} as needed, then use the exact final format. "
+            f"Returned fact IDs: {retrieved}. Committed fact IDs: {committed}."
+        )
 
     def _track_response(self, base_client: Any, response: Any) -> None:
         track_cost = getattr(base_client, "_track_cost", None)
@@ -509,9 +742,7 @@ class NativeToolSession:
 
         max_native_turns = self.max_tool_calls + 2
         for native_turn in range(1, max_native_turns + 1):
-            request_tool_choice = (
-                "none" if self.tool_call_count >= self.max_tool_calls else self.tool_choice
-            )
+            request_tool_choice = self._request_tool_choice()
             self.trace["events"].append(
                 {
                     "event": "model_request",
@@ -521,16 +752,22 @@ class NativeToolSession:
                     "message_count": len(messages),
                 }
             )
-            try:
-                response = base_client.client.chat.completions.create(
-                    model=self.model,
-                    messages=list(messages),
-                    tools=[self.tool_schema, self.update_tool_schema],
-                    tool_choice=request_tool_choice,
-                    temperature=0.0,
-                    max_tokens=self.max_completion_tokens,
-                    extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+            request: Dict[str, Any] = {
+                "model": self.model,
+                "messages": list(messages),
+                "temperature": 0.0,
+                "max_tokens": self.max_completion_tokens,
+                "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+            }
+            if request_tool_choice != "none":
+                request.update(
+                    {
+                        "tools": self._request_tools(request_tool_choice),
+                        "tool_choice": request_tool_choice,
+                    }
                 )
+            try:
+                response = base_client.client.chat.completions.create(**request)
                 self._track_response(base_client, response)
             except Exception as exc:
                 self.trace["events"].append(
@@ -550,6 +787,19 @@ class NativeToolSession:
             assistant_message = _assistant_message_dict(
                 _get(choice, "message"), turn=native_turn
             )
+            raw_text_tool_call: Optional[str] = None
+            tool_calls = assistant_message.get("tool_calls") or []
+            if not tool_calls:
+                content = str(assistant_message.get("content") or "")
+                adapted = _parse_text_tool_call(
+                    content,
+                    fallback_id=f"text-tool-call-{completion_index}-{native_turn}",
+                )
+                if adapted is not None:
+                    raw_text_tool_call = content
+                    tool_calls = [adapted]
+                    assistant_message["content"] = None
+                    assistant_message["tool_calls"] = tool_calls
             messages.append(assistant_message)
             self.trace["events"].append(
                 {
@@ -560,28 +810,100 @@ class NativeToolSession:
                     "message": assistant_message,
                 }
             )
+            if raw_text_tool_call is not None:
+                self.trace["events"].append(
+                    {
+                        "event": "text_tool_call_adapted",
+                        "rlm_completion": completion_index,
+                        "native_turn": native_turn,
+                        "raw_content": raw_text_tool_call,
+                        "tool_call": tool_calls[0],
+                    }
+                )
 
-            tool_calls = assistant_message.get("tool_calls") or []
             if not tool_calls:
                 content = str(assistant_message.get("content") or "")
                 if not content.strip():
                     raise RuntimeError("Qwen returned neither tool calls nor text")
-                candidate = _parse_candidate_answer(content)
+                ready_payload = _ready_answer_payload(content)
+                completion_content = ready_payload if ready_payload is not None else content
+                candidate = _parse_candidate_answer(completion_content)
+                predicted, model_citations, evidence_insufficient = _parse_final_response(
+                    completion_content
+                )
+                citations, citations_synthesized = self._resolve_citations(
+                    predicted, model_citations
+                )
+                if citations_synthesized:
+                    completion_content = (
+                        f"FINAL_ANSWER: {predicted}\n"
+                        f"CITED_FACT_IDS: {', '.join(citations)}"
+                    )
+                if predicted:
+                    self.trace["events"].append(
+                        {
+                            "event": "citations_grounded",
+                            "rlm_completion": completion_index,
+                            "native_turn": native_turn,
+                            "predicted": predicted,
+                            "model_cited_fact_ids": model_citations,
+                            "grounded_fact_ids": citations,
+                            "synthesized": citations_synthesized,
+                        }
+                    )
+                candidate = predicted or candidate
                 if candidate:
                     self.diagnostic_predicted = candidate
+                completion_errors = self._completion_errors(predicted, citations)
+                if (
+                    ready_payload is not None
+                    and self.termination_mode == "order_gap"
+                    and not evidence_insufficient
+                    and completion_errors
+                ):
+                    self.trace["events"].append(
+                        {
+                            "event": "invalid_ready_rejected",
+                            "rlm_completion": completion_index,
+                            "native_turn": native_turn,
+                            "errors": completion_errors,
+                        }
+                    )
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": self._completion_correction(completion_errors),
+                        }
+                    )
+                    continue
                 self._observe_epistemic(
-                    {"kind": "model", "candidate": candidate, "content": content},
+                    {
+                        "kind": "model",
+                        "candidate": candidate,
+                        "cited_fact_ids": citations,
+                        "content": completion_content,
+                    },
                     completion_index=completion_index,
                     native_turn=native_turn,
                     completion_boundary=True,
                 )
-                if (
-                    'answer["ready"]' not in content
-                    and "FINAL(" not in content
-                ):
-                    state_completion = self._state_based_completion(content)
+                if self.termination_mode == "order_gap":
+                    state_completion = self._state_based_completion(
+                        predicted=predicted,
+                        citations=citations,
+                    )
                     if state_completion is not None:
                         return state_completion
+                    if ready_payload is not None:
+                        self.trace["events"].append(
+                            {
+                                "event": "model_ready_deferred",
+                                "rlm_completion": completion_index,
+                                "native_turn": native_turn,
+                                "window_mean": self.state_tracker.window_mean,
+                            }
+                        )
+                        return completion_content
                 return content
 
             for index, raw_call in enumerate(tool_calls, start=1):
@@ -661,7 +983,6 @@ class NativeToolSession:
                                     self.example_id,
                                     list(self.retrieved_facts.values()),
                                     validate=self.validate_memory_updates,
-                                    prior_artifact=self.prior_artifact,
                                 )
                                 try:
                                     tool_response = _normalise_tool_response(
@@ -712,7 +1033,6 @@ class NativeToolSession:
                             for value in artifact.get("selected_fact_ids", [])
                             if value
                         )
-                        self.prior_artifact = None
 
                 tool_content = json.dumps(
                     tool_response, ensure_ascii=False, separators=(",", ":")
@@ -721,7 +1041,6 @@ class NativeToolSession:
                 messages.append(
                     {"role": "tool", "tool_call_id": call_id, "content": tool_content}
                 )
-                self.evidence_responses.append(tool_response)
                 if name in {SEARCH_TOOL_NAME, UPDATE_TOOL_NAME}:
                     self._observe_epistemic(
                         {
@@ -744,7 +1063,11 @@ class NativeToolSession:
                 )
 
                 error = tool_response.get("error")
-                if tool_response.get("status") == "ok" and not results:
+                if (
+                    name == SEARCH_TOOL_NAME
+                    and tool_response.get("status") == "ok"
+                    and not results
+                ):
                     self.trace["events"].append(
                         {
                             "event": "retry",

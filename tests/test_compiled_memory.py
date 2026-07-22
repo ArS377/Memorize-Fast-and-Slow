@@ -147,6 +147,7 @@ def test_neo4j_properties_include_compiled_memory_json():
     assert props["valid_from"] == "2025-01-01"
     assert props["confidence_level"] == "supported"
     assert props["decision_status"] == "proposed"
+    assert props["decision_validator"] == "none"
     assert json.loads(props["subject_aliases_json"]) == ["Alice"]
     assert json.loads(props["object_aliases_json"]) == ["Acme"]
     compiled = json.loads(props["compiled_memory_json"])
