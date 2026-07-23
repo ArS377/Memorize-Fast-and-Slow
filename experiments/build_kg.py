@@ -28,7 +28,7 @@ from experiments.common import iter_pilot_examples
 
 def _facts_count(graph, session_id: str) -> int:
     query = (
-        "MATCH ()-[r]-() WHERE r.session_id = $sid "
+        "MATCH ()-[r]->() WHERE r.session_id = $sid "
         "RETURN count(r) AS c"
     )
     with graph._session() as s:

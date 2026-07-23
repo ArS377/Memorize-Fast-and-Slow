@@ -6,12 +6,34 @@ from types import SimpleNamespace
 
 import neo4j_graph
 
-from experiments.build_kg import build_kg
+from experiments.build_kg import _facts_count, build_kg
 
 
 class _Result:
     def single(self):
         return {"c": 0}
+
+
+def test_facts_count_counts_each_directed_relationship_once() -> None:
+    class RecordingSession:
+        def __init__(self) -> None:
+            self.query = ""
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def run(self, query, **_kwargs):
+            self.query = query
+            return SimpleNamespace(single=lambda: {"c": 38})
+
+    session = RecordingSession()
+    graph = SimpleNamespace(_session=lambda: session)
+
+    assert _facts_count(graph, "audit") == 38
+    assert "MATCH ()-[r]->()" in session.query
 
 
 class _FakeGraph:
