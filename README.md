@@ -14,9 +14,10 @@
 | `download_longbench.py` | Downloads LongBench-v2 dataset from HuggingFace and saves it as `data.jsonl` |
 | `rlm_baseline.py` | Recursive Language Model baseline — calls the LLM recursively over raw context chunks (no KG) |
 | `rlm_graph_baseline.py` | RLM baseline extended with KG retrieval but without Scallop constraints |
-| `experiments/kg_search_tool.py` | Stable v2 JSON-schema tool adapter for application-configured sparse, dense, or hybrid KG retrieval |
+| `experiments/kg_search_tool.py` | Stable v3 JSON-schema tool adapter for application-configured KG retrieval |
 | `experiments/dense_retrieval.py` | Local BGE embeddings and validated per-session NumPy dense-index sidecars |
 | `experiments/hybrid_retrieval.py` | Shared sparse/dense retrieval and deterministic reciprocal-rank fusion |
+| `experiments/ppr_retrieval.py` | Experimental scope-isolated entity/fact PPR sidecar seeded by dense retrieval |
 | `experiments/qwen_tool_smoke.py` | Live fixture runner for the Qwen-first RLM/tool trajectory |
 | `_demo_neo4j.py` | One-shot demo: inserts fixture facts into a live Neo4j instance and runs example queries |
 | `test.py` | Scratch file for quick vLLM / model tests |
@@ -270,6 +271,37 @@ You can also compare existing sparse, dense, and hybrid runs with repeated
 recall@1/5/10 where labels or citation proxies exist, branch candidate and
 unique-fact counts, branch overlap, fusion duplicate rate, degradation counts,
 and explicit sparse-baseline recall regression warnings.
+
+### Experimental dense-PPR retrieval
+
+`dense_ppr` is an opt-in fourth mode. It seeds an in-memory
+`Entity -> Fact -> Entity` sidecar from the existing dense results, runs
+scope-isolated Personalized PageRank, and returns the original validated fact
+records through the unchanged Qwen tool contract. Neo4j remains authoritative;
+the sidecar is rebuilt from the exact dense-index snapshot and records its own
+identity and build time. PPR scores represent retrieval relevance, not Scallop
+confidence.
+
+Normal KG cells still default to `hybrid`, and
+`experiments.retrieval_ablation` still runs only sparse/dense/hybrid. Use the
+separate experiment runner for a matched four-mode comparison:
+
+```bash
+python3 -m experiments.dense_ppr_ablation \
+    --output-dir results/dense_ppr_ablation \
+    --ablation-id longbench_slice_01 \
+    -- \
+    --input data.jsonl \
+    --limit 50 \
+    --seed 0 \
+    --neo4j-password yourpassword
+```
+
+To run only the experimental mode, pass `--retrieval-mode dense_ppr` to
+`experiments.run_all`. Its seed count, similarity threshold, temperature,
+damping, tolerance, and iteration limit are configurable with the
+`--ppr-*` flags. Propagation always applies the example/session allowlist before
+building the query subgraph; `hops` remains a sparse-only control.
 
 KG cells support three memory scopes:
 

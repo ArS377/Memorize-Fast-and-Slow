@@ -24,7 +24,7 @@ from typing import List, Optional
 
 from experiments.common import CELLS, iter_pilot_examples
 from experiments.kg_search_tool import TOOL_VERSION as SEARCH_TOOL_VERSION
-from experiments.retrieval_config import EmbeddingConfig, RetrievalConfig
+from experiments.retrieval_config import EmbeddingConfig, PPRConfig, RetrievalConfig
 from experiments.working_memory_tool import TOOL_VERSION as MEMORY_TOOL_VERSION
 from scallop_validator import DEFAULT_RULE_PARAMETERS
 
@@ -166,6 +166,19 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             "--dense-failure-policy", getattr(args, "dense_failure_policy", "error"),
             "--rrf-k", str(getattr(args, "rrf_k", 60)),
         ]
+        if getattr(args, "retrieval_mode", "hybrid") == "dense_ppr":
+            base += [
+                "--ppr-seed-count", str(getattr(args, "ppr_seed_count", 20)),
+                "--ppr-similarity-threshold", str(
+                    getattr(args, "ppr_similarity_threshold", 0.0)
+                ),
+                "--ppr-temperature", str(getattr(args, "ppr_temperature", 0.1)),
+                "--ppr-damping", str(getattr(args, "ppr_damping", 0.5)),
+                "--ppr-tolerance", str(getattr(args, "ppr_tolerance", 1e-8)),
+                "--ppr-max-iterations", str(
+                    getattr(args, "ppr_max_iterations", 100)
+                ),
+            ]
         if getattr(args, "embedding_revision", None):
             base += ["--embedding-revision", args.embedding_revision]
         for source_session in getattr(args, "source_session", []):
@@ -231,7 +244,11 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--memory-scope", choices=["example", "session", "session_set"], default="example")
     parser.add_argument("--source-session", action="append", default=[])
     parser.add_argument("--scallop-validator-url", default=os.getenv("SCALLOP_VALIDATOR_URL"))
-    parser.add_argument("--retrieval-mode", choices=["sparse", "dense", "hybrid"], default="hybrid")
+    parser.add_argument(
+        "--retrieval-mode",
+        choices=["sparse", "dense", "hybrid", "dense_ppr"],
+        default="hybrid",
+    )
     parser.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
     parser.add_argument("--embedding-revision", default=None)
     parser.add_argument("--embedding-device", default="cpu")
@@ -239,6 +256,12 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--dense-index-root", type=Path, default=None)
     parser.add_argument("--dense-failure-policy", choices=["error", "sparse"], default="error")
     parser.add_argument("--rrf-k", type=_positive_int, default=60)
+    parser.add_argument("--ppr-seed-count", type=_positive_int, default=20)
+    parser.add_argument("--ppr-similarity-threshold", type=float, default=0.0)
+    parser.add_argument("--ppr-temperature", type=_positive_float, default=0.1)
+    parser.add_argument("--ppr-damping", type=_positive_float, default=0.5)
+    parser.add_argument("--ppr-tolerance", type=_positive_float, default=1e-8)
+    parser.add_argument("--ppr-max-iterations", type=_positive_int, default=100)
     parser.add_argument("--max-depth", type=int, default=2)
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
@@ -288,6 +311,14 @@ def main(argv: Optional[List[str]] = None) -> None:
             requested_revision=args.embedding_revision,
             device=args.embedding_device,
             batch_size=args.embedding_batch_size,
+        ),
+        ppr=PPRConfig(
+            seed_count=args.ppr_seed_count,
+            similarity_threshold=args.ppr_similarity_threshold,
+            temperature=args.ppr_temperature,
+            damping=args.ppr_damping,
+            tolerance=args.ppr_tolerance,
+            max_iterations=args.ppr_max_iterations,
         ),
         failure_policy=args.dense_failure_policy,
     )
@@ -362,6 +393,8 @@ def main(argv: Optional[List[str]] = None) -> None:
         "skip_kg_build": args.skip_kg_build,
         "kg_artifacts": {},
     }
+    if retrieval_config.mode == "dense_ppr":
+        metadata["ppr_config"] = retrieval_config.ppr.to_dict()
     _write_manifest(args.results_dir, metadata)
     print(f"[run_all] metadata -> {args.results_dir / 'run_metadata.json'}", file=sys.stderr)
 

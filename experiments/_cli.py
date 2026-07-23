@@ -23,7 +23,7 @@ from experiments.common import (
     truncate_context,
     write_result_row,
 )
-from experiments.retrieval_config import EmbeddingConfig, RetrievalConfig
+from experiments.retrieval_config import EmbeddingConfig, PPRConfig, RetrievalConfig
 
 
 def _positive_int(value: str) -> int:
@@ -121,7 +121,11 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
             default=[],
             help="Trusted source session; repeat at least twice with --memory-scope session_set",
         )
-        p.add_argument("--retrieval-mode", choices=["sparse", "dense", "hybrid"], default="hybrid")
+        p.add_argument(
+            "--retrieval-mode",
+            choices=["sparse", "dense", "hybrid", "dense_ppr"],
+            default="hybrid",
+        )
         p.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
         p.add_argument("--embedding-revision", default=None)
         p.add_argument("--embedding-device", default="cpu")
@@ -129,6 +133,12 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--dense-index-root", type=Path, default=Path("results/dense_indexes"))
         p.add_argument("--dense-failure-policy", choices=["error", "sparse"], default="error")
         p.add_argument("--rrf-k", type=_positive_int, default=60)
+        p.add_argument("--ppr-seed-count", type=_positive_int, default=20)
+        p.add_argument("--ppr-similarity-threshold", type=float, default=0.0)
+        p.add_argument("--ppr-temperature", type=_positive_float, default=0.1)
+        p.add_argument("--ppr-damping", type=_positive_float, default=0.5)
+        p.add_argument("--ppr-tolerance", type=_positive_float, default=1e-8)
+        p.add_argument("--ppr-max-iterations", type=_positive_int, default=100)
 
     # RLM cells
     if kind == "rlm":
@@ -299,6 +309,14 @@ def run_cell(
                 requested_revision=args.embedding_revision,
                 device=args.embedding_device,
                 batch_size=args.embedding_batch_size,
+            ),
+            ppr=PPRConfig(
+                seed_count=args.ppr_seed_count,
+                similarity_threshold=args.ppr_similarity_threshold,
+                temperature=args.ppr_temperature,
+                damping=args.ppr_damping,
+                tolerance=args.ppr_tolerance,
+                max_iterations=args.ppr_max_iterations,
             ),
             failure_policy=args.dense_failure_policy,
         )
@@ -482,32 +500,46 @@ def run_cell(
                 )
                 if graph_source is not None:
                     branch_fact_ids = retrieval_summary.get("branch_fact_ids", {})
+                    retrieval_eval_row = {
+                        "cell_id": cell_id,
+                        "example_id": example_id,
+                        "mode": retrieval_summary.get("effective_mode"),
+                        "configured_mode": retrieval_summary.get("configured_mode"),
+                        "degraded": retrieval_summary.get("degraded", False),
+                        "retrieved_fact_ids": retrieval_summary.get("result_fact_ids", []),
+                        "relevant_fact_ids": relevant_fact_ids,
+                        "relevance_source": relevance_source,
+                        "sparse_fact_ids": branch_fact_ids.get("sparse", []),
+                        "dense_fact_ids": branch_fact_ids.get("dense", []),
+                        "pre_fusion_fact_ids": (
+                            list(branch_fact_ids.get("sparse", []))
+                            + list(branch_fact_ids.get("dense", []))
+                        ),
+                        "branch_counts": retrieval_summary.get("branch_counts", {}),
+                        "branch_latency_seconds": retrieval_summary.get(
+                            "branch_latency_seconds", {}
+                        ),
+                        "dense_index_identity": retrieval_summary.get(
+                            "dense_index_identity", []
+                        ),
+                    }
+                    if retrieval_summary.get("configured_mode") == "dense_ppr":
+                        retrieval_eval_row.update(
+                            {
+                                "ppr_fact_ids": branch_fact_ids.get("ppr", []),
+                                "ppr_index_identity": retrieval_summary.get(
+                                    "ppr_index_identity"
+                                ),
+                                "ppr_index_build_seconds": retrieval_summary.get(
+                                    "ppr_index_build_seconds"
+                                ),
+                                "ppr": retrieval_summary.get("ppr"),
+                            }
+                        )
                     with retrieval_eval_path.open("a", encoding="utf-8") as retrieval_eval:
                         retrieval_eval.write(
                             json.dumps(
-                                {
-                                    "cell_id": cell_id,
-                                    "example_id": example_id,
-                                    "mode": retrieval_summary.get("effective_mode"),
-                                    "configured_mode": retrieval_summary.get("configured_mode"),
-                                    "degraded": retrieval_summary.get("degraded", False),
-                                    "retrieved_fact_ids": retrieval_summary.get("result_fact_ids", []),
-                                    "relevant_fact_ids": relevant_fact_ids,
-                                    "relevance_source": relevance_source,
-                                    "sparse_fact_ids": branch_fact_ids.get("sparse", []),
-                                    "dense_fact_ids": branch_fact_ids.get("dense", []),
-                                    "pre_fusion_fact_ids": (
-                                        list(branch_fact_ids.get("sparse", []))
-                                        + list(branch_fact_ids.get("dense", []))
-                                    ),
-                                    "branch_counts": retrieval_summary.get("branch_counts", {}),
-                                    "branch_latency_seconds": retrieval_summary.get(
-                                        "branch_latency_seconds", {}
-                                    ),
-                                    "dense_index_identity": retrieval_summary.get(
-                                        "dense_index_identity", []
-                                    ),
-                                },
+                                retrieval_eval_row,
                                 ensure_ascii=False,
                                 sort_keys=True,
                             )

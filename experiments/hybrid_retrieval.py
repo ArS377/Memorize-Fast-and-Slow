@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 
 from compiled_memory import evidence_strength_score, retrieval_score_components
-from experiments.retrieval_config import DenseRetrievalError
+from experiments.retrieval_config import DenseRetrievalError, PPRRetrievalError
 
 
 @dataclass(frozen=True)
@@ -154,23 +154,35 @@ def _metadata(
     degraded: bool,
     sparse_count: int,
     dense_count: int,
+    ppr_count: int,
     sparse_latency: float,
     dense_latency: float,
+    ppr_latency: float,
     predicate_filter: Dict[str, Any],
+    ppr_details: Optional[Dict[str, Any]] = None,
     failure: Optional[DenseRetrievalError] = None,
 ) -> Dict[str, Any]:
     config = source.retrieval_config
     indexes = getattr(source, "dense_indexes", {}) or {}
     identities = [indexes[key].manifest.identity for key in sorted(indexes)]
-    return {
+    branch_counts = {"sparse": sparse_count, "dense": dense_count}
+    branch_latency = {
+        "sparse": round(sparse_latency, 3),
+        "dense": round(dense_latency, 3),
+    }
+    if configured_mode == "dense_ppr":
+        branch_counts = {"dense": dense_count, "ppr": ppr_count}
+        branch_latency = {
+            "dense": round(dense_latency, 3),
+            "ppr": round(ppr_latency, 3),
+        }
+    ppr_index = getattr(source, "ppr_index", None)
+    metadata = {
         "configured_mode": configured_mode,
         "effective_mode": effective_mode,
         "degraded": degraded,
-        "branch_counts": {"sparse": sparse_count, "dense": dense_count},
-        "branch_latency_seconds": {
-            "sparse": round(sparse_latency, 3),
-            "dense": round(dense_latency, 3),
-        },
+        "branch_counts": branch_counts,
+        "branch_latency_seconds": branch_latency,
         "rrf": {
             "k": config.rrf_k,
             "branch_candidate_multiplier": config.branch_candidate_multiplier,
@@ -184,6 +196,19 @@ def _metadata(
             else None
         ),
     }
+    if configured_mode == "dense_ppr":
+        metadata.update(
+            {
+                "ppr_index_identity": (
+                    ppr_index.manifest.identity if ppr_index is not None else None
+                ),
+                "ppr_index_build_seconds": (
+                    ppr_index.build_seconds if ppr_index is not None else None
+                ),
+                "ppr": ppr_details,
+            }
+        )
+    return metadata
 
 
 def _annotate_sparse(rows: List[Dict[str, Any]], query: str, seeds: List[str]) -> List[Dict[str, Any]]:
@@ -225,6 +250,44 @@ def _annotate_dense(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "dense_similarity": similarity,
             "rrf_score": None,
             "matched_branches": ["dense"],
+        }
+        output.append(value)
+    return output
+
+
+def _annotate_ppr(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    output = []
+    for row in rows:
+        value = dict(row)
+        score = float(value.pop("_ppr_score"))
+        ppr_rank = int(value.pop("_ppr_rank"))
+        dense_rank = value.pop("_dense_seed_rank")
+        dense_similarity = value.pop("_dense_seed_similarity")
+        dense_weight = value.pop("_dense_seed_weight")
+        was_dense_seed = bool(value.pop("_was_dense_seed"))
+        components = {
+            "dense_seed_similarity": dense_similarity,
+            "dense_seed_rank": dense_rank,
+            "dense_seed_weight": dense_weight,
+            "was_dense_seed": was_dense_seed,
+            "ppr_score": score,
+            "evidence_strength": evidence_strength_score(value),
+            "total": score,
+        }
+        value["_retrieval"] = {
+            "score": score,
+            "score_components": components,
+            "sparse_rank": None,
+            "sparse_score": None,
+            "dense_rank": dense_rank,
+            "dense_similarity": dense_similarity,
+            "rrf_score": None,
+            "ppr_rank": ppr_rank,
+            "ppr_score": score,
+            "was_dense_seed": was_dense_seed,
+            "matched_branches": (
+                ["dense", "ppr"] if was_dense_seed else ["ppr"]
+            ),
         }
         output.append(value)
     return output
@@ -308,8 +371,11 @@ def retrieve(
     depth = config.branch_depth(top_k)
     sparse: List[Dict[str, Any]] = []
     dense: List[Dict[str, Any]] = []
+    ppr: List[Dict[str, Any]] = []
     sparse_latency = 0.0
     dense_latency = 0.0
+    ppr_latency = 0.0
+    ppr_details: Optional[Dict[str, Any]] = None
     effective_predicates, predicate_filter = _resolve_predicate_filter(
         source,
         predicates,
@@ -328,14 +394,20 @@ def retrieve(
             predicates=effective_predicates,
         )
         sparse_latency = time.perf_counter() - started
-    if mode in {"dense", "hybrid"}:
+    if mode in {"dense", "hybrid", "dense_ppr"}:
         started = time.perf_counter()
         try:
             dense = _dense_rows(
                 source,
                 query=query,
                 example_id=example_id,
-                top_k=depth if mode == "hybrid" else top_k,
+                top_k=(
+                    depth
+                    if mode == "hybrid"
+                    else config.ppr.seed_count
+                    if mode == "dense_ppr"
+                    else top_k
+                ),
                 predicates=effective_predicates,
             )
         except DenseRetrievalError as exc:
@@ -349,8 +421,10 @@ def retrieve(
                     degraded=True,
                     sparse_count=len(sparse),
                     dense_count=0,
+                    ppr_count=0,
                     sparse_latency=sparse_latency,
                     dense_latency=dense_latency,
+                    ppr_latency=0.0,
                     predicate_filter=predicate_filter,
                     failure=exc,
                 )
@@ -370,24 +444,78 @@ def retrieve(
                 degraded=False,
                 sparse_count=len(sparse),
                 dense_count=0,
+                ppr_count=0,
                 sparse_latency=sparse_latency,
                 dense_latency=dense_latency,
+                ppr_latency=0.0,
                 predicate_filter=predicate_filter,
             )
             metadata["error"] = {"code": exc.code, "message": str(exc)}
-            metadata["branch_fact_ids"] = {
-                "sparse": [str(row.get("fact_id", "")) for row in sparse],
-                "dense": [],
-            }
+            metadata["branch_fact_ids"] = (
+                {"dense": [], "ppr": []}
+                if mode == "dense_ppr"
+                else {
+                    "sparse": [str(row.get("fact_id", "")) for row in sparse],
+                    "dense": [],
+                }
+            )
             metadata["result_fact_ids"] = []
             source._record_retrieval_metadata(metadata)
             raise
         dense_latency = time.perf_counter() - started
 
+    if mode == "dense_ppr":
+        started = time.perf_counter()
+        try:
+            ppr_failure = getattr(source, "ppr_failure", None)
+            if ppr_failure is not None:
+                raise ppr_failure
+            ppr_index = getattr(source, "ppr_index", None)
+            if ppr_index is None:
+                raise PPRRetrievalError(
+                    "ppr_index_unavailable",
+                    "PPR sidecar is unavailable",
+                )
+            ppr_outcome = ppr_index.search(
+                seed_rows=dense,
+                scope=source.trusted_scope(example_id),
+                top_k=top_k,
+                config=config.ppr,
+                predicates=effective_predicates,
+            )
+            ppr = ppr_outcome.rows
+            ppr_details = ppr_outcome.metadata
+        except PPRRetrievalError as exc:
+            ppr_latency = time.perf_counter() - started
+            metadata = _metadata(
+                source,
+                configured_mode=mode,
+                effective_mode=mode,
+                degraded=False,
+                sparse_count=0,
+                dense_count=len(dense),
+                ppr_count=0,
+                sparse_latency=0.0,
+                dense_latency=dense_latency,
+                ppr_latency=ppr_latency,
+                predicate_filter=predicate_filter,
+            )
+            metadata["error"] = {"code": exc.code, "message": str(exc)}
+            metadata["branch_fact_ids"] = {
+                "dense": [str(row.get("fact_id", "")) for row in dense],
+                "ppr": [],
+            }
+            metadata["result_fact_ids"] = []
+            source._record_retrieval_metadata(metadata)
+            raise
+        ppr_latency = time.perf_counter() - started
+
     if mode == "sparse":
         rows = _annotate_sparse(sparse[:top_k], query, seed_entities)
     elif mode == "dense":
         rows = _annotate_dense(dense[:top_k])
+    elif mode == "dense_ppr":
+        rows = _annotate_ppr(ppr)
     else:
         rows = _rrf_rows(
             sparse,
@@ -404,14 +532,27 @@ def retrieve(
         degraded=False,
         sparse_count=len(sparse),
         dense_count=len(dense),
+        ppr_count=(
+            int(ppr_details.get("positive_fact_count", len(ppr)))
+            if ppr_details is not None
+            else 0
+        ),
         sparse_latency=sparse_latency,
         dense_latency=dense_latency,
+        ppr_latency=ppr_latency,
         predicate_filter=predicate_filter,
+        ppr_details=ppr_details,
     )
-    metadata["branch_fact_ids"] = {
-        "sparse": [str(row.get("fact_id", "")) for row in sparse],
-        "dense": [str(row.get("fact_id", "")) for row in dense],
-    }
+    if mode == "dense_ppr":
+        metadata["branch_fact_ids"] = {
+            "dense": [str(row.get("fact_id", "")) for row in dense],
+            "ppr": [str(row.get("fact_id", "")) for row in ppr],
+        }
+    else:
+        metadata["branch_fact_ids"] = {
+            "sparse": [str(row.get("fact_id", "")) for row in sparse],
+            "dense": [str(row.get("fact_id", "")) for row in dense],
+        }
     metadata["result_fact_ids"] = [str(row.get("fact_id", "")) for row in rows]
     source._record_retrieval_metadata(metadata)
     return RetrievalOutcome(rows=rows, metadata=metadata)

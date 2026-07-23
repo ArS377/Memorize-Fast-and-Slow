@@ -32,7 +32,10 @@ def test_retrieval_report_compares_modes_and_fusion_diagnostics() -> None:
     assert report["modes"]["hybrid"]["recall_at_1"] == 1.0
     assert report["modes"]["hybrid"]["branch_overlap_fact_count"] == 1
     assert report["modes"]["hybrid"]["fusion_duplicate_rate"] == 0.333333
-    assert "Retrieval Quality Report" in render_markdown(report)
+    markdown = render_markdown(report)
+    assert "Retrieval Quality Report" in markdown
+    assert "ppr" not in report["modes"]["hybrid"]["branch_candidate_counts"]
+    assert "PPR candidates" not in markdown
 
     unlabeled = evaluate_retrieval_rows([
         {"mode": "dense", "retrieved_fact_ids": ["f1"], "relevant_fact_ids": []}
@@ -77,3 +80,24 @@ def test_retrieval_report_emits_regression_and_degradation_warnings() -> None:
         for warning in regressed["warnings"]
     )
     assert "Regression Warnings" in render_markdown(regressed)
+
+
+def test_retrieval_report_adds_ppr_diagnostics_only_when_present() -> None:
+    report = evaluate_retrieval_rows(
+        [
+            {
+                "mode": "dense_ppr",
+                "retrieved_fact_ids": ["f2", "f1"],
+                "relevant_fact_ids": ["f2"],
+                "branch_counts": {"dense": 1, "ppr": 2},
+                "dense_fact_ids": ["f1"],
+                "ppr_fact_ids": ["f2", "f1"],
+            }
+        ]
+    )
+    markdown = render_markdown(report)
+
+    assert report["modes"]["dense_ppr"]["ppr_unique_fact_count"] == 2
+    assert report["modes"]["dense_ppr"]["branch_candidate_counts"]["ppr"] == 2
+    assert report["modes"]["dense_ppr"]["branch_overlap_fact_count"] == 1
+    assert "PPR candidates" in markdown

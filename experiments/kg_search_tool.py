@@ -152,7 +152,7 @@ def _retrieval_metadata(graph_source: GraphSource) -> Dict[str, Any]:
             return value
     mode = _configured_mode(graph_source)
     indexes = getattr(graph_source, "dense_indexes", {}) or {}
-    return {
+    metadata = {
         "configured_mode": mode,
         "effective_mode": mode,
         "degraded": False,
@@ -164,6 +164,12 @@ def _retrieval_metadata(graph_source: GraphSource) -> Dict[str, Any]:
         ],
         "warning": None,
     }
+    if mode == "dense_ppr":
+        metadata["branch_counts"] = {"dense": 0, "ppr": 0}
+        metadata["branch_latency_seconds"] = {"dense": 0.0, "ppr": 0.0}
+        metadata["ppr_index_identity"] = None
+        metadata["ppr"] = None
+    return metadata
 
 
 def _scope(graph_source: GraphSource, example_id: str) -> Dict[str, Any]:
@@ -404,7 +410,7 @@ def _result_record(
     score_components = _json_safe(score_components)
     score = float(branch.get("score", score_components["total"]))
 
-    return {
+    record = {
         "rank": rank,
         "fact_id": fact_id,
         "subject": subject,
@@ -447,6 +453,15 @@ def _result_record(
             "memory_scope": scope["memory_scope"],
         },
     }
+    if branch.get("ppr_score") is not None:
+        record.update(
+            {
+                "ppr_rank": branch.get("ppr_rank"),
+                "ppr_score": branch.get("ppr_score"),
+                "was_dense_seed": bool(branch.get("was_dense_seed")),
+            }
+        )
+    return record
 
 
 def _shape_working_memory(
@@ -609,6 +624,23 @@ def execute_search_knowledge_graph(
                 code=dense_code,
                 message="Dense knowledge graph retrieval failed.",
                 retryable=dense_code in {"dense_index_unavailable", "dense_backend_failure"},
+                request=request,
+            )
+        ppr_code = str(getattr(exc, "code", ""))
+        if ppr_code in {
+            "ppr_index_unavailable",
+            "ppr_index_mismatch",
+            "ppr_nonconvergence",
+        }:
+            return _error_response(
+                graph_source=graph_source,
+                example_id=example_id,
+                code=ppr_code,
+                message="Dense-PPR knowledge graph retrieval failed.",
+                retryable=ppr_code in {
+                    "ppr_index_unavailable",
+                    "ppr_nonconvergence",
+                },
                 request=request,
             )
         return _error_response(

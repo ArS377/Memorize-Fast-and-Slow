@@ -4,23 +4,15 @@ import argparse
 import json
 import re
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Sequence
+from typing import List
 
+from experiments.retrieval_ablation import mode_command
 from experiments.retrieval_report import main as retrieval_report_main
 
 
-MODES = ("sparse", "dense", "hybrid")
-_FORBIDDEN_PASSTHROUGH = {
-    "--retrieval-mode",
-    "--results-dir",
-    "--run-id",
-    "--kg-session-noscallop",
-    "--kg-session-scallop",
-    "--dense-failure-policy",
-}
+MODES = ("sparse", "dense", "hybrid", "dense_ppr")
 
 
 def _safe_id(value: str) -> str:
@@ -30,68 +22,24 @@ def _safe_id(value: str) -> str:
     return safe
 
 
-def _contains_option(arguments: Sequence[str], option: str) -> bool:
-    return any(value == option or value.startswith(f"{option}=") for value in arguments)
-
-
-def mode_command(
-    *,
-    mode: str,
-    output_root: Path,
-    ablation_id: str,
-    run_all_arguments: Sequence[str],
-    skip_kg_build: bool,
-) -> List[str]:
-    if mode not in (*MODES, "dense_ppr"):
-        raise ValueError(f"unsupported retrieval mode: {mode}")
-    conflicting = sorted(
-        option for option in _FORBIDDEN_PASSTHROUGH if _contains_option(run_all_arguments, option)
-    )
-    if conflicting:
-        raise ValueError(
-            "run_all passthrough cannot override controlled options: "
-            + ", ".join(conflicting)
-        )
-    arguments = list(run_all_arguments)
-    if arguments and arguments[0] == "--":
-        arguments = arguments[1:]
-    if not _contains_option(arguments, "--cells"):
-        arguments.extend(["--cells", "2,3,5,6"])
-    command = [
-        sys.executable,
-        "-m",
-        "experiments.run_all",
-        *arguments,
-        "--retrieval-mode",
-        mode,
-        "--dense-failure-policy",
-        "error",
-        "--results-dir",
-        str(output_root / mode),
-        "--run-id",
-        f"{ablation_id}_{mode}",
-        "--kg-session-noscallop",
-        f"{ablation_id}_noscallop",
-        "--kg-session-scallop",
-        f"{ablation_id}_scallop",
-    ]
-    if skip_kg_build:
-        command.append("--skip-kg-build")
-    return command
-
-
 def main(argv: List[str] | None = None) -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run the opt-in dense-PPR experiment without changing the standard "
+            "three-mode retrieval ablation."
+        )
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--ablation-id", default=None)
     parser.add_argument("run_all_arguments", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
 
-    default_id = datetime.now(timezone.utc).strftime("retrieval_%Y%m%dT%H%M%SZ")
+    default_id = datetime.now(timezone.utc).strftime("dense_ppr_%Y%m%dT%H%M%SZ")
     try:
         ablation_id = _safe_id(args.ablation_id or default_id)
     except ValueError as exc:
         parser.error(str(exc))
+
     output_root = args.output_dir
     output_root.mkdir(parents=True, exist_ok=True)
     statuses = {}
@@ -116,7 +64,7 @@ def main(argv: List[str] | None = None) -> None:
             report_inputs.append(retrieval_eval)
 
     metadata = {
-        "schema_version": "retrieval_ablation.v1",
+        "schema_version": "dense_ppr_ablation.v1",
         "ablation_id": ablation_id,
         "modes": list(MODES),
         "shared_kg_sessions": {

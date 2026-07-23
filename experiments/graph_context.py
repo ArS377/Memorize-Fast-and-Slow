@@ -110,7 +110,9 @@ class GraphSource:
                  source_session_ids: Optional[List[str]] = None,
                  retrieval_config: Optional[RetrievalConfig] = None,
                  dense_indexes: Optional[Dict[str, Any]] = None,
-                 dense_failure: Optional[Exception] = None):
+                 dense_failure: Optional[Exception] = None,
+                 ppr_index: Optional[Any] = None,
+                 ppr_failure: Optional[Exception] = None):
         self.graph = graph
         self.fallback_facts = fallback_facts
         self.session_id = session_id
@@ -118,6 +120,8 @@ class GraphSource:
         self.retrieval_config = retrieval_config or RetrievalConfig(mode="sparse")
         self.dense_indexes = dict(dense_indexes or {})
         self.dense_failure = dense_failure
+        self.ppr_index = ppr_index
+        self.ppr_failure = ppr_failure
         self._retrieval_history: List[Dict[str, Any]] = []
         requested_sessions = [str(s) for s in (source_session_ids or []) if str(s).strip()]
         self.source_session_ids = list(dict.fromkeys(requested_sessions or ([session_id] if session_id else [])))
@@ -125,6 +129,30 @@ class GraphSource:
             raise ValueError("session_set memory scope requires at least two trusted source sessions")
         if self.memory_scope != "session_set" and len(self.source_session_ids) > 1:
             raise ValueError(f"{self.memory_scope} memory scope accepts exactly one source session")
+        if (
+            self.retrieval_config.mode == "dense_ppr"
+            and self.ppr_index is None
+            and self.ppr_failure is None
+            and self.dense_failure is None
+        ):
+            try:
+                from experiments.ppr_retrieval import PPRFactIndex
+
+                self.ppr_index = PPRFactIndex.from_dense_indexes(
+                    self.dense_indexes,
+                    config=self.retrieval_config.ppr,
+                )
+            except Exception as exc:
+                from experiments.retrieval_config import PPRRetrievalError
+
+                self.ppr_failure = (
+                    exc
+                    if isinstance(exc, PPRRetrievalError)
+                    else PPRRetrievalError(
+                        "ppr_index_unavailable",
+                        "PPR sidecar initialization failed",
+                    )
+                )
 
     def trusted_scope(self, example_id: str) -> MemoryScope:
         return MemoryScope(
@@ -145,8 +173,18 @@ class GraphSource:
 
     def retrieval_summary(self) -> Dict[str, Any]:
         configured = self.retrieval_config.mode
+        branches = (
+            ("dense", "ppr")
+            if configured == "dense_ppr"
+            else ("sparse", "dense")
+        )
+        ppr_identity = (
+            self.ppr_index.manifest.identity
+            if self.ppr_index is not None
+            else None
+        )
         if not self._retrieval_history:
-            return {
+            summary = {
                 "configured_mode": configured,
                 # Configuration is not execution evidence.  Keep this unset until
                 # retrieve() records an actual branch run so compliance cannot
@@ -157,10 +195,10 @@ class GraphSource:
                     self.dense_indexes[key].manifest.identity
                     for key in sorted(self.dense_indexes)
                 ],
-                "branch_counts": {"sparse": 0, "dense": 0},
-                "branch_fact_ids": {"sparse": [], "dense": []},
+                "branch_counts": {branch: 0 for branch in branches},
+                "branch_fact_ids": {branch: [] for branch in branches},
                 "result_fact_ids": [],
-                "branch_latency_seconds": {"sparse": 0.0, "dense": 0.0},
+                "branch_latency_seconds": {branch: 0.0 for branch in branches},
                 "rrf": {
                     "k": self.retrieval_config.rrf_k,
                     "branch_candidate_multiplier": self.retrieval_config.branch_candidate_multiplier,
@@ -168,20 +206,33 @@ class GraphSource:
                 },
                 "warning": None,
             }
+            if configured == "dense_ppr":
+                summary.update(
+                    {
+                        "ppr_index_identity": ppr_identity,
+                        "ppr_index_build_seconds": (
+                            self.ppr_index.build_seconds
+                            if self.ppr_index is not None
+                            else None
+                        ),
+                        "ppr": {"settings": self.retrieval_config.ppr.to_dict()},
+                    }
+                )
+            return summary
         effective = {str(value.get("effective_mode", configured)) for value in self._retrieval_history}
         latency = {
             branch: round(
                 sum(float(value.get("branch_latency_seconds", {}).get(branch, 0.0)) for value in self._retrieval_history),
                 6,
             )
-            for branch in ("sparse", "dense")
+            for branch in branches
         }
         counts = {
             branch: sum(
                 int(value.get("branch_counts", {}).get(branch, 0))
                 for value in self._retrieval_history
             )
-            for branch in ("sparse", "dense")
+            for branch in branches
         }
         branch_fact_ids = {
             branch: list(
@@ -191,7 +242,7 @@ class GraphSource:
                     for fact_id in value.get("branch_fact_ids", {}).get(branch, [])
                 )
             )
-            for branch in ("sparse", "dense")
+            for branch in branches
         }
         result_fact_ids = list(
             dict.fromkeys(

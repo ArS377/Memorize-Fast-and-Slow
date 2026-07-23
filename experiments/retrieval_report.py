@@ -30,6 +30,12 @@ def recall_at_k(retrieved_fact_ids: Sequence[str], relevant_fact_ids: Iterable[s
 def evaluate_retrieval_rows(rows: Sequence[Mapping[str, Any]], k_values: Sequence[int] = (1, 5, 10)) -> Dict[str, Any]:
     grouped: Dict[str, List[Mapping[str, Any]]] = defaultdict(list)
     citation_proxy: Dict[tuple[str, str], set[str]] = defaultdict(set)
+    has_ppr = any(
+        str(row.get("mode") or row.get("retrieval_mode")) == "dense_ppr"
+        or "ppr_fact_ids" in row
+        or "ppr" in row.get("branch_counts", {})
+        for row in rows
+    )
     for row in rows:
         grouped[str(row.get("mode") or row.get("retrieval_mode") or "unknown")].append(row)
         if str(row.get("relevance_source", "")) == "cited_fact_ids":
@@ -67,6 +73,11 @@ def evaluate_retrieval_rows(rows: Sequence[Mapping[str, Any]], k_values: Sequenc
             "sparse": sum(int(row.get("branch_counts", {}).get("sparse", 0)) for row in mode_rows),
             "dense": sum(int(row.get("branch_counts", {}).get("dense", 0)) for row in mode_rows),
         }
+        if has_ppr:
+            branch_counts["ppr"] = sum(
+                int(row.get("branch_counts", {}).get("ppr", 0))
+                for row in mode_rows
+            )
         unique_retrieved = {
             str(fact_id)
             for row in mode_rows
@@ -82,12 +93,22 @@ def evaluate_retrieval_rows(rows: Sequence[Mapping[str, Any]], k_values: Sequenc
             for row in mode_rows
             for fact_id in row.get("dense_fact_ids", [])
         }
+        ppr_unique = {
+            str(fact_id)
+            for row in mode_rows
+            for fact_id in row.get("ppr_fact_ids", [])
+        }
+        branch_overlap = (
+            dense_unique.intersection(ppr_unique)
+            if mode == "dense_ppr"
+            else sparse_unique.intersection(dense_unique)
+        )
         duplicate_count = sum(
             max(0, len(list(row.get("pre_fusion_fact_ids", []))) - len(set(row.get("pre_fusion_fact_ids", []))))
             for row in mode_rows
         )
         pre_fusion_count = sum(len(list(row.get("pre_fusion_fact_ids", []))) for row in mode_rows)
-        modes[mode] = {
+        mode_metrics = {
             "query_count": len(mode_rows),
             "labeled_query_count": len(labeled_rows),
             "relevance_source_counts": {
@@ -104,14 +125,17 @@ def evaluate_retrieval_rows(rows: Sequence[Mapping[str, Any]], k_values: Sequenc
             "unique_retrieved_fact_count": len(unique_retrieved),
             "sparse_unique_fact_count": len(sparse_unique),
             "dense_unique_fact_count": len(dense_unique),
-            "branch_overlap_fact_count": len(sparse_unique.intersection(dense_unique)),
+            "branch_overlap_fact_count": len(branch_overlap),
             "fusion_duplicate_rate": round(duplicate_count / pre_fusion_count, 6) if pre_fusion_count else 0.0,
             "degraded_query_count": sum(bool(row.get("degraded")) for row in mode_rows),
         }
+        if has_ppr:
+            mode_metrics["ppr_unique_fact_count"] = len(ppr_unique)
+        modes[mode] = mode_metrics
     warnings: List[Dict[str, Any]] = []
     sparse = modes.get("sparse")
     if sparse:
-        for mode in ("dense", "hybrid"):
+        for mode in ("dense", "hybrid", "dense_ppr"):
             candidate = modes.get(mode)
             if not candidate:
                 continue
@@ -155,17 +179,35 @@ def render_markdown(report: Mapping[str, Any]) -> str:
     lines = [
         "# Retrieval Quality Report",
         "",
-        "| Mode | Queries | Recall@1 | Recall@5 | Recall@10 | Sparse candidates | Dense candidates | Fusion duplicate rate | Degraded |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
+    has_ppr = any(
+        "ppr" in metrics.get("branch_candidate_counts", {})
+        for metrics in report.get("modes", {}).values()
+    )
+    if has_ppr:
+        lines.extend(
+            [
+                "| Mode | Queries | Recall@1 | Recall@5 | Recall@10 | Sparse candidates | Dense candidates | PPR candidates | Fusion duplicate rate | Degraded |",
+                "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "| Mode | Queries | Recall@1 | Recall@5 | Recall@10 | Sparse candidates | Dense candidates | Fusion duplicate rate | Degraded |",
+                "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
     for mode, metrics in sorted(report.get("modes", {}).items()):
         counts = metrics.get("branch_candidate_counts", {})
+        ppr_column = f"{counts.get('ppr', 0)} | " if has_ppr else ""
         lines.append(
             f"| {mode} | {metrics.get('query_count', 0)} | "
             f"{metric(metrics.get('recall_at_1'))} | "
             f"{metric(metrics.get('recall_at_5'))} | "
             f"{metric(metrics.get('recall_at_10'))} | "
             f"{counts.get('sparse', 0)} | {counts.get('dense', 0)} | "
+            f"{ppr_column}"
             f"{metrics.get('fusion_duplicate_rate', 0.0):.4f} | "
             f"{metrics.get('degraded_query_count', 0)} |"
         )
@@ -189,9 +231,15 @@ def render_markdown(report: Mapping[str, Any]) -> str:
         lines.append("- **None**: no measured regression or degradation was detected.")
     lines.extend(["", "## Fusion Diagnostics", ""])
     for mode, metrics in sorted(report.get("modes", {}).items()):
+        detail = (
+            f"; {metrics.get('ppr_unique_fact_count', 0)} facts were returned by PPR"
+            if has_ppr
+            else ""
+        )
         lines.append(
             f"- **{mode}**: {metrics.get('unique_retrieved_fact_count', 0)} unique facts; "
-            f"{metrics.get('branch_overlap_fact_count', 0)} facts occurred in both branches."
+            f"{metrics.get('branch_overlap_fact_count', 0)} facts occurred in both branches"
+            f"{detail}."
         )
     return "\n".join(lines) + "\n"
 
