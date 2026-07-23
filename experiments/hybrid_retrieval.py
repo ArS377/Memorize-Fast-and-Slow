@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
@@ -12,6 +13,48 @@ from experiments.retrieval_config import DenseRetrievalError
 class RetrievalOutcome:
     rows: List[Dict[str, Any]]
     metadata: Dict[str, Any]
+
+
+def _canonical_predicate(value: Any) -> str:
+    return re.sub(
+        r"_+",
+        "_",
+        re.sub(r"[^A-Z0-9_]+", "_", str(value).strip().upper()),
+    ).strip("_")
+
+
+def _resolve_predicate_filter(
+    source: Any,
+    predicates: Optional[Sequence[str]],
+) -> tuple[Optional[List[str]], Dict[str, Any]]:
+    requested = list(
+        dict.fromkeys(
+            canonical
+            for value in predicates or []
+            if (canonical := _canonical_predicate(value))
+        )
+    )
+    known = {
+        _canonical_predicate(fact.get("predicate", ""))
+        for index in (getattr(source, "dense_indexes", {}) or {}).values()
+        for fact in getattr(index, "facts", [])
+    }
+    known.update(
+        _canonical_predicate(fact.get("predicate", ""))
+        for fact in (getattr(source, "fallback_facts", None) or [])
+    )
+    known.discard("")
+    if not requested or not known:
+        applied = requested
+        relaxed = False
+    else:
+        applied = [predicate for predicate in requested if predicate in known]
+        relaxed = applied != requested
+    return (applied or None), {
+        "requested": requested,
+        "applied": applied,
+        "relaxed": relaxed,
+    }
 
 
 def _sparse_rows(
@@ -94,6 +137,7 @@ def _metadata(
     dense_count: int,
     sparse_latency: float,
     dense_latency: float,
+    predicate_filter: Dict[str, Any],
     failure: Optional[DenseRetrievalError] = None,
 ) -> Dict[str, Any]:
     config = source.retrieval_config
@@ -114,6 +158,7 @@ def _metadata(
             "branch_candidate_cap": config.branch_candidate_cap,
         },
         "dense_index_identity": identities,
+        "predicate_filter": predicate_filter,
         "warning": (
             {"code": failure.code, "message": str(failure)}
             if failure is not None and degraded
@@ -246,6 +291,9 @@ def retrieve(
     dense: List[Dict[str, Any]] = []
     sparse_latency = 0.0
     dense_latency = 0.0
+    effective_predicates, predicate_filter = _resolve_predicate_filter(
+        source, predicates
+    )
 
     if mode in {"sparse", "hybrid"}:
         started = time.perf_counter()
@@ -256,7 +304,7 @@ def retrieve(
             example_id=example_id,
             hops=hops,
             top_k=depth if mode == "hybrid" else top_k,
-            predicates=predicates,
+            predicates=effective_predicates,
         )
         sparse_latency = time.perf_counter() - started
     if mode in {"dense", "hybrid"}:
@@ -267,7 +315,7 @@ def retrieve(
                 query=query,
                 example_id=example_id,
                 top_k=depth if mode == "hybrid" else top_k,
-                predicates=predicates,
+                predicates=effective_predicates,
             )
         except DenseRetrievalError as exc:
             dense_latency = time.perf_counter() - started
@@ -282,6 +330,7 @@ def retrieve(
                     dense_count=0,
                     sparse_latency=sparse_latency,
                     dense_latency=dense_latency,
+                    predicate_filter=predicate_filter,
                     failure=exc,
                 )
                 metadata["branch_fact_ids"] = {
@@ -302,6 +351,7 @@ def retrieve(
                 dense_count=0,
                 sparse_latency=sparse_latency,
                 dense_latency=dense_latency,
+                predicate_filter=predicate_filter,
             )
             metadata["error"] = {"code": exc.code, "message": str(exc)}
             metadata["branch_fact_ids"] = {
@@ -335,6 +385,7 @@ def retrieve(
         dense_count=len(dense),
         sparse_latency=sparse_latency,
         dense_latency=dense_latency,
+        predicate_filter=predicate_filter,
     )
     metadata["branch_fact_ids"] = {
         "sparse": [str(row.get("fact_id", "")) for row in sparse],

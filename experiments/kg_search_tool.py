@@ -17,7 +17,7 @@ from experiments.graph_context import GraphSource, extract_seed_entities
 
 
 TOOL_NAME = "search_knowledge_graph"
-TOOL_VERSION = "search_knowledge_graph.v2"
+TOOL_VERSION = "search_knowledge_graph.v3"
 DEFAULT_RETRIEVAL_MODE = "hybrid"
 DEFAULT_TOP_K = 10
 DEFAULT_HOPS = 2
@@ -79,7 +79,11 @@ SEARCH_KNOWLEDGE_GRAPH_TOOL: Dict[str, Any] = {
                     },
                     "maxItems": MAX_PREDICATES,
                     "default": [],
-                    "description": "Optional UPPER_SNAKE_CASE relationship filters.",
+                    "description": (
+                        "Optional exact UPPER_SNAKE_CASE relationship filters. "
+                        "Omit these on the first search; only reuse predicate names "
+                        "returned by an earlier result. Never invent generic filters."
+                    ),
                 },
                 "top_k": {
                     "type": "integer",

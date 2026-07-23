@@ -298,6 +298,35 @@ def test_hybrid_rrf_deduplicates_and_uses_deterministic_ranks(tmp_path: Path) ->
     assert outcome.rows[1]["_retrieval"]["rrf_score"] == pytest.approx(1 / 61)
 
 
+def test_hybrid_relaxes_invented_predicates_against_known_ontology(
+    tmp_path: Path,
+) -> None:
+    index = _index(tmp_path)
+    source = GraphSource(
+        fallback_facts=FACTS,
+        session_id="session-1",
+        memory_scope="example",
+        retrieval_config=_config(tmp_path, mode="hybrid"),
+        dense_indexes={"session-1": index},
+    )
+
+    outcome = source.retrieve(
+        query="relationship between training methods and model performance",
+        seed_entities=["Kalamang"],
+        example_id="ex1",
+        top_k=10,
+        hops=2,
+        predicates=["impact", "relationship"],
+    )
+
+    assert [row["fact_id"] for row in outcome.rows] == ["f-kalamang"]
+    assert outcome.metadata["predicate_filter"] == {
+        "requested": ["IMPACT", "RELATIONSHIP"],
+        "applied": [],
+        "relaxed": True,
+    }
+
+
 def test_dense_ties_are_broken_by_fact_id(tmp_path: Path) -> None:
     tied = [
         {

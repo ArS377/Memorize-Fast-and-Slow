@@ -519,9 +519,9 @@ class Neo4jGraph:
         rel_type = sanitize_predicate(predicate)
         sid = session_id  # may be None to mean "across all sessions"
         query = (
-            "MATCH (s:Entity {name: $subject})-"
-            f"[r:`{rel_type}`]->(o:Entity)\n"
-            "WHERE ($session_id IS NULL OR r.session_id = $session_id)\n"
+            "MATCH (s:Entity {name: $subject})-[r]->(o:Entity)\n"
+            "WHERE type(r) = $predicate\n"
+            "  AND ($session_id IS NULL OR r.session_id = $session_id)\n"
             "  AND o.name <> $object\n"
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
@@ -544,6 +544,7 @@ class Neo4jGraph:
             result = session.run(
                 query,
                 subject=str(subject),
+                predicate=rel_type,
                 object=str(object_),
                 session_id=sid,
             )

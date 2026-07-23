@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from experiments.common import CELLS
+from experiments.common import CELLS, iter_pilot_examples
 from experiments.kg_search_tool import TOOL_VERSION as SEARCH_TOOL_VERSION
 from experiments.retrieval_config import EmbeddingConfig, RetrievalConfig
 from experiments.working_memory_tool import TOOL_VERSION as MEMORY_TOOL_VERSION
@@ -55,6 +55,33 @@ def _write_manifest(results_dir: Path, metadata: dict) -> None:
     (results_dir / "manifest.json").write_text(payload, encoding="utf-8")
     # Retain the original filename for scripts written before run-local manifests.
     (results_dir / "run_metadata.json").write_text(payload, encoding="utf-8")
+
+
+def _materialize_pilot_input(
+    source_path: Path,
+    output_path: Path,
+    *,
+    limit: int,
+    seed: int,
+) -> dict:
+    """Freeze the shared pilot slice once so every stage avoids rescanning the corpus."""
+    rows = iter_pilot_examples(source_path, limit, seed=seed)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output_path.with_name(f".{output_path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+            for row in rows:
+                stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+        os.replace(temporary, output_path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return {
+        "path": str(output_path),
+        "sha256": _sha256(output_path),
+        "example_count": len(rows),
+        "example_ids": [str(row.get("_id", "")) for row in rows],
+    }
 
 
 def _positive_int(value: str) -> int:
@@ -106,12 +133,11 @@ def _module_for(cell_id: int) -> str:
 
 def _common_cell_args(args, cell_id: int) -> List[str]:
     base = [
-        "--input", str(args.input),
+        "--input", str(getattr(args, "pilot_input", args.input)),
         "--limit", str(args.limit),
         "--seed", str(args.seed),
         "--model", args.model,
         "--vllm-base-url", args.vllm_base_url,
-        "--api-key", args.api_key,
         "--results-dir", str(args.results_dir),
         "--run-id", getattr(args, "run_id", "adhoc"),
         "--no-aggregate",
@@ -121,8 +147,6 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             base += ["--neo4j-uri", args.neo4j_uri]
         if args.neo4j_user:
             base += ["--neo4j-user", args.neo4j_user]
-        if args.neo4j_password:
-            base += ["--neo4j-password", args.neo4j_password]
         session_id = getattr(args, "kg_sessions", KG_SESSIONS)[cell_id]
         base += ["--session-id", session_id]
         facts_file = args.results_dir / "kg_builds" / f"{session_id}_facts.jsonl"
@@ -146,7 +170,7 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             base += ["--embedding-revision", args.embedding_revision]
         for source_session in getattr(args, "source_session", []):
             base += ["--source-session", source_session]
-        if getattr(args, "scallop_validator_url", None):
+        if cell_id == 6 and getattr(args, "scallop_validator_url", None):
             base += ["--scallop-validator-url", args.scallop_validator_url]
     else:
         if args.raw_max_chars is not None:
@@ -276,6 +300,13 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     cells = _parse_cells(args.cells)
     args.results_dir.mkdir(parents=True, exist_ok=True)
+    args.pilot_input = args.results_dir / "pilot_input.jsonl"
+    pilot_input = _materialize_pilot_input(
+        args.input,
+        args.pilot_input,
+        limit=args.limit,
+        seed=args.seed,
+    )
     retrieval_eval_path = args.results_dir / "retrieval_eval.jsonl"
     if retrieval_eval_path.exists():
         retrieval_eval_path.unlink()
@@ -287,6 +318,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         "git_sha": sha,
         "input": str(args.input),
         "input_sha256": _sha256(args.input),
+        "pilot_input": pilot_input,
         "limit": args.limit,
         "seed": args.seed,
         "model": args.model,
@@ -352,7 +384,7 @@ def main(argv: Optional[List[str]] = None) -> None:
                 built_path = build_kg(
                     session_id=session,
                     validate=validate,
-                    input_path=args.input,
+                    input_path=args.pilot_input,
                     model=args.model,
                     vllm_base_url=args.vllm_base_url,
                     api_key=args.api_key,
@@ -392,7 +424,11 @@ def main(argv: Optional[List[str]] = None) -> None:
         cell_args = _common_cell_args(args, cid)
         print(f"[run_all] -> {mod} {' '.join(cell_args)}", file=sys.stderr)
         cmd = [sys.executable, "-m", mod] + cell_args
-        rc = subprocess.call(cmd)
+        cell_env = os.environ.copy()
+        cell_env["VLLM_API_KEY"] = args.api_key
+        if args.neo4j_password:
+            cell_env["NEO4J_PASSWORD"] = args.neo4j_password
+        rc = subprocess.call(cmd, env=cell_env)
         metadata["cell_status"][str(cid)] = "complete" if rc == 0 else f"failed:{rc}"
         cell = next(cell for cell in CELLS if cell["cell_id"] == cid)
         output = args.results_dir / f"cell{cid}_{cell['label']}" / "results.jsonl"

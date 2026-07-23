@@ -260,6 +260,8 @@ is needed; do not print or hand-parse a JSON retrieval action. Tool results are
 retained across RLM iterations.
 
 Use precise seed entities so the configured retriever can use its entity branch.
+On the first search, omit `predicates`. Only use exact UPPER_SNAKE_CASE predicate
+names copied from an earlier tool result; never invent generic predicate filters.
 After status="ok" with an empty results list, reformulate with an alias or follow
 an intermediate entity. A
 status="error" response is a failed call, not a no-hit. You may make at most
@@ -272,7 +274,8 @@ not the model, owns memory scope and decides whether Scallop gates the update.
 
 You may use the RLM REPL, `llm_query`, and `rlm_query` to reason over returned
 facts. To finish, do not answer in prose. Emit one `repl` code block that sets
-the RLM answer and marks it ready, for example:
+the RLM answer and marks it ready. The fence label must be `repl`, not `python`,
+for example:
 
 ```repl
 answer["content"] = "FINAL_ANSWER: <A|B|C|D>\\nCITED_FACT_IDS: <returned fact IDs>"
@@ -352,6 +355,11 @@ def _parse_candidate_answer(content: str) -> str:
     structured = re.search(r"\bFINAL_ANSWER\s*:\s*([ABCD])\b", text)
     if structured:
         return structured.group(1).upper()
+    leading = re.match(
+        r"^\s*([ABCD])(?:\s*[).:\-]|\s+|$)", text, re.IGNORECASE
+    )
+    if leading:
+        return leading.group(1).upper()
     matches = list(_PROSE_ANSWER_RE.finditer(text))
     return matches[-1].group(1).upper() if matches else ""
 
@@ -395,7 +403,10 @@ def _rlm_ready_block(content: str) -> str:
     )
 
 
-_REPL_BLOCK_RE = re.compile(r"```repl\s*(.*?)```", re.DOTALL | re.IGNORECASE)
+_REPL_BLOCK_RE = re.compile(
+    r"```(?:repl|python)\s*(.*?)```",
+    re.DOTALL | re.IGNORECASE,
+)
 
 
 def _answer_assignment_key(target: ast.expr) -> Optional[str]:
@@ -831,6 +842,12 @@ class NativeToolSession:
                 predicted, model_citations, evidence_insufficient = _parse_final_response(
                     completion_content
                 )
+                if ready_payload is not None and not predicted:
+                    # Qwen sometimes compresses an otherwise valid stabilized answer to
+                    # ``answer["content"] = "B"``. Treat that explicit ready payload as
+                    # the candidate, then require the normal controller-side grounding
+                    # and working-memory checks below before it can terminate the run.
+                    predicted = candidate
                 citations, citations_synthesized = self._resolve_citations(
                     predicted, model_citations
                 )

@@ -149,6 +149,15 @@
       "branch_candidate_cap": 50
     },
     "dense_index_identity": [],
+    "predicate_filter": {
+      "requested": [
+        "SPOKEN_IN"
+      ],
+      "applied": [
+        "SPOKEN_IN"
+      ],
+      "relaxed": false
+    },
     "warning": null,
     "branch_fact_ids": {
       "sparse": [

@@ -312,18 +312,25 @@ def run_cell(
                 facts_file=args.facts_file,
                 memory_scope=args.memory_scope,
                 source_session_ids=args.source_session,
-                validator_url=args.scallop_validator_url,
+                # Cells 2/3/5 only read their already-built sessions. Only
+                # Cell 6 performs validated runtime memory updates.
+                validator_url=args.scallop_validator_url if cell_id == 6 else None,
                 require_scallop=(cell_id == 6),
                 retrieval_config=retrieval_config,
             )
         except RuntimeError as e:
             print(f"ERROR: {e}", file=sys.stderr)
             sys.exit(2)
-        backend = getattr(getattr(graph_source, "graph", None), "validator_backend", None)
-        backend_info = getattr(backend, "info", None)
-        validator_backend_label = (
-            backend_info.name if backend_info is not None else "fallback_file"
-        )
+        if cell_id in {2, 5}:
+            validator_backend_label = "none"
+        elif cell_id == 3:
+            validator_backend_label = "scallop"
+        else:
+            backend = getattr(getattr(graph_source, "graph", None), "validator_backend", None)
+            backend_info = getattr(backend, "info", None)
+            validator_backend_label = (
+                backend_info.name if backend_info is not None else "fallback_file"
+            )
 
     n_correct = 0
     retrieval_eval_path = out_path.parent / "retrieval_eval.jsonl"
@@ -337,6 +344,9 @@ def run_cell(
                 question = format_question(ex)
                 if graph_source is not None:
                     graph_source.reset_retrieval_history()
+                # Per-example latency covers retrieval/context preparation and
+                # generation so the six cells remain directly comparable.
+                t0 = time.time()
 
                 # Build memory/context.
                 if retrieval == "raw":
@@ -360,7 +370,6 @@ def run_cell(
                         context = "No relevant facts."
                     n_context_chars = len(context)
 
-                t0 = time.time()
                 error: Optional[str] = None
                 predicted = ""
                 relevant_fact_ids: List[str] = []

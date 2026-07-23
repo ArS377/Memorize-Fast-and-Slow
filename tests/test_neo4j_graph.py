@@ -223,6 +223,18 @@ def test_propose_facts_classifies_new_existing_conflict() -> None:
     print("PASS test_propose_facts_classifies_new_existing_conflict")
 
 
+def test_find_conflicts_filters_relationship_type_as_data() -> None:
+    graph = make_graph(session_id="sess_test")
+
+    assert graph.find_conflicts("A", "new relation", "B") == []
+
+    query, params = graph._driver.queries[-1]
+    assert "MATCH (s:Entity {name: $subject})-[r]->(o:Entity)" in query
+    assert "type(r) = $predicate" in query
+    assert "[r:`NEW_RELATION`]" not in query
+    assert params["predicate"] == "NEW_RELATION"
+
+
 def test_insert_facts_idempotent_on_repeated_call() -> None:
     graph = make_graph(session_id="sess_test")
     facts = load_fixture()[:3]

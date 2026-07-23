@@ -60,6 +60,27 @@ def _dump_session_facts(graph, session_id: str, out_path: Path) -> int:
     return len(rows)
 
 
+def _finalize_session(
+    graph,
+    *,
+    session_id: str,
+    out_path: Path,
+    rejections_path: Path,
+    validate: bool,
+    committed: int,
+) -> Path:
+    """Reconcile audit metadata and mirror one completed KG session."""
+    reconciled = graph.reconcile_fact_decisions(session_id) if validate else 0
+    mirrored = _dump_session_facts(graph, session_id, out_path)
+    print(
+        f"[build_kg] done. session={session_id} committed={committed} "
+        f"reconciled={reconciled} mirrored={mirrored} -> {out_path}; "
+        f"rejections -> {rejections_path}",
+        file=sys.stderr,
+    )
+    return out_path
+
+
 def build_kg(
     *,
     session_id: str,
@@ -118,9 +139,14 @@ def build_kg(
             )
             rejections_path.parent.mkdir(parents=True, exist_ok=True)
             rejections_path.touch(exist_ok=True)
-            n = _dump_session_facts(graph, session_id, out_path)
-            print(f"[build_kg] mirrored {n} facts -> {out_path}", file=sys.stderr)
-            return out_path
+            return _finalize_session(
+                graph,
+                session_id=session_id,
+                out_path=out_path,
+                rejections_path=rejections_path,
+                validate=validate,
+                committed=0,
+            )
 
         if rebuild and existing > 0:
             print(f"[build_kg] --rebuild: clearing session {session_id}", file=sys.stderr)
@@ -145,7 +171,10 @@ def build_kg(
                 session_id=session_id,
                 validate=validate,
             )
-            for rejected in result.get("rejected", []):
+            scallop_rejected = result.get("rejected", [])
+            if not isinstance(scallop_rejected, list):
+                scallop_rejected = []
+            for rejected in scallop_rejected:
                 candidate = rejected.get("candidate", {})
                 append_rejection_jsonl(
                     rejections_path,
@@ -160,8 +189,19 @@ def build_kg(
                         validator=graph.validator_backend.info.name,
                     ),
                 )
-            _dump_session_facts(graph, session_id, out_path)
-            return out_path
+            print(
+                f"[build_kg] rejection summary: llm_rejected=0 "
+                f"scallop_rejected={len(scallop_rejected)}",
+                file=sys.stderr,
+            )
+            return _finalize_session(
+                graph,
+                session_id=session_id,
+                out_path=out_path,
+                rejections_path=rejections_path,
+                validate=validate,
+                committed=int(result.get("committed", 0)),
+            )
 
         examples = iter_pilot_examples(input_path, limit)
         print(
@@ -194,6 +234,8 @@ def build_kg(
         pipeline = LongBenchKGPipeline(cfg)
 
         total_committed = 0
+        total_llm_rejected = 0
+        total_scallop_rejected = 0
         for i, example in enumerate(examples, start=1):
             example_id = str(example.get("_id", f"example_{i}"))
             print(f"[build_kg] ({i}/{len(examples)}) extracting {example_id}", file=sys.stderr)
@@ -205,8 +247,10 @@ def build_kg(
 
             extracted: List[Dict[str, Any]] = []
             for ci, chunk in enumerate(chunks):
+                text_chars = sum(len(str(record.get("text", ""))) for record in chunk)
                 print(
-                    f"           chunk {ci + 1}/{len(chunks)} chars={len(chunk)}",
+                    f"           chunk {ci + 1}/{len(chunks)} "
+                    f"sentences={len(chunk)} text_chars={text_chars}",
                     file=sys.stderr,
                 )
                 extracted.extend(pipeline.extract_facts(example, chunk, ci))
@@ -237,16 +281,21 @@ def build_kg(
                             validator="llm_self_reflection",
                         ),
                     )
+            total_llm_rejected += len(verifier_rejected)
 
             for fact in supported:
                 fact.update(fact_to_compiled_fact(fact))
 
+            scallop_rejected = []
             if supported:
                 result = graph.insert_facts(
                     supported, session_id=session_id, validate=validate
                 )
                 total_committed += int(result.get("committed", 0))
-                for rejected in result.get("rejected", []):
+                result_rejected = result.get("rejected", [])
+                if isinstance(result_rejected, list):
+                    scallop_rejected = result_rejected
+                for rejected in scallop_rejected:
                     candidate = rejected.get("candidate", {})
                     if not isinstance(candidate, dict):
                         continue
@@ -263,22 +312,28 @@ def build_kg(
                             validator="scallop",
                         ),
                     )
+            total_scallop_rejected += len(scallop_rejected)
             print(
                 f"           extracted={len(extracted)} supported={len(supported)} "
-                f"rejected={len(verifier_rejected)} "
+                f"llm_rejected={len(verifier_rejected)} "
+                f"scallop_rejected={len(scallop_rejected)} "
                 f"committed_total={total_committed}",
                 file=sys.stderr,
             )
 
-        reconciled = graph.reconcile_fact_decisions(session_id) if validate else 0
-        n = _dump_session_facts(graph, session_id, out_path)
         print(
-            f"[build_kg] done. session={session_id} committed={total_committed} "
-            f"reconciled={reconciled} mirrored={n} -> {out_path}; "
-            f"rejections -> {rejections_path}",
+            f"[build_kg] rejection summary: llm_rejected={total_llm_rejected} "
+            f"scallop_rejected={total_scallop_rejected}",
             file=sys.stderr,
         )
-        return out_path
+        return _finalize_session(
+            graph,
+            session_id=session_id,
+            out_path=out_path,
+            rejections_path=rejections_path,
+            validate=validate,
+            committed=total_committed,
+        )
     finally:
         graph.close()
 

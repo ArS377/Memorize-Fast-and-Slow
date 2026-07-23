@@ -620,7 +620,7 @@ answer["ready"] = True
 
 
 def test_order_gap_rejects_early_ready_and_owns_the_final_stop() -> None:
-    bare_ready = '''```repl
+    bare_ready = '''```python
 answer["content"] = "A) East Indonesia"
 answer["ready"] = True
 ```'''
@@ -691,6 +691,59 @@ answer["ready"] = True
         "update_working_memory"
     ]
     assert "tools" not in client.completions.requests[-1]
+
+
+def test_order_gap_normalizes_single_choice_ready_after_grounding() -> None:
+    supported_ready = '''```repl
+answer["content"] = "FINAL_ANSWER: A\\nCITED_FACT_IDS: f1"
+answer["ready"] = True
+```'''
+    short_ready = '''```repl
+answer["content"] = "A"
+answer["ready"] = True
+```'''
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "update",
+                        {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                        name="update_working_memory",
+                    )
+                ]
+            ),
+            _response(content=supported_ready),
+            _response(content=supported_ready),
+            _response(content=short_ready),
+        ]
+    )
+    session = _session(
+        client,
+        tool_choice="required",
+        require_memory_update=True,
+        validate_memory_updates=False,
+    )
+
+    assert session.complete(client, _messages()) == "FINAL_ANSWER: A\nCITED_FACT_IDS: f1"
+    assert session.complete(client, _messages()) == "FINAL_ANSWER: A\nCITED_FACT_IDS: f1"
+    completion = session.complete(client, _messages())
+
+    assert "FINAL_ANSWER: A" in completion
+    assert "CITED_FACT_IDS: f1" in completion
+    assert session.controller_termination_reason == "order_gap_supported_answer"
+    assert any(
+        event.get("event") == "citations_grounded" and event.get("synthesized")
+        for event in session.trace["events"]
+    )
 
 
 def test_malformed_and_duplicate_calls_return_tool_errors() -> None:
@@ -927,15 +980,16 @@ def test_official_schema_does_not_expose_scope_controls() -> None:
 def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
     common = {
         "input": Path("input.jsonl"),
+        "pilot_input": Path("pilot_input.jsonl"),
         "limit": 1,
         "seed": 0,
         "model": "Qwen/Qwen3-4B",
         "vllm_base_url": "http://localhost:8000/v1",
-        "api_key": "EMPTY",
+        "api_key": "private-api-key",
         "results_dir": tmp_path,
         "neo4j_uri": "bolt://localhost:7687",
         "neo4j_user": "neo4j",
-        "neo4j_password": None,
+        "neo4j_password": "private-neo4j-password",
         "hops": 2,
         "limit_triples": 50,
         "memory_scope": "example",
@@ -950,13 +1004,22 @@ def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
         "model_timeout": 90.0,
         "model_max_retries": 0,
         "tool_trace_dir": None,
+        "scallop_validator_url": "http://validator:8765",
     }
     enabled = _common_cell_args(SimpleNamespace(**common, qwen_tool_retrieval=True), 5)
+    cell6 = _common_cell_args(SimpleNamespace(**common, qwen_tool_retrieval=True), 6)
     fixed = _common_cell_args(
         SimpleNamespace(**common, qwen_tool_retrieval=False, fixed_kg_retrieval=True), 5
     )
 
     assert "--qwen-tool-retrieval" in enabled
+    assert enabled[enabled.index("--input") + 1] == "pilot_input.jsonl"
+    assert "private-api-key" not in enabled
+    assert "private-neo4j-password" not in enabled
+    assert "--api-key" not in enabled
+    assert "--neo4j-password" not in enabled
+    assert "--scallop-validator-url" not in enabled
+    assert cell6[cell6.index("--scallop-validator-url") + 1] == "http://validator:8765"
     assert "--max-tool-calls" in enabled
     assert "--rlm-retrieval" not in enabled
     assert enabled[enabled.index("--retrieval-mode") + 1] == "hybrid"
@@ -1029,9 +1092,15 @@ def test_cell2_and_cell3_execute_hybrid_retrieval_before_flat_qwen(tmp_path: Pat
     input_path = tmp_path / "input.jsonl"
     input_path.write_text(json.dumps({**EXAMPLE, "answer": "A"}) + "\n", encoding="utf-8")
 
+    open_calls = []
+
+    def open_source(**kwargs):
+        open_calls.append(kwargs)
+        return _hybrid_graph_source(kwargs)
+
     with patch("openai.OpenAI", return_value=object()), patch(
         "experiments.graph_context.open_graph_source",
-        side_effect=lambda **kwargs: _hybrid_graph_source(kwargs),
+        side_effect=open_source,
     ), patch("experiments.flat_answerer.flat_answer", return_value=("A", "A")):
         for cell_id, label, session in [
             (2, "flat_kg_noscallop", "pilot_noscallop"),
@@ -1044,7 +1113,15 @@ def test_cell2_and_cell3_execute_hybrid_retrieval_before_flat_qwen(tmp_path: Pat
                 kind="flat",
                 retrieval="kg",
                 session_id=session,
-                argv=["--input", str(input_path), "--output", str(output_path), "--no-aggregate"],
+                argv=[
+                    "--input",
+                    str(input_path),
+                    "--output",
+                    str(output_path),
+                    "--scallop-validator-url",
+                    "http://validator:8765",
+                    "--no-aggregate",
+                ],
             )
             result = json.loads(output_path.read_text(encoding="utf-8"))
             assert result["configured_retrieval_mode"] == "hybrid"
@@ -1052,6 +1129,9 @@ def test_cell2_and_cell3_execute_hybrid_retrieval_before_flat_qwen(tmp_path: Pat
             assert result["retrieval_degraded"] is False
             assert result["retrieval_branch_counts"] == {"sparse": 1, "dense": 1}
             assert result["dense_index_identity"]
+            assert result["validator_backend"] == ("none" if cell_id == 2 else "scallop")
+
+    assert [call["validator_url"] for call in open_calls] == [None, None]
 
 
 def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path: Path) -> None:
@@ -1083,9 +1163,15 @@ def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path
     input_path = tmp_path / "input.jsonl"
     input_path.write_text(json.dumps({**EXAMPLE, "answer": "A"}) + "\n", encoding="utf-8")
 
+    open_calls = []
+
+    def open_source(**kwargs):
+        open_calls.append(kwargs)
+        return _hybrid_graph_source(kwargs, NoPreRetrievalSource)
+
     with patch(
         "experiments.graph_context.open_graph_source",
-        side_effect=lambda **kwargs: _hybrid_graph_source(kwargs, NoPreRetrievalSource),
+        side_effect=open_source,
     ), patch(
         "experiments.rlm_retrieval.qwen_rlm_tool_answer", side_effect=hybrid_answer
     ) as answer:
@@ -1100,7 +1186,15 @@ def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path
                 kind="rlm",
                 retrieval="kg",
                 session_id=session,
-                argv=["--input", str(input_path), "--output", str(output_path), "--no-aggregate"],
+                argv=[
+                    "--input",
+                    str(input_path),
+                    "--output",
+                    str(output_path),
+                    "--scallop-validator-url",
+                    "http://validator:8765",
+                    "--no-aggregate",
+                ],
             )
             result = json.loads(output_path.read_text(encoding="utf-8"))
             assert result["predicted"] == "A"
@@ -1110,5 +1204,8 @@ def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path
             assert result["retrieval_degraded"] is False
             assert result["retrieval_branch_counts"] == {"sparse": 1, "dense": 1}
             assert result["dense_index_identity"]
+            if cell_id == 5:
+                assert result["validator_backend"] == "none"
 
     assert answer.call_count == 2
+    assert [call["validator_url"] for call in open_calls] == [None, "http://validator:8765"]
