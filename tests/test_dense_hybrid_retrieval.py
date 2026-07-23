@@ -327,6 +327,37 @@ def test_hybrid_relaxes_invented_predicates_against_known_ontology(
     }
 
 
+def test_hybrid_relaxes_predicate_known_only_outside_example_scope(
+    tmp_path: Path,
+) -> None:
+    facts = [dict(row) for row in FACTS]
+    facts[1]["predicate"] = "MENTIONS"
+    index = _index(tmp_path, facts)
+    source = GraphSource(
+        fallback_facts=facts,
+        session_id="session-1",
+        memory_scope="example",
+        retrieval_config=_config(tmp_path, mode="hybrid"),
+        dense_indexes={"session-1": index},
+    )
+
+    outcome = source.retrieve(
+        query="Where is Kalamang spoken?",
+        seed_entities=["Kalamang"],
+        example_id="ex1",
+        top_k=10,
+        hops=2,
+        predicates=["mentions"],
+    )
+
+    assert [row["fact_id"] for row in outcome.rows] == ["f-kalamang"]
+    assert outcome.metadata["predicate_filter"] == {
+        "requested": ["MENTIONS"],
+        "applied": [],
+        "relaxed": True,
+    }
+
+
 def test_dense_ties_are_broken_by_fact_id(tmp_path: Path) -> None:
     tied = [
         {

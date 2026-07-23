@@ -26,6 +26,8 @@ def _canonical_predicate(value: Any) -> str:
 def _resolve_predicate_filter(
     source: Any,
     predicates: Optional[Sequence[str]],
+    *,
+    example_id: str,
 ) -> tuple[Optional[List[str]], Dict[str, Any]]:
     requested = list(
         dict.fromkeys(
@@ -34,15 +36,32 @@ def _resolve_predicate_filter(
             if (canonical := _canonical_predicate(value))
         )
     )
+    scope = source.trusted_scope(example_id)
+    sessions = set(scope.session_ids)
+
+    def in_scope(fact: Dict[str, Any]) -> bool:
+        fact_session = str(fact.get("session_id", ""))
+        if fact_session and fact_session not in sessions:
+            return False
+        return not (
+            scope.mode == "example"
+            and str(fact.get("example_id", "")) != str(scope.example_id)
+        )
+
+    indexes = getattr(source, "dense_indexes", {}) or {}
+    if indexes:
+        available_facts = (
+            fact
+            for index in indexes.values()
+            for fact in getattr(index, "facts", [])
+        )
+    else:
+        available_facts = iter(getattr(source, "fallback_facts", None) or [])
     known = {
         _canonical_predicate(fact.get("predicate", ""))
-        for index in (getattr(source, "dense_indexes", {}) or {}).values()
-        for fact in getattr(index, "facts", [])
+        for fact in available_facts
+        if in_scope(fact)
     }
-    known.update(
-        _canonical_predicate(fact.get("predicate", ""))
-        for fact in (getattr(source, "fallback_facts", None) or [])
-    )
     known.discard("")
     if not requested or not known:
         applied = requested
@@ -292,7 +311,9 @@ def retrieve(
     sparse_latency = 0.0
     dense_latency = 0.0
     effective_predicates, predicate_filter = _resolve_predicate_filter(
-        source, predicates
+        source,
+        predicates,
+        example_id=example_id,
     )
 
     if mode in {"sparse", "hybrid"}:
