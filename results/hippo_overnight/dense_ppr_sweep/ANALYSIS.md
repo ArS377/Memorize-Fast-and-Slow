@@ -107,7 +107,7 @@ Aligned with the proposal's own gating ("do not merge unless it improves multi-h
 ## 8. Where the data lives
 
 ```
-hippo_overnight_20260725_080810/
+dense_ppr_sweep/               # run_id hippo_overnight_20260725_080810
 ├── logs/driver.log            # timing + ALL DONE marker, KG build costs, git SHA
 ├── kg_builds/                 # noscallop/scallop facts + rejections (shared snapshot)
 ├── {hybrid,dense_ppr}/seed{0,1,2}/

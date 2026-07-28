@@ -36,3 +36,7 @@ smoke_output.jsonl
 verified_facts_test.jsonl
 
 vllm/
+
+# Bulky/regenerable result artifacts (keep reports & metadata, not these)
+results/**/tool_traces/
+results/**/vectors.npy
