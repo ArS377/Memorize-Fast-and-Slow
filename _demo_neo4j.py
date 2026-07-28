@@ -1,5 +1,5 @@
 """One-shot demo: probe the Neo4j graph populated by the fixture insert."""
-from neo4j_graph import Neo4jGraph
+from neurosym.adapters.neo4j_graph import Neo4jGraph
 
 with Neo4jGraph(
     "neo4j://127.0.0.1:7687",

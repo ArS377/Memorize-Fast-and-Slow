@@ -14,8 +14,7 @@ Fail: prints the assertion that failed.
 from __future__ import annotations
 
 import json
-import sys
-import types
+import re
 import unittest.mock as mock
 from pathlib import Path
 
@@ -69,104 +68,63 @@ def _make_mock_client(responses):
     return client
 
 
-# ---------------------------------------------------------------------------
-# 2.  Build a fake `openai` module so the import inside the pipeline succeeds
-#     even without the real package.
-# ---------------------------------------------------------------------------
-if "openai" not in sys.modules:
-    fake_openai = types.ModuleType("openai")
-    fake_openai.OpenAI = mock.MagicMock  # will be replaced per-instance below
-    sys.modules["openai"] = fake_openai
+def test_pipeline_smoke_uses_fixture_and_tmp_path(tmp_path: Path) -> None:
+    import longbench_kg_pipeline as pipe
 
-# Now import the pipeline (it will see the fake openai module).
-sys.path.insert(0, str(Path(__file__).parent.parent))
-import longbench_kg_pipeline as pipe  # noqa: E402
+    data_path = Path(__file__).parent / "fixtures" / "pipeline_smoke_input.jsonl"
+    output_path = tmp_path / "smoke_output.jsonl"
+    examples = pipe.load_longbench_examples(data_path)
+    assert len(examples) == 2
 
+    config = pipe.PipelineConfig(
+        input_path=data_path,
+        output_path=output_path,
+        model="mock-model",
+        vllm_base_url="http://localhost:8000/v1",
+        api_key="EMPTY",
+        temperature=0.0,
+        max_tokens=512,
+        chunk_chars=50_000,
+        max_chunks_per_example=1,
+        limit=2,
+        sleep_seconds=0.0,
+        use_json_mode=False,
+        neo4j_uri=None,
+        neo4j_user=None,
+        neo4j_password=None,
+    )
+    pipeline = pipe.LongBenchKGPipeline(config)
+    pipeline.client = _make_mock_client(
+        [
+            FAKE_EXTRACTION_RESPONSE,
+            FAKE_VERIFICATION_RESPONSE,
+            FAKE_EXTRACTION_RESPONSE,
+            FAKE_VERIFICATION_RESPONSE,
+        ]
+    )
 
-# ---------------------------------------------------------------------------
-# 3.  Load two real examples from data.jsonl.
-# ---------------------------------------------------------------------------
-DATA_PATH = Path(__file__).parent.parent / "data.jsonl"
-if not DATA_PATH.exists():
-    # Try current directory (in case script is run from a different cwd)
-    DATA_PATH = Path("data.jsonl")
+    try:
+        pipeline.run()
+    finally:
+        pipeline.close()
 
-examples = pipe.load_longbench_examples(DATA_PATH)[:2]
-assert len(examples) >= 1, "data.jsonl must have at least 1 row"
-print(f"Loaded {len(examples)} example(s) from {DATA_PATH}")
-
-
-# ---------------------------------------------------------------------------
-# 4.  Run the pipeline with the mock client.
-# ---------------------------------------------------------------------------
-OUTPUT_PATH = Path("smoke_output.jsonl")
-
-config = pipe.PipelineConfig(
-    input_path=DATA_PATH,
-    output_path=OUTPUT_PATH,
-    model="mock-model",
-    vllm_base_url="http://localhost:8000/v1",
-    api_key="EMPTY",
-    temperature=0.0,
-    max_tokens=512,
-    chunk_chars=50_000,       # large enough to fit example in one chunk
-    max_chunks_per_example=1, # only one chunk per example for speed
-    limit=2,
-    sleep_seconds=0.0,
-    use_json_mode=False,
-    neo4j_uri=None,
-    neo4j_user=None,
-    neo4j_password=None,
-)
-
-pipeline = pipe.LongBenchKGPipeline(config)
-
-# Each example uses 2 LLM calls: 1 extraction + 1 verification.
-# We have 2 examples → 4 calls total; alternate extraction/verification.
-mock_responses = [
-    FAKE_EXTRACTION_RESPONSE,
-    FAKE_VERIFICATION_RESPONSE,
-    FAKE_EXTRACTION_RESPONSE,
-    FAKE_VERIFICATION_RESPONSE,
-]
-pipeline.client = _make_mock_client(mock_responses)
-
-pipeline.run()
-
-
-# ---------------------------------------------------------------------------
-# 5.  Assertions
-# ---------------------------------------------------------------------------
-assert OUTPUT_PATH.exists(), "Output JSONL was not created."
-
-output_lines = [l for l in OUTPUT_PATH.read_text().splitlines() if l.strip()]
-assert len(output_lines) > 0, "No facts were written to output."
-
-fact = json.loads(output_lines[0])
-
-# Core structure checks
-assert "subject" in fact,           "Missing 'subject' field"
-assert "predicate" in fact,         "Missing 'predicate' field"
-assert "object" in fact,            "Missing 'object' field"
-assert "provenance" in fact,        "Missing 'provenance' field"
-assert "support_text" in fact,      "Missing 'support_text' field"
-assert "question_relevance" in fact,"Missing 'question_relevance' field"
-assert "example_id" in fact,        "Missing 'example_id' field"
-assert "fact_id" in fact,           "Missing 'fact_id' field"
-assert "question" in fact,          "Missing 'question' field (Bug #3 fix check)"
-
-# Status check
-assert fact.get("status") == "supported", f"Expected status=supported, got {fact.get('status')}"
-
-# FIX 3 validation: question must not be empty (the key bug we fixed)
-assert fact["question"] != "", "question field is empty — Bug #3 may not be fixed"
-
-# Predicate must be UPPER_SNAKE_CASE
-import re
-assert re.match(r"^[A-Z0-9_]+$", fact["predicate"]), \
-    f"Predicate not in UPPER_SNAKE_CASE: {fact['predicate']}"
-
-print("\n--- Sample output fact ---")
-print(json.dumps(fact, indent=2, ensure_ascii=False))
-print(f"\nTotal facts written: {len(output_lines)}")
-print("\n✅  ALL CHECKS PASSED")
+    assert output_path.exists()
+    output_lines = [line for line in output_path.read_text().splitlines() if line.strip()]
+    assert len(output_lines) == 2
+    fact = json.loads(output_lines[0])
+    required = {
+        "subject",
+        "predicate",
+        "object",
+        "provenance",
+        "support_text",
+        "question_relevance",
+        "example_id",
+        "fact_id",
+        "question",
+    }
+    assert required.issubset(fact)
+    assert fact["status"] == "supported"
+    assert fact["question"]
+    assert fact["provenance"]
+    assert re.fullmatch(r"[A-Z0-9_]+", fact["predicate"])

@@ -10,8 +10,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from experiments.graph_context import GraphSource
-from experiments.rlm_retrieval import QwenRLMToolOutcome, qwen_rlm_tool_answer
+from neurosym.adapters.graph_source import GraphSource
+from neurosym.adapters.qwen_rlm import QwenRLMToolOutcome, qwen_rlm_tool_answer
 
 
 class _TimeoutGraphSource(GraphSource):

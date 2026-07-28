@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from experiments.common import CELLS, cell_output_path
+from neurosym.application.experiment_io import CELLS, cell_output_path
 from experiments.compliance import audit_run
 
 

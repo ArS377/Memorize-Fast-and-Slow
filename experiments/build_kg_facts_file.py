@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from experiments.common import iter_pilot_examples
+from neurosym.application.experiment_io import iter_pilot_examples
 
 
 def _write_jsonl(path: Path, rows: List[Dict[str, Any]]) -> None:
@@ -41,7 +41,7 @@ def build_kg_facts_file(
     facts_out_dir: Path = Path("results/kg_builds"),
     scallop_validator_url: Optional[str] = None,
 ) -> Path:
-    from compiled_memory import fact_to_compiled_fact
+    from neurosym.domain.compiled_memory import fact_to_compiled_fact
     from longbench_kg_pipeline import (
         LongBenchKGPipeline,
         PipelineConfig,
@@ -50,9 +50,9 @@ def build_kg_facts_file(
         make_fact_id,
         normalize_status,
     )
-    from rejection_artifacts import append_rejection_jsonl, build_rejection_record
-    from scallop_validator import DEFAULT_RULE_PARAMETERS
-    from validator_backend import make_validator_backend
+    from neurosym.reporting.rejections import append_rejection_jsonl, build_rejection_record
+    from neurosym.domain.validation_rules import DEFAULT_RULE_PARAMETERS
+    from neurosym.adapters.validation_backend import make_validator_backend
 
     out_path = facts_out_dir / f"{session_id}_facts.jsonl"
     rejections_path = facts_out_dir / f"{session_id}_rejections.jsonl"

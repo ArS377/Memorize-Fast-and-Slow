@@ -7,8 +7,9 @@ import argparse
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import scallop_validator
-from scallop_validator import DEFAULT_RULE_PARAMETERS, RuleParameters, validate_update_detailed
+from neurosym.adapters import scallop as scallop_validator
+from neurosym.adapters.scallop import validate_update_detailed
+from neurosym.domain.validation_rules import DEFAULT_RULE_PARAMETERS, RuleParameters
 
 
 def _rule_parameters(payload):

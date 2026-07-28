@@ -35,9 +35,9 @@ from typing import Any, Dict, List, Optional
 from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
-from experiments.common import format_question, load_examples
+from neurosym.application.experiment_io import format_question, load_examples
 from experiments.rlm_answerer import rlm_answer
-from experiments.graph_context import (
+from neurosym.adapters.graph_source import (
     extract_seed_entities,
     format_facts_from_jsonl,
     load_facts_from_jsonl,
@@ -82,7 +82,7 @@ def main():
 
     if args.neo4j_uri and args.neo4j_password:
         try:
-            from neo4j_graph import Neo4jGraph
+            from neurosym.adapters.neo4j_graph import Neo4jGraph
             graph = Neo4jGraph(
                 uri=args.neo4j_uri,
                 user=args.neo4j_user,

@@ -22,11 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from experiments.common import CELLS, iter_pilot_examples
-from experiments.kg_search_tool import TOOL_VERSION as SEARCH_TOOL_VERSION
-from experiments.retrieval_config import EmbeddingConfig, PPRConfig, RetrievalConfig
-from experiments.working_memory_tool import TOOL_VERSION as MEMORY_TOOL_VERSION
-from scallop_validator import DEFAULT_RULE_PARAMETERS
+from neurosym.application.experiment_io import CELLS, iter_pilot_examples
+from neurosym.adapters.kg_search import TOOL_VERSION as SEARCH_TOOL_VERSION
+from neurosym.domain.retrieval_config import EmbeddingConfig, PPRConfig, RetrievalConfig
+from neurosym.adapters.working_memory_tool import TOOL_VERSION as MEMORY_TOOL_VERSION
+from neurosym.domain.validation_rules import DEFAULT_RULE_PARAMETERS
 
 KG_CELL_IDS = {2, 3, 5, 6}
 KG_SESSIONS = {2: "pilot_noscallop", 3: "pilot_scallop",
@@ -438,7 +438,7 @@ def main(argv: Optional[List[str]] = None) -> None:
                     metadata["kg_artifacts"]["scallop_path"] = str(built_path)
                     metadata["kg_artifacts"]["scallop_sha256"] = _sha256(built_path)
                 if retrieval_config.mode != "sparse":
-                    from experiments.dense_retrieval import ensure_dense_index_from_snapshot
+                    from neurosym.adapters.dense_index import ensure_dense_index_from_snapshot
 
                     dense_index = ensure_dense_index_from_snapshot(
                         built_path,

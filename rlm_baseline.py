@@ -29,7 +29,7 @@ from pathlib import Path
 from rlm.core.rlm import RLM
 from rlm.logger.rlm_logger import RLMLogger
 
-from experiments.common import format_question, load_examples
+from neurosym.application.experiment_io import format_question, load_examples
 from experiments.rlm_answerer import rlm_answer
 
 

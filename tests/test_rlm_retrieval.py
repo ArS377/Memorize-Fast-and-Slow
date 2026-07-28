@@ -9,19 +9,19 @@ from typing import Any, Dict, List, Optional
 from unittest.mock import patch
 
 from experiments._cli import build_arg_parser, run_cell
-from experiments.graph_context import GraphSource
-from experiments.kg_search_tool import (
+from neurosym.adapters.graph_source import GraphSource
+from neurosym.adapters.kg_search import (
     SEARCH_KNOWLEDGE_GRAPH_TOOL,
     execute_search_knowledge_graph,
 )
-from experiments.rlm_retrieval import (
+from neurosym.adapters.qwen_rlm import (
     NativeToolSession,
     _native_tool_instructions,
     make_qwen_tool_rlm,
     qwen_rlm_tool_answer,
 )
 from experiments.run_all import _common_cell_args
-from experiments.working_memory_tool import UPDATE_WORKING_MEMORY_TOOL
+from neurosym.adapters.working_memory_tool import UPDATE_WORKING_MEMORY_TOOL
 
 
 FACTS = [
@@ -1137,9 +1137,9 @@ def test_cell_runner_does_not_pre_retrieve_and_persists_integrated_trace(
     input_path.write_text(json.dumps({**EXAMPLE, "answer": "A"}) + "\n", encoding="utf-8")
 
     with patch(
-        "experiments.graph_context.open_graph_source", return_value=source
+        "neurosym.adapters.graph_source.open_graph_source", return_value=source
     ), patch(
-        "experiments.rlm_retrieval.qwen_rlm_tool_answer", return_value=outcome
+        "neurosym.adapters.qwen_rlm.qwen_rlm_tool_answer", return_value=outcome
     ) as answer:
         run_cell(
             cell_id=5,
@@ -1177,7 +1177,7 @@ def test_cell2_and_cell3_execute_hybrid_retrieval_before_flat_qwen(tmp_path: Pat
         return _hybrid_graph_source(kwargs)
 
     with patch("openai.OpenAI", return_value=object()), patch(
-        "experiments.graph_context.open_graph_source",
+        "neurosym.adapters.graph_source.open_graph_source",
         side_effect=open_source,
     ), patch("experiments.flat_answerer.flat_answer", return_value=("A", "A")):
         for cell_id, label, session in [
@@ -1248,10 +1248,10 @@ def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path
         return _hybrid_graph_source(kwargs, NoPreRetrievalSource)
 
     with patch(
-        "experiments.graph_context.open_graph_source",
+        "neurosym.adapters.graph_source.open_graph_source",
         side_effect=open_source,
     ), patch(
-        "experiments.rlm_retrieval.qwen_rlm_tool_answer", side_effect=hybrid_answer
+        "neurosym.adapters.qwen_rlm.qwen_rlm_tool_answer", side_effect=hybrid_answer
     ) as answer:
         for cell_id, label, session in [
             (5, "rlm_kg_noscallop", "pilot_noscallop"),

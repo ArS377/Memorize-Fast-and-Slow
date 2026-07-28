@@ -9,7 +9,7 @@ from pathlib import Path
 # Add parent directory to path to import pipeline
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import longbench_kg_pipeline as pipe
-from scallop_validator import validate_update
+from neurosym.adapters.scallop import validate_update
 
 def test_self_reflection_questions():
     """Test that the verification prompt contains the required self-reflection questions."""

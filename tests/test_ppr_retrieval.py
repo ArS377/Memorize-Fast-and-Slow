@@ -4,10 +4,10 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import pytest
 
-from experiments.graph_context import GraphSource
-from experiments.kg_search_tool import execute_search_knowledge_graph
-from experiments.ppr_retrieval import PPRFactIndex
-from experiments.retrieval_config import (
+from neurosym.adapters.graph_source import GraphSource
+from neurosym.adapters.kg_search import execute_search_knowledge_graph
+from neurosym.adapters.ppr_index import PPRFactIndex
+from neurosym.domain.retrieval_config import (
     PPRConfig,
     PPRRetrievalError,
     RetrievalConfig,

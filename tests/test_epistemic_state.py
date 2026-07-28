@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from experiments.epistemic_state import (
+from neurosym.domain.epistemic_state import (
     EpistemicState,
     EpistemicStateTracker,
     consolidate,

@@ -10,8 +10,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from experiments.graph_context import GraphSource
-from experiments.kg_search_tool import execute_search_knowledge_graph
+from neurosym.adapters.graph_source import GraphSource
+from neurosym.adapters.kg_search import execute_search_knowledge_graph
 
 
 CASES = json.loads(
