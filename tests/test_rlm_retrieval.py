@@ -389,7 +389,7 @@ def test_order_gap_stops_repeated_no_evidence_prose() -> None:
             _response(content=prose),
         ]
     )
-    session = _session(client, require_memory_update=True)
+    session = _session(client, max_tool_calls=1, require_memory_update=True)
 
     assert session.complete(client, _messages()) == prose
     completion = session.complete(client, _messages())
@@ -432,6 +432,7 @@ def test_order_gap_converts_stable_supported_prose_to_rlm_completion() -> None:
     )
     session = _session(
         client,
+        max_tool_calls=2,
         require_memory_update=True,
         validate_memory_updates=False,
     )
@@ -474,6 +475,7 @@ def test_order_gap_does_not_attach_committed_facts_to_uncited_prose() -> None:
     )
     session = _session(
         client,
+        max_tool_calls=2,
         require_memory_update=True,
         validate_memory_updates=False,
     )
@@ -564,6 +566,82 @@ answer["ready"] = True
     assert [tool["function"]["name"] for tool in client.completions.requests[0]["tools"]] == [
         "search_knowledge_graph", "update_working_memory"
     ]
+
+
+def test_inadequate_answer_can_search_again_after_memory_commit() -> None:
+    inadequate_ready = '''```repl
+answer["content"] = "FINAL_ANSWER: B\\nCITED_FACT_IDS: f1"
+answer["ready"] = True
+```'''
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search-east",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "commit-east",
+                        {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                        name="update_working_memory",
+                    )
+                ]
+            ),
+            _response(content=inadequate_ready),
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search-west",
+                        {"query": "West Indonesia", "seed_entities": ["West Indonesia"]},
+                    )
+                ]
+            ),
+            _response(content="Continue reasoning after the discriminative search."),
+        ]
+    )
+    session = _session(
+        client,
+        max_tool_calls=4,
+        require_memory_update=True,
+        validate_memory_updates=False,
+    )
+
+    content = session.complete(client, _messages())
+
+    assert content == "Continue reasoning after the discriminative search."
+    assert session.working_memory_fact_ids == {"f1"}
+    assert session.tool_call_count == 3
+    follow_up = client.completions.requests[3]
+    assert follow_up["tool_choice"] == "auto"
+    assert "cited facts do not support option B" in follow_up["messages"][-1]["content"]
+    assert any(
+        event.get("event") == "invalid_ready_rejected"
+        and "cited facts do not support option B" in event.get("errors", [])
+        for event in session.trace["events"]
+    )
+
+
+def test_native_turn_stops_before_exceeding_aggregate_rlm_token_limit() -> None:
+    client = FakeRLMClient([])
+    client._model_usage.total_input_tokens = 63_900
+    session = _session(client, aggregate_token_limit=64_000)
+
+    completion = session.complete(client, _messages())
+
+    assert "EVIDENCE_INSUFFICIENT:" in completion
+    assert session.controller_termination_reason == "aggregate_token_budget_guard"
+    assert client.completions.requests == []
+    guard = next(
+        event
+        for event in session.trace["events"]
+        if event.get("event") == "token_budget_guard"
+    )
+    assert guard["aggregate_token_limit"] == 64_000
 
 
 def test_qwen_text_tool_wrapper_uses_the_validated_tool_path() -> None:

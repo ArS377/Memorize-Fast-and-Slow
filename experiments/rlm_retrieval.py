@@ -32,7 +32,13 @@ from experiments.working_memory_tool import (
 )
 
 
-TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v4"
+TRACE_SCHEMA_VERSION = "qwen_rlm_tool_trace.v5"
+MAX_NATIVE_PROMPT_BYTES = 24_000
+MAX_MESSAGE_CHARS = 6_000
+MAX_TOOL_RESULTS_IN_PROMPT = 8
+MAX_TOOL_SUPPORT_CHARS = 240
+MIN_BUDGETED_COMPLETION_TOKENS = 64
+TOKEN_BUDGET_TEMPLATE_RESERVE = 1_024
 
 SearchToolExecutor = Callable[
     [Mapping[str, Any], GraphSource, str],
@@ -266,6 +272,10 @@ After status="ok" with an empty results list, reformulate with an alias or follo
 an intermediate entity. A
 status="error" response is a failed call, not a no-hit. You may make at most
 {max_tool_calls} tool calls in the entire RLM trajectory.
+Do not stop searching merely because working memory already contains a fact.
+If the selected facts do not distinguish the answer from plausible alternatives,
+use a remaining call for an option-specific or missing-relation search, then
+update working memory with any newly selected evidence.
 
 After selecting evidence, call `{UPDATE_TOOL_NAME}` with the returned fact IDs
 to compile shaped working memory. Never invent an ID or pass scope/session
@@ -393,6 +403,107 @@ def _grounding_score(choice: str, fact: Mapping[str, Any]) -> float:
     return len(choice_tokens.intersection(fact_tokens)) / len(choice_tokens)
 
 
+def _fact_grounding_text(fact: Mapping[str, Any]) -> str:
+    return _grounding_text(
+        " ".join(
+            str(fact.get(field) or "")
+            for field in (
+                "subject",
+                "predicate",
+                "object",
+                "support_text",
+                "valid_from",
+                "valid_to",
+            )
+        )
+    )
+
+
+def _choice_supports_fact(choice: str, fact: Mapping[str, Any]) -> bool:
+    choice_text = _grounding_text(choice)
+    fact_text = _fact_grounding_text(fact)
+    if not choice_text or not fact_text:
+        return False
+    if choice_text in fact_text:
+        return True
+    choice_numbers = set(re.findall(r"\d+(?:\.\d+)?", choice_text))
+    fact_numbers = set(re.findall(r"\d+(?:\.\d+)?", fact_text))
+    if choice_numbers and not choice_numbers <= fact_numbers:
+        return False
+    return _grounding_score(choice, fact) >= 0.6
+
+
+def _compact_tool_response(response: Mapping[str, Any]) -> Dict[str, Any]:
+    """Keep full provenance in the trace while bounding what is sent back to Qwen."""
+    compact = dict(response)
+    results = response.get("results")
+    if not isinstance(results, list):
+        return compact
+    compact_results: List[Dict[str, Any]] = []
+    for raw in results[:MAX_TOOL_RESULTS_IN_PROMPT]:
+        if not isinstance(raw, Mapping):
+            continue
+        result = {
+            key: raw.get(key)
+            for key in (
+                "fact_id",
+                "subject",
+                "predicate",
+                "object",
+                "score",
+                "rank",
+                "document_id",
+                "retrieval_mode",
+                "valid_from",
+                "valid_to",
+            )
+            if raw.get(key) is not None
+        }
+        result["support_text"] = str(raw.get("support_text") or "")[
+            :MAX_TOOL_SUPPORT_CHARS
+        ]
+        provenance = raw.get("provenance")
+        if isinstance(provenance, list) and provenance:
+            result["provenance"] = provenance[:2]
+        compact_results.append(result)
+    compact["results"] = compact_results
+    compact["result_count"] = len(results)
+    return compact
+
+
+def _truncate_message_content(value: Any) -> Any:
+    if not isinstance(value, str) or len(value) <= MAX_MESSAGE_CHARS:
+        return value
+    half = (MAX_MESSAGE_CHARS - 64) // 2
+    return f"{value[:half]}\n...[controller compacted prior text]...\n{value[-half:]}"
+
+
+def _bound_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    bounded = [
+        {**message, "content": _truncate_message_content(message.get("content"))}
+        for message in messages
+    ]
+    while (
+        len(json.dumps(bounded, ensure_ascii=False, default=str).encode("utf-8"))
+        > MAX_NATIVE_PROMPT_BYTES
+    ):
+        candidates = [
+            (len(str(message.get("content") or "")), index)
+            for index, message in enumerate(bounded)
+            if index not in {0, len(bounded) - 1}
+            and isinstance(message.get("content"), str)
+            and len(message["content"]) > 512
+        ]
+        if not candidates:
+            break
+        _length, index = max(candidates)
+        content = str(bounded[index]["content"])
+        bounded[index]["content"] = (
+            f"{content[:224]}\n...[controller compacted prior message]...\n{content[-224:]}"
+        )
+    return bounded
+
+
 def _rlm_ready_block(content: str) -> str:
     encoded = json.dumps(str(content), ensure_ascii=False)
     return (
@@ -473,6 +584,7 @@ class NativeToolSession:
         order_gap_epsilon: float = 0.025,
         order_gap_window: int = 2,
         order_gap_min_iterations: int = 2,
+        aggregate_token_limit: int = 64_000,
     ) -> None:
         if max_tool_calls < 1:
             raise ValueError("max_tool_calls must be at least 1")
@@ -484,6 +596,8 @@ class NativeToolSession:
             raise ValueError("tool_choice must be 'auto' or 'required'")
         if termination_mode not in {"order_gap", "external_budget"}:
             raise ValueError("termination_mode must be 'order_gap' or 'external_budget'")
+        if aggregate_token_limit < 1:
+            raise ValueError("aggregate_token_limit must be positive")
 
         self.model = model
         self.graph_source = graph_source
@@ -499,6 +613,7 @@ class NativeToolSession:
         self.validate_memory_updates = validate_memory_updates
         self.require_memory_update = require_memory_update
         self.termination_mode = termination_mode
+        self.aggregate_token_limit = int(aggregate_token_limit)
         self.state_tracker = EpistemicStateTracker(
             question=question,
             choices=choices,
@@ -514,6 +629,8 @@ class NativeToolSession:
         self.tool_call_count = 0
         self.tool_result_chars = 0
         self.model_completion_count = 0
+        self.seen_ready_rejections: Set[str] = set()
+        self.last_evidence_adequate = False
         self.diagnostic_predicted = ""
         self.controller_termination_reason: Optional[str] = None
         self.trace: Dict[str, Any] = {
@@ -531,6 +648,7 @@ class NativeToolSession:
             "tool_names": [SEARCH_TOOL_NAME, UPDATE_TOOL_NAME],
             "tool_choice": tool_choice,
             "max_tool_calls": max_tool_calls,
+            "aggregate_token_limit": self.aggregate_token_limit,
             "termination_mode": termination_mode,
             "order_gap_config": {
                 "epsilon": order_gap_epsilon,
@@ -562,7 +680,154 @@ class NativeToolSession:
             messages[-1]["content"] = f"{messages[-1].get('content') or ''}{reminder}"
         else:
             messages.append({"role": "user", "content": reminder.strip()})
-        return messages
+        return _bound_messages(messages)
+
+    def _usage_total_tokens(self, base_client: Any) -> int:
+        get_usage = getattr(base_client, "get_usage_summary", None)
+        if not callable(get_usage):
+            return 0
+        try:
+            usage = get_usage()
+            payload = usage.to_dict() if hasattr(usage, "to_dict") else usage
+            summaries = (
+                payload.get("model_usage_summaries", {})
+                if isinstance(payload, Mapping)
+                else {}
+            )
+            return sum(
+                int(summary.get("total_input_tokens") or 0)
+                + int(summary.get("total_output_tokens") or 0)
+                for summary in summaries.values()
+                if isinstance(summary, Mapping)
+            )
+        except (TypeError, ValueError, AttributeError):
+            return 0
+
+    def _budgeted_completion_tokens(
+        self, base_client: Any, request: Mapping[str, Any]
+    ) -> Tuple[int, int, int]:
+        used = self._usage_total_tokens(base_client)
+        # Qwen tokenizers cannot produce more tokens than the UTF-8 byte stream.
+        # Counting request bytes is deliberately conservative and reserves a hard
+        # upper bound for this native subturn inside the aggregate RLM budget.
+        input_upper_bound = len(
+            json.dumps(request, ensure_ascii=False, default=str).encode("utf-8")
+        )
+        available = max(
+            0,
+            self.aggregate_token_limit
+            - used
+            - input_upper_bound
+            - TOKEN_BUDGET_TEMPLATE_RESERVE,
+        )
+        return min(self.max_completion_tokens, available), used, input_upper_bound
+
+    def _option_evidence(
+        self, predicted: str, citations: List[str]
+    ) -> Dict[str, Any]:
+        eligible_fact_ids = (
+            self.working_memory_fact_ids
+            if self.require_memory_update
+            else self.retrieved_fact_ids
+        )
+        facts = {
+            fact_id: self.retrieved_facts[fact_id]
+            for fact_id in eligible_fact_ids
+            if fact_id in self.retrieved_facts
+        }
+        by_option: Dict[str, Dict[str, Any]] = {}
+        support_sets: Dict[str, Set[str]] = {}
+        for option, choice in self.state_tracker.state.choices.items():
+            support_ids = {
+                fact_id
+                for fact_id, fact in facts.items()
+                if _choice_supports_fact(str(choice), fact)
+            }
+            support_sets[option] = support_ids
+        for option in sorted(self.state_tracker.state.choices):
+            support_ids = support_sets.get(option, set())
+            contradiction_ids = set().union(
+                *(
+                    ids
+                    for other, ids in support_sets.items()
+                    if other != option
+                ),
+                set(),
+            ) - support_ids
+            by_option[option] = {
+                "support_fact_ids": sorted(support_ids),
+                "contradiction_fact_ids": sorted(contradiction_ids),
+                "missing_evidence": [] if support_ids else ["no committed fact matches option"],
+            }
+
+        cited = list(dict.fromkeys(citations))
+        cited_set = set(cited)
+        predicted_support = support_sets.get(predicted, set())
+        missing: List[str] = []
+        if not predicted:
+            missing.append("no valid answer option")
+        if not cited:
+            missing.append("no cited fact IDs")
+        if cited and not cited_set.intersection(predicted_support):
+            missing.append(f"cited facts do not support option {predicted}")
+
+        cited_text = " ".join(
+            _fact_grounding_text(facts[fact_id])
+            for fact_id in cited
+            if fact_id in facts
+        )
+        question = _grounding_text(self.state_tracker.state.question)
+        option_coverage = sum(bool(ids) for ids in support_sets.values())
+        negative_question = bool(
+            re.search(r"\b(?:not|except|false|incorrect|least likely)\b", question)
+        )
+        comparison_question = bool(
+            re.search(
+                r"\b(?:most|least|higher|lower|greater|fewer|earlier|later|oldest|youngest)\b",
+                question,
+            )
+        )
+        arithmetic_question = bool(
+            re.search(r"\b(?:total|sum|difference|combined|how many|percent)\b", question)
+        )
+        chronology_question = bool(
+            re.search(r"\b(?:before|after|first|last|earliest|latest|year|when)\b", question)
+        )
+        if negative_question and not (
+            re.search(r"\b(?:not|never|no|except|false|incorrect)\b", cited_text)
+            or option_coverage >= 3
+        ):
+            missing.append("negative/exception question needs explicit negation or broader option coverage")
+        if comparison_question and not (
+            re.search(
+                r"\b(?:most|least|higher|lower|greater|fewer|earlier|later|oldest|youngest)\b",
+                cited_text,
+            )
+            or option_coverage >= 2
+        ):
+            missing.append("comparison question needs evidence covering at least two alternatives")
+        if arithmetic_question:
+            numeric_evidence = re.findall(r"\d+(?:\.\d+)?", cited_text)
+            predicted_numbers = re.findall(
+                r"\d+(?:\.\d+)?",
+                _grounding_text(self.state_tracker.state.choices.get(predicted, "")),
+            )
+            direct_numeric_answer = bool(predicted_numbers) and set(
+                predicted_numbers
+            ) <= set(numeric_evidence)
+            if len(set(numeric_evidence)) < 2 and not direct_numeric_answer:
+                missing.append("arithmetic question lacks the required numeric evidence")
+        if chronology_question and not re.search(
+            r"\b(?:before|after|first|last|earliest|latest|\d{4})\b", cited_text
+        ):
+            missing.append("chronology question lacks dated or ordered evidence")
+
+        return {
+            "candidate": predicted or None,
+            "by_option": by_option,
+            "missing_evidence": list(dict.fromkeys(missing)),
+            "adequate": bool(predicted and cited and not missing),
+        }
 
     def _observe_epistemic(
         self,
@@ -596,6 +861,7 @@ class NativeToolSession:
         *,
         predicted: str,
         citations: List[str],
+        assessment: Mapping[str, Any],
     ) -> Optional[str]:
         if self.termination_mode != "order_gap" or not self.state_tracker.stable:
             return None
@@ -607,8 +873,9 @@ class NativeToolSession:
         citations_committed = (
             not self.require_memory_update or cited_set <= self.working_memory_fact_ids
         )
+        adequate = bool(assessment.get("adequate"))
         supported = bool(
-            predicted and citations_retrieved and citations_committed
+            predicted and citations_retrieved and citations_committed and adequate
         )
         coverage = {
             "successful_search": successful_search,
@@ -616,6 +883,8 @@ class NativeToolSession:
             "cited_fact_ids": cited_ids,
             "citations_retrieved": citations_retrieved,
             "citations_committed": citations_committed,
+            "evidence_adequate": adequate,
+            "missing_evidence": list(assessment.get("missing_evidence") or []),
             "require_memory_update": self.require_memory_update,
             "passed": successful_search and supported,
         }
@@ -628,6 +897,19 @@ class NativeToolSession:
             }
         )
         if not successful_search:
+            return None
+        if not supported and self.tool_call_count < self.max_tool_calls:
+            self.trace["events"].append(
+                {
+                    "event": "order_gap_continue",
+                    "rlm_completion": self.model_completion_count,
+                    "reason": "stable_but_evidence_inadequate",
+                    "remaining_tool_calls": self.max_tool_calls - self.tool_call_count,
+                    "missing_evidence": list(
+                        assessment.get("missing_evidence") or []
+                    ),
+                }
+            )
             return None
         if supported:
             self.controller_termination_reason = "order_gap_supported_answer"
@@ -654,11 +936,7 @@ class NativeToolSession:
         return _rlm_ready_block(final_content)
 
     def _request_tool_choice(self) -> str:
-        if (
-            self.tool_call_count >= self.max_tool_calls
-            or bool(self.working_memory_fact_ids)
-            or self.state_tracker.state.current_answer_id is not None
-        ):
+        if self.tool_call_count >= self.max_tool_calls or self.last_evidence_adequate:
             return "none"
         if (
             self.tool_choice == "required"
@@ -694,7 +972,11 @@ class NativeToolSession:
             ),
             key=lambda item: (-item[0], item[1]),
         )
-        return [fact_id for score, fact_id in ranked if score >= 0.2]
+        return [
+            fact_id
+            for _score, fact_id in ranked
+            if _choice_supports_fact(choice, self.retrieved_facts[fact_id])
+        ]
 
     def _resolve_citations(
         self,
@@ -707,10 +989,15 @@ class NativeToolSession:
         grounded_set = set(grounded)
         provided = list(dict.fromkeys(citations))
         if provided:
-            return [fact_id for fact_id in provided if fact_id in grounded_set], False
+            return provided, False
         return grounded[:3], bool(grounded)
 
-    def _completion_errors(self, predicted: str, citations: List[str]) -> List[str]:
+    def _completion_errors(
+        self,
+        predicted: str,
+        citations: List[str],
+        assessment: Mapping[str, Any],
+    ) -> List[str]:
         errors: List[str] = []
         cited = set(citations)
         if not predicted:
@@ -725,6 +1012,13 @@ class NativeToolSession:
             errors.append(
                 "fact IDs not committed to working memory: " + ", ".join(missing)
             )
+        if (
+            predicted
+            and citations
+            and not unknown
+            and (not self.require_memory_update or not missing)
+        ):
+            errors.extend(str(value) for value in assessment.get("missing_evidence", []))
         return errors
 
     def _completion_correction(self, errors: List[str]) -> str:
@@ -765,7 +1059,7 @@ class NativeToolSession:
             )
             request: Dict[str, Any] = {
                 "model": self.model,
-                "messages": list(messages),
+                "messages": _bound_messages(list(messages)),
                 "temperature": 0.0,
                 "max_tokens": self.max_completion_tokens,
                 "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
@@ -777,6 +1071,27 @@ class NativeToolSession:
                         "tool_choice": request_tool_choice,
                     }
                 )
+            budgeted_tokens, used_tokens, input_upper_bound = (
+                self._budgeted_completion_tokens(base_client, request)
+            )
+            if budgeted_tokens < MIN_BUDGETED_COMPLETION_TOKENS:
+                self.controller_termination_reason = "aggregate_token_budget_guard"
+                self.trace["events"].append(
+                    {
+                        "event": "token_budget_guard",
+                        "rlm_completion": completion_index,
+                        "native_turn": native_turn,
+                        "aggregate_token_limit": self.aggregate_token_limit,
+                        "used_tokens": used_tokens,
+                        "input_token_upper_bound": input_upper_bound,
+                        "available_completion_tokens": budgeted_tokens,
+                    }
+                )
+                return _rlm_ready_block(
+                    "EVIDENCE_INSUFFICIENT: the fixed aggregate RLM token budget "
+                    "cannot safely fit another model turn"
+                )
+            request["max_tokens"] = budgeted_tokens
             try:
                 response = base_client.client.chat.completions.create(**request)
                 self._track_response(base_client, response)
@@ -851,6 +1166,8 @@ class NativeToolSession:
                 citations, citations_synthesized = self._resolve_citations(
                     predicted, model_citations
                 )
+                assessment = self._option_evidence(predicted, citations)
+                self.last_evidence_adequate = bool(assessment["adequate"])
                 if citations_synthesized:
                     completion_content = (
                         f"FINAL_ANSWER: {predicted}\n"
@@ -866,18 +1183,31 @@ class NativeToolSession:
                             "model_cited_fact_ids": model_citations,
                             "grounded_fact_ids": citations,
                             "synthesized": citations_synthesized,
+                            "evidence_adequate": assessment["adequate"],
+                            "missing_evidence": assessment["missing_evidence"],
                         }
                     )
                 candidate = predicted or candidate
                 if candidate:
                     self.diagnostic_predicted = candidate
-                completion_errors = self._completion_errors(predicted, citations)
+                completion_errors = self._completion_errors(
+                    predicted, citations, assessment
+                )
                 if (
                     ready_payload is not None
                     and self.termination_mode == "order_gap"
                     and not evidence_insufficient
                     and completion_errors
                 ):
+                    rejection_signature = json.dumps(
+                        {
+                            "predicted": predicted,
+                            "citations": citations,
+                            "errors": completion_errors,
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
                     self.trace["events"].append(
                         {
                             "event": "invalid_ready_rejected",
@@ -886,6 +1216,28 @@ class NativeToolSession:
                             "errors": completion_errors,
                         }
                     )
+                    if rejection_signature in self.seen_ready_rejections:
+                        self._observe_epistemic(
+                            {
+                                "kind": "model",
+                                "candidate": candidate,
+                                "cited_fact_ids": citations,
+                                "content": completion_content,
+                                "option_evidence": assessment["by_option"],
+                            },
+                            completion_index=completion_index,
+                            native_turn=native_turn,
+                            completion_boundary=True,
+                        )
+                        self.trace["events"].append(
+                            {
+                                "event": "duplicate_ready_rejection_deferred",
+                                "rlm_completion": completion_index,
+                                "native_turn": native_turn,
+                            }
+                        )
+                        return completion_content
+                    self.seen_ready_rejections.add(rejection_signature)
                     messages.append(
                         {
                             "role": "user",
@@ -899,6 +1251,7 @@ class NativeToolSession:
                         "candidate": candidate,
                         "cited_fact_ids": citations,
                         "content": completion_content,
+                        "option_evidence": assessment["by_option"],
                     },
                     completion_index=completion_index,
                     native_turn=native_turn,
@@ -908,6 +1261,7 @@ class NativeToolSession:
                     state_completion = self._state_based_completion(
                         predicted=predicted,
                         citations=citations,
+                        assessment=assessment,
                     )
                     if state_completion is not None:
                         return state_completion
@@ -1051,8 +1405,9 @@ class NativeToolSession:
                             if value
                         )
 
+                prompt_tool_response = _compact_tool_response(tool_response)
                 tool_content = json.dumps(
-                    tool_response, ensure_ascii=False, separators=(",", ":")
+                    prompt_tool_response, ensure_ascii=False, separators=(",", ":")
                 )
                 self.tool_result_chars += len(tool_content)
                 messages.append(
@@ -1331,6 +1686,7 @@ def qwen_rlm_tool_answer(
         order_gap_epsilon=order_gap_epsilon,
         order_gap_window=order_gap_window,
         order_gap_min_iterations=order_gap_min_iterations,
+        aggregate_token_limit=max_tokens,
     )
     rlm = make_qwen_tool_rlm(
         backend=backend,
@@ -1386,11 +1742,13 @@ def qwen_rlm_tool_answer(
 
     unknown_citations = sorted(set(citations) - session.retrieved_fact_ids)
     missing_from_memory = sorted(set(citations) - session.working_memory_fact_ids)
+    final_assessment = session._option_evidence(predicted, citations)
     if (
         predicted
         and citations
         and not unknown_citations
         and (not require_memory_update or not missing_from_memory)
+        and final_assessment["adequate"]
     ):
         return session.finish(
             status="supported",
@@ -1412,6 +1770,8 @@ def qwen_rlm_tool_answer(
         )
     elif predicted and not citations:
         error = "supported answer omitted CITED_FACT_IDS"
+    elif final_assessment["missing_evidence"]:
+        error = "; ".join(final_assessment["missing_evidence"])
     else:
         error = "RLM did not return the required supported-answer or evidence-insufficient format"
     return session.finish(

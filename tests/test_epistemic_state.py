@@ -179,6 +179,38 @@ def test_prompt_view_prioritises_selected_claims_and_bounds_support_text() -> No
 
     view = state.prompt_view()
 
-    assert len(view["claims"]) == 25
+    assert len(view["claims"]) == 12
     assert view["claims"][0]["fact_id"] == "f29"
-    assert len(view["claims"][0]["support_text"]) == 400
+    assert len(view["claims"][0]["support_text"]) == 240
+
+
+def test_model_observation_records_structured_evidence_for_each_option() -> None:
+    tracker = EpistemicStateTracker(
+        question="Where is Kalamang spoken?",
+        choices={"A": "East Indonesia", "B": "West Indonesia"},
+    )
+
+    tracker.observe(
+        {
+            "kind": "model",
+            "candidate": "A",
+            "cited_fact_ids": [],
+            "option_evidence": {
+                "A": {
+                    "support_fact_ids": ["f1"],
+                    "contradiction_fact_ids": [],
+                    "missing_evidence": [],
+                },
+                "B": {
+                    "support_fact_ids": [],
+                    "contradiction_fact_ids": ["f1"],
+                    "missing_evidence": ["no committed fact matches option"],
+                },
+            },
+        },
+        completion_boundary=True,
+    )
+
+    assert tracker.state.option_evidence["A"]["support_fact_ids"] == ["f1"]
+    assert tracker.state.option_evidence["B"]["missing_evidence"]
+    assert tracker.state.prompt_view()["option_evidence"] == tracker.state.option_evidence

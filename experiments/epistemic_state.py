@@ -21,7 +21,8 @@ import numpy as np
 NODE_TYPES = ("claim", "partial_answer", "open_question")
 TEXT_FEATURES = 64
 MAX_EMBEDDED_NODES = 256
-MAX_PROMPT_SUPPORT_CHARS = 400
+MAX_PROMPT_SUPPORT_CHARS = 240
+MAX_PROMPT_CLAIMS = 12
 
 
 def _clamp_confidence(value: Any, default: float = 0.5) -> float:
@@ -113,6 +114,7 @@ class EpistemicState:
     empty_searches: int = 0
     failed_searches: int = 0
     committed_fact_ids: List[str] = field(default_factory=list)
+    option_evidence: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if "open:root" not in self.nodes:
@@ -143,6 +145,7 @@ class EpistemicState:
             "empty_searches": self.empty_searches,
             "failed_searches": self.failed_searches,
             "committed_fact_ids": list(self.committed_fact_ids),
+            "option_evidence": copy.deepcopy(self.option_evidence),
             "nodes": [self.nodes[key].to_dict() for key in sorted(self.nodes)],
             "edges": [self.edges[key].to_dict() for key in sorted(self.edges)],
         }
@@ -170,9 +173,10 @@ class EpistemicState:
             "empty_searches": self.empty_searches,
             "failed_searches": self.failed_searches,
             "root_status": self.nodes["open:root"].attributes.get("status", "open"),
+            "option_evidence": copy.deepcopy(self.option_evidence),
         }
 
-    def prompt_view(self, max_claims: int = 25) -> Dict[str, Any]:
+    def prompt_view(self, max_claims: int = MAX_PROMPT_CLAIMS) -> Dict[str, Any]:
         claim_nodes = sorted(
             (node for node in self.nodes.values() if node.node_type == "claim"),
             key=lambda node: (
@@ -327,6 +331,13 @@ def expand(state: EpistemicState, evidence: Mapping[str, Any]) -> EpistemicState
         return state
 
     if kind == "model":
+        raw_option_evidence = evidence.get("option_evidence")
+        if isinstance(raw_option_evidence, Mapping):
+            state.option_evidence = {
+                str(choice): copy.deepcopy(dict(assessment))
+                for choice, assessment in raw_option_evidence.items()
+                if isinstance(assessment, Mapping)
+            }
         choice = str(evidence.get("candidate") or "").strip().upper()
         if choice not in {"A", "B", "C", "D"}:
             return state
