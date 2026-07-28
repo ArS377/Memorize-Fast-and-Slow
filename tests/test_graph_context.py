@@ -3,8 +3,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from experiments.graph_context import GraphSource, format_facts_from_jsonl
-from experiments.retrieval_config import RetrievalConfig
+from neurosym.adapters.graph_source import GraphSource, format_facts_from_jsonl
+from neurosym.domain.retrieval_config import RetrievalConfig
 
 
 FACTS = [

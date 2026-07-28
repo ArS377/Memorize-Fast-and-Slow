@@ -47,9 +47,9 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from openai import OpenAI
 
-from compiled_memory import fact_to_compiled_fact
-from neo4j_graph import Neo4jGraph
-from rejection_artifacts import append_rejection_jsonl, build_rejection_record
+from neurosym.domain.compiled_memory import fact_to_compiled_fact
+from neurosym.adapters.neo4j_graph import Neo4jGraph
+from neurosym.reporting.rejections import append_rejection_jsonl, build_rejection_record
 
 
 Fact = Dict[str, Any]

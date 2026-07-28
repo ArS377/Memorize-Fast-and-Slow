@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from rejection_artifacts import (  # noqa: E402
+from neurosym.reporting.rejections import (  # noqa: E402
     append_rejection_jsonl,
     build_rejection_record,
     infer_rule_fired,

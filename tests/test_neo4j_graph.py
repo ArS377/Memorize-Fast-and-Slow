@@ -16,10 +16,11 @@ from unittest import mock
 # Make the repo root importable.
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import neo4j_graph as ng
-from neo4j_graph import Neo4jGraph
-from scallop_validator import RuleParameters, validate_update_detailed
-from memory_artifacts import MemoryScope, compile_working_memory, transition_for
+import neurosym.adapters.neo4j_graph as ng
+from neurosym.adapters.neo4j_graph import Neo4jGraph
+from neurosym.adapters.scallop import validate_update_detailed
+from neurosym.domain.validation_rules import RuleParameters
+from neurosym.domain.memory_artifacts import MemoryScope, compile_working_memory, transition_for
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "verified_facts.sample.jsonl"
@@ -487,6 +488,22 @@ def test_persistent_validation_context_is_session_scoped() -> None:
     assert write_queries[0]["decision_validator"] == graph.validator_backend.info.name
     assert write_queries[0]["rule_params_version"] == "rules.v1"
     print("PASS test_persistent_validation_context_is_session_scoped")
+
+
+def test_insert_facts_does_not_reconcile_decisions_implicitly() -> None:
+    graph = make_graph(session_id="sess_test")
+    facts = load_fixture()[:2]
+
+    graph.insert_facts(facts, validate=True)
+
+    reconcile_queries = [
+        q for q, _ in graph._driver.queries
+        if "r.decision_status = latest.decision" in q
+    ]
+    assert not reconcile_queries, (
+        "insert_facts must not trigger ledger reconciliation; callers such as "
+        "experiments.build_kg reconcile explicitly once per session"
+    )
 
 
 def test_reconcile_fact_decisions_refreshes_relationship_metadata() -> None:

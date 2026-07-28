@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from experiments.common import iter_pilot_examples
+from neurosym.application.experiment_io import iter_pilot_examples
 
 
 def test_limited_pilot_selection_is_sorted_and_stable(tmp_path) -> None:

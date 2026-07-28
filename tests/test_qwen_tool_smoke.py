@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from experiments.qwen_tool_smoke import main, smoke_record
-from experiments.rlm_retrieval import QwenRLMToolOutcome
+from neurosym.adapters.qwen_rlm import QwenRLMToolOutcome
 
 
 def _outcome(*, response: dict, status: str = "supported") -> QwenRLMToolOutcome:

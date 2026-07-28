@@ -28,12 +28,12 @@ from typing import Dict, List, Optional
 
 from openai import OpenAI
 
-from experiments.common import extract_letter
+from neurosym.application.experiment_io import extract_letter
+from neurosym.reporting import read_jsonl
 
 
 def load_jsonl(path: Path) -> List[Dict]:
-    with open(path, encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
+    return read_jsonl(path)
 
 
 def build_facts_index(facts: List[Dict]) -> Dict[str, List[Dict]]:

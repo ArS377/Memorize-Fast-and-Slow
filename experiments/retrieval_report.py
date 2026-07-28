@@ -7,16 +7,11 @@ from pathlib import Path
 from statistics import mean
 from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
+from neurosym.reporting import read_jsonl
+
 
 def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-    with Path(path).open(encoding="utf-8") as handle:
-        for line in handle:
-            if line.strip():
-                value = json.loads(line)
-                if isinstance(value, dict):
-                    rows.append(value)
-    return rows
+    return read_jsonl(Path(path))
 
 
 def recall_at_k(retrieved_fact_ids: Sequence[str], relevant_fact_ids: Iterable[str], k: int) -> float:

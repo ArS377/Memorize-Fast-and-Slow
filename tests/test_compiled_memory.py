@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from compiled_memory import (  # noqa: E402
+from neurosym.domain.compiled_memory import (  # noqa: E402
     TemporalScope,
     compiled_memory_to_fact,
     compiled_memory_to_neo4j_properties,

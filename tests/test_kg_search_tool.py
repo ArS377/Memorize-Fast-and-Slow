@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from experiments.graph_context import GraphSource
-from experiments.kg_search_tool import (
+from neurosym.adapters.graph_source import GraphSource
+from neurosym.adapters.kg_search import (
     DEFAULT_HOPS,
     DEFAULT_TOP_K,
     SEARCH_KNOWLEDGE_GRAPH_TOOL,

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from experiments.retrieval_config import RetrievalConfig
+from neurosym.domain.retrieval_config import RetrievalConfig
 from experiments.run_all import _common_cell_args, _materialize_pilot_input
 
 

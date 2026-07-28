@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from memory_artifacts import MemoryScope, compile_working_memory, transition_for
+from neurosym.domain.memory_artifacts import MemoryScope, compile_working_memory, transition_for
 
 
 FACTS = [

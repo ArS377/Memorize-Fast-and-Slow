@@ -9,8 +9,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-from neo4j_graph import Neo4jGraph
-from scallop_validator import scallopy
+from neurosym.adapters.neo4j_graph import Neo4jGraph
+from neurosym.adapters.scallop import scallopy
 
 
 def parse_args() -> argparse.Namespace:

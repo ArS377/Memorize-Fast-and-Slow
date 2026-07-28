@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from experiments.common import iter_pilot_examples
+from neurosym.application.experiment_io import iter_pilot_examples
 
 
 def _facts_count(graph, session_id: str) -> int:
@@ -106,9 +106,9 @@ def build_kg(
 
     Returns the JSONL mirror path (``results/kg_builds/<session>_facts.jsonl``).
     """
-    from neo4j_graph import Neo4jGraph
-    from compiled_memory import fact_to_compiled_fact
-    from rejection_artifacts import append_rejection_jsonl, build_rejection_record
+    from neurosym.adapters.neo4j_graph import Neo4jGraph
+    from neurosym.domain.compiled_memory import fact_to_compiled_fact
+    from neurosym.reporting.rejections import append_rejection_jsonl, build_rejection_record
     from longbench_kg_pipeline import (
         LongBenchKGPipeline,
         PipelineConfig,

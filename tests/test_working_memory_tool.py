@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from experiments.graph_context import GraphSource
-from experiments.working_memory_tool import (
+from neurosym.adapters.graph_source import GraphSource
+from neurosym.adapters.working_memory_tool import (
     UPDATE_WORKING_MEMORY_TOOL,
     execute_update_working_memory,
 )

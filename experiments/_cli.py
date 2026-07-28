@@ -16,14 +16,15 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from experiments.common import (
+from neurosym.application.experiment_io import (
     cell_output_path,
     format_question,
     iter_pilot_examples,
     truncate_context,
     write_result_row,
 )
-from experiments.retrieval_config import EmbeddingConfig, PPRConfig, RetrievalConfig
+from neurosym.domain.retrieval_config import EmbeddingConfig, PPRConfig, RetrievalConfig
+from neurosym.application.cells import CellSpec, RunConfig
 
 
 def _positive_int(value: str) -> int:
@@ -275,10 +276,29 @@ def run_cell(
 
     out_path = args.output or cell_output_path(cell_id, label, args.results_dir)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    cell_spec = CellSpec(
+        cell_id=cell_id,
+        label=label,
+        answer_strategy=kind,
+        context_strategy=retrieval,
+        validator=(
+            "scallop"
+            if "scallop" in label and "noscallop" not in label
+            else "none"
+            if retrieval == "kg"
+            else "n/a"
+        ),
+        session_id=session_id,
+    )
+    run_config = RunConfig.from_namespace(args, output_path=out_path)
 
-    examples = iter_pilot_examples(args.input, args.limit, seed=args.seed)
+    examples = iter_pilot_examples(
+        run_config.input_path,
+        run_config.limit,
+        seed=run_config.seed,
+    )
     print(
-        f"Cell {cell_id} ({label}): {len(examples)} examples; output -> {out_path}",
+        f"Cell {cell_spec.cell_id} ({cell_spec.label}): {len(examples)} examples; output -> {run_config.output_path}",
         file=sys.stderr,
     )
 
@@ -320,7 +340,7 @@ def run_cell(
             ),
             failure_policy=args.dense_failure_policy,
         )
-        from experiments.graph_context import open_graph_source
+        from neurosym.adapters.graph_source import open_graph_source
         try:
             graph_source = open_graph_source(
                 neo4j_uri=args.neo4j_uri,
@@ -400,7 +420,7 @@ def run_cell(
                 diagnostic_predicted = ""
                 try:
                     if qwen_tool_mode:
-                        from experiments.rlm_retrieval import qwen_rlm_tool_answer
+                        from neurosym.adapters.qwen_rlm import qwen_rlm_tool_answer
 
                         outcome = qwen_rlm_tool_answer(
                             backend=args.backend,

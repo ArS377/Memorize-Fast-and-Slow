@@ -12,12 +12,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from experiments.common import CELLS, cell_output_path
+from neurosym.application.experiment_io import CELLS, cell_output_path
+from neurosym.reporting import read_jsonl, summarize_experiment_rows
 
 SUMMARY_COLUMNS = [
     "cell_id", "label", "retrieval", "validator", "recursion",
@@ -27,42 +27,11 @@ SUMMARY_COLUMNS = [
 
 
 def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-    with path.open(encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
+    return read_jsonl(path)
 
 
 def _summarize_rows(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
-    n_examples = len(rows)
-    answered = [r for r in rows if r.get("predicted") and not r.get("error")]
-    n_answered = len(answered)
-    correct = sum(1 for r in answered if r.get("correct"))
-    accuracy = (correct / n_answered) if n_answered else None
-    diagnostic_answered = [r for r in rows if r.get("diagnostic_predicted")]
-    n_diagnostic_answered = len(diagnostic_answered)
-    diagnostic_correct = sum(1 for r in diagnostic_answered if r.get("diagnostic_correct"))
-    diagnostic_accuracy = (
-        diagnostic_correct / n_diagnostic_answered if n_diagnostic_answered else None
-    )
-    latencies = [r.get("elapsed_seconds") for r in rows if isinstance(r.get("elapsed_seconds"), (int, float))]
-    mean_latency = (sum(latencies) / len(latencies)) if latencies else None
-    triples = [r.get("n_triples") for r in rows if isinstance(r.get("n_triples"), (int, float))]
-    mean_triples = (sum(triples) / len(triples)) if triples else None
-    n_errors = sum(1 for r in rows if r.get("error"))
-    return {
-        "n_examples": n_examples,
-        "n_answered": n_answered,
-        "accuracy": accuracy,
-        "mean_latency_s": mean_latency,
-        "mean_triples": mean_triples,
-        "n_errors": n_errors,
-        "n_diagnostic_answered": n_diagnostic_answered,
-        "diagnostic_accuracy": diagnostic_accuracy,
-    }
+    return summarize_experiment_rows(rows)
 
 
 def collect_summary(results_dir: Path) -> List[Dict[str, Any]]:

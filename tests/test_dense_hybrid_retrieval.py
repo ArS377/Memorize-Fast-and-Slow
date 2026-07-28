@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Mapping, Sequence
 import numpy as np
 import pytest
 
-from experiments.dense_retrieval import (
+from neurosym.adapters.dense_index import (
     DenseFactIndex,
     DenseRetrievalError,
     ensure_dense_index,
@@ -18,9 +18,9 @@ from experiments.dense_retrieval import (
     session_index_path,
     snapshot_sha256,
 )
-from experiments.graph_context import GraphSource
-from experiments.kg_search_tool import execute_search_knowledge_graph
-from experiments.retrieval_config import EmbeddingConfig, RetrievalConfig
+from neurosym.adapters.graph_source import GraphSource
+from neurosym.adapters.kg_search import execute_search_knowledge_graph
+from neurosym.domain.retrieval_config import EmbeddingConfig, RetrievalConfig
 
 
 class FakeProvider:

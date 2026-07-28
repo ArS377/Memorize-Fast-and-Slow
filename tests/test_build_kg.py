@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import neo4j_graph
+import neurosym.adapters.neo4j_graph as neo4j_graph
 
 from experiments.build_kg import _facts_count, build_kg
 

@@ -41,19 +41,19 @@ from typing import Any, Dict, List, Optional
 
 from openai import OpenAI
 
-from experiments.common import (
+from neurosym.application.experiment_io import (
     extract_letter,
     format_question,
     iter_pilot_examples,
     write_result_row,
 )
 from experiments.flat_answerer import flat_answer
-from experiments.graph_context import (
+from neurosym.adapters.graph_source import (
     extract_seed_entities,
     format_fact_rows,
     load_facts_from_jsonl,
 )
-from scallop_validator import validate_update, confidence_score
+from neurosym.adapters.scallop import validate_update, confidence_score
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ def cumulative_context_neo4j(
     )
     if validate and rows:
         rows = scallop_filter_facts(rows)
-    from neo4j_graph import Neo4jGraph
+    from neurosym.adapters.neo4j_graph import Neo4jGraph
     context = Neo4jGraph.format_context_for_llm(rows, max_chars=max_chars)
     return context, len(rows)
 
@@ -205,7 +205,7 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     if args.neo4j_uri and args.neo4j_user and args.neo4j_password:
         try:
-            from neo4j_graph import Neo4jGraph
+            from neurosym.adapters.neo4j_graph import Neo4jGraph
             graph = Neo4jGraph(
                 uri=args.neo4j_uri,
                 user=args.neo4j_user,

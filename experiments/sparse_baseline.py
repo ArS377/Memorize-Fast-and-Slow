@@ -13,6 +13,8 @@ from pathlib import Path
 from statistics import mean
 from typing import Any, Dict, Iterable, List
 
+from neurosym.reporting import read_jsonl
+
 
 BASELINE_METRIC_FIELDS = (
     "examples",
@@ -28,8 +30,7 @@ BASELINE_METRIC_FIELDS = (
 
 def load_jsonl(path: Path) -> List[Dict[str, Any]]:
     """Load non-empty JSONL records from a persisted smoke trace file."""
-    with Path(path).open(encoding="utf-8") as handle:
-        return [json.loads(line) for line in handle if line.strip()]
+    return read_jsonl(Path(path))
 
 
 def _fact_ids(record: Dict[str, Any]) -> set[str]:

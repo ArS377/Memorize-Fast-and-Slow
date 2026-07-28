@@ -7,18 +7,12 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from experiments.common import CELLS, cell_output_path
+from neurosym.application.experiment_io import CELLS, cell_output_path
+from neurosym.reporting import read_jsonl
 
 
 def _jsonl(path: Path) -> List[Dict[str, Any]]:
-    rows = []
-    if not path.exists():
-        return rows
-    with path.open(encoding="utf-8") as stream:
-        for line in stream:
-            if line.strip():
-                rows.append(json.loads(line))
-    return rows
+    return read_jsonl(path, missing_ok=True)
 
 
 def audit_run(results_dir: Path) -> Dict[str, Any]:
