@@ -1,0 +1,253 @@
+[build_kg] session=hippo_cell56_noscallop validate=False examples=50 model=Qwen/Qwen3-4B
+[build_kg] (1/50) extracting 66ead7bd5a08c7b9b35dca7a
+           chunk 1/3 sentences=76 text_chars=5893
+           chunk 2/3 sentences=71 text_chars=6156
+           chunk 3/3 sentences=54 text_chars=7607
+           extracted=4 supported=4 llm_rejected=0 scallop_rejected=0 committed_total=4
+[build_kg] (2/50) extracting 66eae4de5a08c7b9b35dd12d
+           chunk 1/3 sentences=54 text_chars=7620
+           chunk 2/3 sentences=63 text_chars=6671
+           chunk 3/3 sentences=68 text_chars=6525
+           extracted=30 supported=30 llm_rejected=0 scallop_rejected=0 committed_total=34
+[build_kg] (3/50) extracting 66eb873c5a08c7b9b35dd849
+           chunk 1/3 sentences=53 text_chars=7617
+           chunk 2/3 sentences=63 text_chars=6826
+           chunk 3/3 sentences=57 text_chars=7330
+           extracted=13 supported=9 llm_rejected=4 scallop_rejected=0 committed_total=43
+[build_kg] (4/50) extracting 66ebb0e55a08c7b9b35ddd6a
+           chunk 1/3 sentences=48 text_chars=8156
+           chunk 2/3 sentences=55 text_chars=7493
+           chunk 3/3 sentences=56 text_chars=7500
+           extracted=16 supported=16 llm_rejected=0 scallop_rejected=0 committed_total=59
+[build_kg] (5/50) extracting 66ebbe4f5a08c7b9b35de533
+           chunk 1/3 sentences=33 text_chars=9357
+           chunk 2/3 sentences=45 text_chars=8344
+           chunk 3/3 sentences=28 text_chars=9223
+           extracted=4 supported=4 llm_rejected=0 scallop_rejected=0 committed_total=63
+[build_kg] (6/50) extracting 66ebc04a5a08c7b9b35de740
+           chunk 1/3 sentences=33 text_chars=9030
+           chunk 2/3 sentences=46 text_chars=8232
+           chunk 3/3 sentences=52 text_chars=7676
+           extracted=16 supported=16 llm_rejected=0 scallop_rejected=0 committed_total=79
+[build_kg] (7/50) extracting 66ebc0c95a08c7b9b35de7f3
+           chunk 1/3 sentences=56 text_chars=7513
+           chunk 2/3 sentences=56 text_chars=7303
+           chunk 3/3 sentences=59 text_chars=7269
+           extracted=8 supported=6 llm_rejected=2 scallop_rejected=0 committed_total=85
+[build_kg] (8/50) extracting 66ebc3165a08c7b9b35deb38
+           chunk 1/3 sentences=60 text_chars=7042
+           chunk 2/3 sentences=59 text_chars=7266
+           chunk 3/3 sentences=61 text_chars=7082
+           extracted=15 supported=15 llm_rejected=0 scallop_rejected=0 committed_total=100
+[build_kg] (9/50) extracting 66ebc4af5a08c7b9b35dede0
+           chunk 1/3 sentences=43 text_chars=8393
+           chunk 2/3 sentences=43 text_chars=8522
+           chunk 3/3 sentences=44 text_chars=8421
+           extracted=8 supported=8 llm_rejected=0 scallop_rejected=0 committed_total=108
+[build_kg] (10/50) extracting 66ebc7445a08c7b9b35df155
+           chunk 1/3 sentences=53 text_chars=7552
+           chunk 2/3 sentences=59 text_chars=7196
+           chunk 3/3 sentences=61 text_chars=7045
+           extracted=9 supported=9 llm_rejected=0 scallop_rejected=0 committed_total=117
+[build_kg] (11/50) extracting 66ebc95f5a08c7b9b35df497
+           chunk 1/3 sentences=45 text_chars=8385
+           chunk 2/3 sentences=44 text_chars=8330
+           chunk 3/3 sentences=50 text_chars=7435
+           extracted=25 supported=25 llm_rejected=0 scallop_rejected=0 committed_total=142
+[build_kg] (12/50) extracting 66ebca1e5a08c7b9b35df5e8
+           chunk 1/3 sentences=55 text_chars=7574
+           chunk 2/3 sentences=61 text_chars=6914
+           chunk 3/3 sentences=60 text_chars=7094
+           extracted=14 supported=14 llm_rejected=0 scallop_rejected=0 committed_total=156
+[build_kg] (13/50) extracting 66ebcc1e5a08c7b9b35df87d
+           chunk 1/3 sentences=40 text_chars=8758
+           chunk 2/3 sentences=40 text_chars=8775
+           chunk 3/3 sentences=35 text_chars=9046
+           extracted=10 supported=10 llm_rejected=0 scallop_rejected=0 committed_total=166
+[build_kg] (14/50) extracting 66ebcc335a08c7b9b35df8b6
+           chunk 1/3 sentences=37 text_chars=8792
+           chunk 2/3 sentences=38 text_chars=8487
+           chunk 3/3 sentences=44 text_chars=7982
+           extracted=19 supported=19 llm_rejected=0 scallop_rejected=0 committed_total=185
+[build_kg] (15/50) extracting 66ebce825a08c7b9b35dfc75
+           chunk 1/3 sentences=48 text_chars=8039
+           chunk 2/3 sentences=50 text_chars=7831
+           chunk 3/3 sentences=57 text_chars=7313
+           extracted=5 supported=2 llm_rejected=3 scallop_rejected=0 committed_total=187
+[build_kg] (16/50) extracting 66ebd0825a08c7b9b35dfe9d
+           chunk 1/3 sentences=37 text_chars=8728
+           chunk 2/3 sentences=49 text_chars=7604
+           chunk 3/3 sentences=55 text_chars=7589
+           extracted=10 supported=10 llm_rejected=0 scallop_rejected=0 committed_total=197
+[build_kg] (17/50) extracting 66ebd0ea5a08c7b9b35dff57
+           chunk 1/3 sentences=51 text_chars=7896
+           chunk 2/3 sentences=49 text_chars=8011
+           chunk 3/3 sentences=54 text_chars=7652
+           extracted=8 supported=8 llm_rejected=0 scallop_rejected=0 committed_total=205
+[build_kg] (18/50) extracting 66ebd22e5a08c7b9b35e0126
+           chunk 1/3 sentences=45 text_chars=8340
+           chunk 2/3 sentences=46 text_chars=8237
+           chunk 3/3 sentences=44 text_chars=8312
+           extracted=11 supported=11 llm_rejected=0 scallop_rejected=0 committed_total=216
+[build_kg] (19/50) extracting 66ebd2475a08c7b9b35e0155
+           chunk 1/3 sentences=44 text_chars=8400
+           chunk 2/3 sentences=44 text_chars=8135
+           chunk 3/3 sentences=41 text_chars=8587
+           extracted=12 supported=1 llm_rejected=11 scallop_rejected=0 committed_total=217
+[build_kg] (20/50) extracting 66ebd2975a08c7b9b35e01e3
+           chunk 1/3 sentences=50 text_chars=7878
+           chunk 2/3 sentences=39 text_chars=8792
+           chunk 3/3 sentences=57 text_chars=7322
+           extracted=6 supported=6 llm_rejected=0 scallop_rejected=0 committed_total=223
+[build_kg] (21/50) extracting 66ebd3075a08c7b9b35e02bd
+           chunk 1/3 sentences=57 text_chars=7269
+           chunk 2/3 sentences=52 text_chars=7819
+           chunk 3/3 sentences=51 text_chars=7690
+           extracted=8 supported=8 llm_rejected=0 scallop_rejected=0 committed_total=231
+[build_kg] (22/50) extracting 66ebd34d5a08c7b9b35e035d
+           chunk 1/3 sentences=9 text_chars=10799
+           chunk 2/3 sentences=32 text_chars=9377
+           chunk 3/3 sentences=53 text_chars=7687
+           extracted=16 supported=16 llm_rejected=0 scallop_rejected=0 committed_total=247
+[build_kg] (23/50) extracting 66ebd3ba5a08c7b9b35e0446
+           chunk 1/3 sentences=21 text_chars=9922
+           chunk 2/3 sentences=12 text_chars=10840
+           chunk 3/3 sentences=9 text_chars=10799
+           extracted=18 supported=18 llm_rejected=0 scallop_rejected=0 committed_total=265
+[build_kg] (24/50) extracting 66ebd49a5a08c7b9b35e0550
+           chunk 1/3 sentences=24 text_chars=10024
+           chunk 2/3 sentences=28 text_chars=9635
+           chunk 3/3 sentences=26 text_chars=9193
+           extracted=5 supported=1 llm_rejected=4 scallop_rejected=0 committed_total=266
+[build_kg] (25/50) extracting 66ebd5125a08c7b9b35e0616
+           chunk 1/3 sentences=66 text_chars=6656
+           chunk 2/3 sentences=61 text_chars=6573
+           chunk 3/3 sentences=56 text_chars=7458
+           extracted=7 supported=7 llm_rejected=0 scallop_rejected=0 committed_total=273
+[build_kg] (26/50) extracting 66ebd55f5a08c7b9b35e0698
+           chunk 1/3 sentences=43 text_chars=7810
+           chunk 2/3 sentences=35 text_chars=9150
+           chunk 3/3 sentences=56 text_chars=7518
+           extracted=3 supported=2 llm_rejected=1 scallop_rejected=0 committed_total=275
+[build_kg] (27/50) extracting 66ebd5675a08c7b9b35e06bf
+           chunk 1/3 sentences=50 text_chars=7878
+           chunk 2/3 sentences=46 text_chars=8193
+           chunk 3/3 sentences=49 text_chars=7905
+           extracted=12 supported=12 llm_rejected=0 scallop_rejected=0 committed_total=287
+[build_kg] (28/50) extracting 66ebd92d5a08c7b9b35e0bf0
+           chunk 1/3 sentences=61 text_chars=6778
+           chunk 2/3 sentences=61 text_chars=6774
+           chunk 3/3 sentences=64 text_chars=6783
+           extracted=15 supported=15 llm_rejected=0 scallop_rejected=0 committed_total=302
+[build_kg] (29/50) extracting 66ebd9895a08c7b9b35e0c7c
+           chunk 1/3 sentences=36 text_chars=8698
+           chunk 2/3 sentences=38 text_chars=8469
+           chunk 3/3 sentences=40 text_chars=8691
+           extracted=14 supported=14 llm_rejected=0 scallop_rejected=0 committed_total=316
+[build_kg] (30/50) extracting 66ebda775a08c7b9b35e0dcb
+           chunk 1/3 sentences=49 text_chars=8023
+           chunk 2/3 sentences=51 text_chars=7755
+           chunk 3/3 sentences=55 text_chars=7450
+           extracted=9 supported=9 llm_rejected=0 scallop_rejected=0 committed_total=325
+[build_kg] (31/50) extracting 66ebdadd5a08c7b9b35e0e5b
+           chunk 1/3 sentences=88 text_chars=4822
+           chunk 2/3 sentences=64 text_chars=6629
+           chunk 3/3 sentences=71 text_chars=6276
+           extracted=15 supported=15 llm_rejected=0 scallop_rejected=0 committed_total=340
+[build_kg] (32/50) extracting 66ebdd1c5a08c7b9b35e113b
+           chunk 1/3 sentences=47 text_chars=8214
+           chunk 2/3 sentences=35 text_chars=8878
+           chunk 3/3 sentences=12 text_chars=10078
+           extracted=18 supported=18 llm_rejected=0 scallop_rejected=0 committed_total=358
+[build_kg] (33/50) extracting 66ebde0f5a08c7b9b35e1256
+           chunk 1/3 sentences=48 text_chars=8053
+           chunk 2/3 sentences=50 text_chars=7953
+           chunk 3/3 sentences=52 text_chars=7760
+           extracted=14 supported=14 llm_rejected=0 scallop_rejected=0 committed_total=372
+[build_kg] (34/50) extracting 66ebdfb65a08c7b9b35e140a
+           chunk 1/3 sentences=27 text_chars=9473
+           chunk 2/3 sentences=32 text_chars=9283
+           chunk 3/3 sentences=39 text_chars=8714
+           extracted=13 supported=13 llm_rejected=0 scallop_rejected=0 committed_total=385
+[build_kg] (35/50) extracting 66ebe0fb5a08c7b9b35e14f5
+           chunk 1/3 sentences=61 text_chars=7087
+           chunk 2/3 sentences=69 text_chars=6161
+           chunk 3/3 sentences=75 text_chars=5965
+           extracted=9 supported=9 llm_rejected=0 scallop_rejected=0 committed_total=394
+[build_kg] (36/50) extracting 66ebe30a5a08c7b9b35e1693
+           chunk 1/3 sentences=66 text_chars=6578
+           chunk 2/3 sentences=60 text_chars=7182
+           chunk 3/3 sentences=70 text_chars=6298
+           extracted=17 supported=17 llm_rejected=0 scallop_rejected=0 committed_total=411
+[build_kg] (37/50) extracting 66ebe68d5a08c7b9b35e190b
+           chunk 1/3 sentences=69 text_chars=6308
+           chunk 2/3 sentences=61 text_chars=7072
+           chunk 3/3 sentences=48 text_chars=8047
+           extracted=22 supported=22 llm_rejected=0 scallop_rejected=0 committed_total=433
+[build_kg] (38/50) extracting 66ebeb5a5a08c7b9b35e1ba5
+           chunk 1/3 sentences=59 text_chars=7114
+           chunk 2/3 sentences=19 text_chars=9836
+           chunk 3/3 sentences=27 text_chars=9814
+           extracted=11 supported=11 llm_rejected=0 scallop_rejected=0 committed_total=444
+[build_kg] (39/50) extracting 66ebed525a08c7b9b35e1cb4
+           chunk 1/3 sentences=61 text_chars=7079
+           chunk 2/3 sentences=56 text_chars=7102
+           chunk 3/3 sentences=51 text_chars=7912
+           extracted=13 supported=7 llm_rejected=6 scallop_rejected=0 committed_total=451
+[build_kg] (40/50) extracting 66ebee0a5a08c7b9b35e1d05
+           chunk 1/3 sentences=56 text_chars=7388
+           chunk 2/3 sentences=56 text_chars=7402
+           chunk 3/3 sentences=56 text_chars=7482
+           extracted=20 supported=20 llm_rejected=0 scallop_rejected=0 committed_total=471
+[build_kg] (41/50) extracting 66ebf9bf5a08c7b9b35e1f85
+           chunk 1/3 sentences=44 text_chars=8316
+           chunk 2/3 sentences=51 text_chars=7780
+           chunk 3/3 sentences=47 text_chars=8180
+           extracted=4 supported=4 llm_rejected=0 scallop_rejected=0 committed_total=475
+[build_kg] (42/50) extracting 66ec052a5a08c7b9b35e29c7
+           chunk 1/3 sentences=84 text_chars=5201
+           chunk 2/3 sentences=70 text_chars=6280
+           chunk 3/3 sentences=64 text_chars=6451
+           extracted=6 supported=1 llm_rejected=5 scallop_rejected=0 committed_total=476
+[build_kg] (43/50) extracting 66ec0874821e116aacb194a4
+           chunk 1/3 sentences=61 text_chars=6790
+           chunk 2/3 sentences=66 text_chars=6612
+           chunk 3/3 sentences=68 text_chars=6521
+           extracted=14 supported=14 llm_rejected=0 scallop_rejected=0 committed_total=490
+[build_kg] (44/50) extracting 66ec088c821e116aacb194d9
+           chunk 1/3 sentences=9 text_chars=10208
+           chunk 2/3 sentences=10 text_chars=10808
+           chunk 3/3 sentences=10 text_chars=10768
+           extracted=6 supported=6 llm_rejected=0 scallop_rejected=0 committed_total=496
+[build_kg] (45/50) extracting 66ec09ec821e116aacb19620
+           chunk 1/3 sentences=56 text_chars=7272
+           chunk 2/3 sentences=64 text_chars=6865
+           chunk 3/3 sentences=90 text_chars=4729
+           extracted=25 supported=25 llm_rejected=0 scallop_rejected=0 committed_total=521
+[build_kg] (46/50) extracting 66ec0c4c821e116aacb1994a
+           chunk 1/3 sentences=33 text_chars=9121
+           chunk 2/3 sentences=46 text_chars=8133
+           chunk 3/3 sentences=47 text_chars=7964
+           extracted=6 supported=6 llm_rejected=0 scallop_rejected=0 committed_total=527
+[build_kg] (47/50) extracting 66ec0d4b821e116aacb19af8
+           chunk 1/3 sentences=59 text_chars=7252
+           chunk 2/3 sentences=57 text_chars=7302
+           chunk 3/3 sentences=62 text_chars=6883
+           extracted=23 supported=23 llm_rejected=0 scallop_rejected=0 committed_total=550
+[build_kg] (48/50) extracting 66ec0d51821e116aacb19b0f
+           chunk 1/3 sentences=55 text_chars=7380
+           chunk 2/3 sentences=57 text_chars=7404
+           chunk 3/3 sentences=57 text_chars=7301
+           extracted=20 supported=20 llm_rejected=0 scallop_rejected=0 committed_total=570
+[build_kg] (49/50) extracting 66ec0f3c821e116aacb19d70
+           chunk 1/3 sentences=52 text_chars=7714
+           chunk 2/3 sentences=59 text_chars=7241
+           chunk 3/3 sentences=55 text_chars=7472
+           extracted=11 supported=1 llm_rejected=10 scallop_rejected=0 committed_total=571
+[build_kg] (50/50) extracting 66ec0f7f821e116aacb19dde
+           chunk 1/3 sentences=47 text_chars=8095
+           chunk 2/3 sentences=56 text_chars=7404
+           chunk 3/3 sentences=54 text_chars=7541
+           extracted=21 supported=20 llm_rejected=1 scallop_rejected=0 committed_total=591
+[build_kg] rejection summary: llm_rejected=47 scallop_rejected=0
+[build_kg] done. session=hippo_cell56_noscallop committed=591 reconciled=0 mirrored=578 -> results/runs/hippo_cell56/kg_builds/hippo_cell56_noscallop_facts.jsonl; rejections -> results/runs/hippo_cell56/kg_builds/hippo_cell56_noscallop_rejections.jsonl

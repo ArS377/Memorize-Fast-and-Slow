@@ -1,0 +1,4152 @@
+{
+  "timestamp": "2026-07-25T23:50:45.617417+00:00",
+  "run_id": "hippo_overnight_20260725_080810_hybrid_seed1",
+  "git_sha": "e4530f3bbb47cbd78861ebf8162fae61e482acaa",
+  "input": "data.jsonl",
+  "input_sha256": "b44c490b8498c3e7e4097fa3f94d83491bccc14d69cc8682fb7a4ee0cc392cdb",
+  "pilot_input": {
+    "path": "results/runs/hippo_overnight_20260725_080810/hybrid/seed1/pilot_input.jsonl",
+    "sha256": "4dd5723c4acd436ea5cac64888958715c2b3cf1b8f92bdedec16e3860a07c5ba",
+    "example_count": 50,
+    "example_ids": [
+      "66ead7bd5a08c7b9b35dca7a",
+      "66eae4de5a08c7b9b35dd12d",
+      "66eb873c5a08c7b9b35dd849",
+      "66ebb0e55a08c7b9b35ddd6a",
+      "66ebbe4f5a08c7b9b35de533",
+      "66ebc04a5a08c7b9b35de740",
+      "66ebc0c95a08c7b9b35de7f3",
+      "66ebc3165a08c7b9b35deb38",
+      "66ebc4af5a08c7b9b35dede0",
+      "66ebc7445a08c7b9b35df155",
+      "66ebc95f5a08c7b9b35df497",
+      "66ebca1e5a08c7b9b35df5e8",
+      "66ebcc1e5a08c7b9b35df87d",
+      "66ebcc335a08c7b9b35df8b6",
+      "66ebce825a08c7b9b35dfc75",
+      "66ebd0825a08c7b9b35dfe9d",
+      "66ebd0ea5a08c7b9b35dff57",
+      "66ebd22e5a08c7b9b35e0126",
+      "66ebd2475a08c7b9b35e0155",
+      "66ebd2975a08c7b9b35e01e3",
+      "66ebd3075a08c7b9b35e02bd",
+      "66ebd34d5a08c7b9b35e035d",
+      "66ebd3ba5a08c7b9b35e0446",
+      "66ebd49a5a08c7b9b35e0550",
+      "66ebd5125a08c7b9b35e0616",
+      "66ebd55f5a08c7b9b35e0698",
+      "66ebd5675a08c7b9b35e06bf",
+      "66ebd92d5a08c7b9b35e0bf0",
+      "66ebd9895a08c7b9b35e0c7c",
+      "66ebda775a08c7b9b35e0dcb",
+      "66ebdadd5a08c7b9b35e0e5b",
+      "66ebdd1c5a08c7b9b35e113b",
+      "66ebde0f5a08c7b9b35e1256",
+      "66ebdfb65a08c7b9b35e140a",
+      "66ebe0fb5a08c7b9b35e14f5",
+      "66ebe30a5a08c7b9b35e1693",
+      "66ebe68d5a08c7b9b35e190b",
+      "66ebeb5a5a08c7b9b35e1ba5",
+      "66ebed525a08c7b9b35e1cb4",
+      "66ebee0a5a08c7b9b35e1d05",
+      "66ebf9bf5a08c7b9b35e1f85",
+      "66ec052a5a08c7b9b35e29c7",
+      "66ec0874821e116aacb194a4",
+      "66ec088c821e116aacb194d9",
+      "66ec09ec821e116aacb19620",
+      "66ec0c4c821e116aacb1994a",
+      "66ec0d4b821e116aacb19af8",
+      "66ec0d51821e116aacb19b0f",
+      "66ec0f3c821e116aacb19d70",
+      "66ec0f7f821e116aacb19dde"
+    ]
+  },
+  "limit": 50,
+  "seed": 1,
+  "model": "Qwen/Qwen3-4B",
+  "vllm_base_url": "http://localhost:8000/v1",
+  "neo4j_uri": "bolt://localhost:7688",
+  "cells": [
+    5,
+    6
+  ],
+  "raw_max_chars": 32000,
+  "hops": 2,
+  "limit_triples": 50,
+  "memory_scope": "example",
+  "retrieval_config": {
+    "mode": "hybrid",
+    "rrf_k": 60,
+    "branch_candidate_multiplier": 3,
+    "branch_candidate_cap": 50,
+    "index_root": "results/runs/hippo_overnight_20260725_080810/hybrid/seed1/dense_indexes",
+    "embedding": {
+      "model": "BAAI/bge-small-en-v1.5",
+      "requested_revision": null,
+      "device": "cpu",
+      "batch_size": 32,
+      "normalize": true,
+      "fact_template_version": "fact_text.v1",
+      "query_template_version": "bge_query.v1"
+    },
+    "failure_policy": "error"
+  },
+  "retrieval_mode": "hybrid",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "embedding_revision": null,
+  "embedding_device": "cpu",
+  "embedding_batch_size": 32,
+  "dense_index_root": "results/runs/hippo_overnight_20260725_080810/hybrid/seed1/dense_indexes",
+  "dense_failure_policy": "error",
+  "rrf_k": 60,
+  "max_depth": 2,
+  "max_iterations": 10,
+  "max_tokens": 64000,
+  "orchestration_mode": "fixed",
+  "qwen_tool_retrieval": false,
+  "fixed_kg_retrieval": true,
+  "max_tool_calls": 3,
+  "tool_choice": "required",
+  "tool_timeout": 30.0,
+  "tool_trace_dir": null,
+  "tool_max_tokens": 2048,
+  "termination_mode": "order_gap",
+  "order_gap_epsilon": 0.025,
+  "order_gap_window": 2,
+  "order_gap_min_iterations": 2,
+  "kg_sessions": {
+    "2": "hippo_overnight_20260725_080810_noscallop",
+    "3": "hippo_overnight_20260725_080810_scallop",
+    "5": "hippo_overnight_20260725_080810_noscallop",
+    "6": "hippo_overnight_20260725_080810_scallop"
+  },
+  "scallop_validator_url": "http://127.0.0.1:8765",
+  "tool_contract_version": "search_knowledge_graph.v3+update_working_memory.v1",
+  "rule_version": "rules.v1",
+  "cell_status": {
+    "5": "complete",
+    "6": "complete"
+  },
+  "cell_retrieval": {
+    "5": [
+      {
+        "example_id": "66ead7bd5a08c7b9b35dca7a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.001,
+          "dense": 0.021
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66eae4de5a08c7b9b35dd12d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 28
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66eb873c5a08c7b9b35dd849",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 9,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.007,
+          "dense": 0.041
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebb0e55a08c7b9b35ddd6a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 16
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebbe4f5a08c7b9b35de533",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.032
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc04a5a08c7b9b35de740",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 16
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc0c95a08c7b9b35de7f3",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc3165a08c7b9b35deb38",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 15
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.037
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc4af5a08c7b9b35dede0",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.028
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc7445a08c7b9b35df155",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.045
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc95f5a08c7b9b35df497",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 22
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebca1e5a08c7b9b35df5e8",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 14,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.009,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebcc1e5a08c7b9b35df87d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebcc335a08c7b9b35df8b6",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 16,
+          "dense": 19
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.01,
+          "dense": 0.032
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebce825a08c7b9b35dfc75",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 5
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.032
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd0825a08c7b9b35dfe9d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 10
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd0ea5a08c7b9b35dff57",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 8,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.008,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd22e5a08c7b9b35e0126",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 10
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.019,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd2475a08c7b9b35e0155",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd2975a08c7b9b35e01e3",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 2
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd3075a08c7b9b35e02bd",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.028
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd34d5a08c7b9b35e035d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd3ba5a08c7b9b35e0446",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 0
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.0
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd49a5a08c7b9b35e0550",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd5125a08c7b9b35e0616",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 7
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.032
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd55f5a08c7b9b35e0698",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 2,
+          "dense": 2
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd5675a08c7b9b35e06bf",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 12
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.037
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd92d5a08c7b9b35e0bf0",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 1,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.005,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd9895a08c7b9b35e0c7c",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebda775a08c7b9b35e0dcb",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdadd5a08c7b9b35e0e5b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdd1c5a08c7b9b35e113b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 18
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.015,
+          "dense": 0.047
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebde0f5a08c7b9b35e1256",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdfb65a08c7b9b35e140a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 13
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe0fb5a08c7b9b35e14f5",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe30a5a08c7b9b35e1693",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe68d5a08c7b9b35e190b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 15,
+          "dense": 22
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.016,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebeb5a5a08c7b9b35e1ba5",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 11
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebed525a08c7b9b35e1cb4",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 7
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.041
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebee0a5a08c7b9b35e1d05",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 2,
+          "dense": 20
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.005,
+          "dense": 0.063
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebf9bf5a08c7b9b35e1f85",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec052a5a08c7b9b35e29c7",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 1,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0874821e116aacb194a4",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.051
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec088c821e116aacb194d9",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 6
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.028
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec09ec821e116aacb19620",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 25
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.037
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0c4c821e116aacb1994a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 6
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0d4b821e116aacb19af8",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 20
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0d51821e116aacb19b0f",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 18
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.032
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0f3c821e116aacb19d70",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 1,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0f7f821e116aacb19dde",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_noscallop",
+            "source_snapshot_sha256": "50894df9bf2795601e79c0c7459a90c2ed18394d150a3e8af42872cde622f1b8",
+            "ordered_fact_digest": "0ce073f1503d2ca27aa720fe422951308f02e28317caa4e1c0d6a5eece3f512b",
+            "fact_count": 498
+          }
+        ],
+        "branch_counts": {
+          "sparse": 7,
+          "dense": 20
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.006,
+          "dense": 0.045
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      }
+    ],
+    "6": [
+      {
+        "example_id": "66ead7bd5a08c7b9b35dca7a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.001,
+          "dense": 0.021
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66eae4de5a08c7b9b35dd12d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 28
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66eb873c5a08c7b9b35dd849",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 9,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.009,
+          "dense": 0.041
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebb0e55a08c7b9b35ddd6a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 16
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebbe4f5a08c7b9b35de533",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 4
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc04a5a08c7b9b35de740",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 16
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc0c95a08c7b9b35de7f3",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 3
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc3165a08c7b9b35deb38",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 15
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.042
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc4af5a08c7b9b35dede0",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc7445a08c7b9b35df155",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 7
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.044
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebc95f5a08c7b9b35df497",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 21
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebca1e5a08c7b9b35df5e8",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 14,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.01,
+          "dense": 0.032
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebcc1e5a08c7b9b35df87d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 9
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebcc335a08c7b9b35df8b6",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 16,
+          "dense": 19
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.01,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebce825a08c7b9b35dfc75",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 2
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd0825a08c7b9b35dfe9d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 10
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd0ea5a08c7b9b35dff57",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 8,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.006,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd22e5a08c7b9b35e0126",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 10
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd2475a08c7b9b35e0155",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 0
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.0
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd2975a08c7b9b35e01e3",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 2
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd3075a08c7b9b35e02bd",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 7
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.014,
+          "dense": 0.027
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd34d5a08c7b9b35e035d",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd3ba5a08c7b9b35e0446",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 8,
+          "dense": 11
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.008,
+          "dense": 0.051
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd49a5a08c7b9b35e0550",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.031
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd5125a08c7b9b35e0616",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 7
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd55f5a08c7b9b35e0698",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 2,
+          "dense": 2
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd5675a08c7b9b35e06bf",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 12
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd92d5a08c7b9b35e0bf0",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 1,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.005,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebd9895a08c7b9b35e0c7c",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.032
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebda775a08c7b9b35e0dcb",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdadd5a08c7b9b35e0e5b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.034
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdd1c5a08c7b9b35e113b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 18
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.045
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebde0f5a08c7b9b35e1256",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 14
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.042
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebdfb65a08c7b9b35e140a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 13
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.029
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe0fb5a08c7b9b35e14f5",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 8
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe30a5a08c7b9b35e1693",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebe68d5a08c7b9b35e190b",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 15,
+          "dense": 17
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.016,
+          "dense": 0.036
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebeb5a5a08c7b9b35e1ba5",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 11
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebed525a08c7b9b35e1cb4",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 7
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.043
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebee0a5a08c7b9b35e1d05",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 2,
+          "dense": 20
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.065
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ebf9bf5a08c7b9b35e1f85",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 3
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.016,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec052a5a08c7b9b35e29c7",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 1,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.004,
+          "dense": 0.026
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0874821e116aacb194a4",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 12
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.051
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec088c821e116aacb194d9",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 5
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.03
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec09ec821e116aacb19620",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 21
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.038
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0c4c821e116aacb1994a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 6
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.028
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0d4b821e116aacb19af8",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 17
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.035
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0d51821e116aacb19b0f",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 16
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.002,
+          "dense": 0.033
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0f3c821e116aacb19d70",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 1,
+          "dense": 1
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.003,
+          "dense": 0.028
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      },
+      {
+        "example_id": "66ec0f7f821e116aacb19dde",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "3.4.1",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "hippo_overnight_20260725_080810_scallop",
+            "source_snapshot_sha256": "15d28739ed0d4e0036f7cea4d911676c31936e9e6282b24e112004646d224236",
+            "ordered_fact_digest": "d6b16399bc7889d8694eeaca288b12f9626532b1cbe1eb3a8e2a344842266e40",
+            "fact_count": 480
+          }
+        ],
+        "branch_counts": {
+          "sparse": 6,
+          "dense": 19
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.016,
+          "dense": 0.047
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      }
+    ]
+  },
+  "skip_kg_build": true,
+  "kg_artifacts": {},
+  "cell_artifacts": {
+    "5": {
+      "results_path": "results/runs/hippo_overnight_20260725_080810/hybrid/seed1/cell5_rlm_kg_noscallop/results.jsonl",
+      "results_sha256": "37e13a51063066ea7b66104c8778579d4b258243647a8539df9cc1446691a24e"
+    },
+    "6": {
+      "results_path": "results/runs/hippo_overnight_20260725_080810/hybrid/seed1/cell6_rlm_kg_scallop/results.jsonl",
+      "results_sha256": "40d9ef2cc59ba0c31ed83ec34002f688b273b0d0c5da9c1334704345d5ea657b"
+    }
+  },
+  "retrieval_report": {
+    "json": "results/runs/hippo_overnight_20260725_080810/hybrid/seed1/retrieval_report.json",
+    "markdown": "results/runs/hippo_overnight_20260725_080810/hybrid/seed1/retrieval_report.md"
+  }
+}
