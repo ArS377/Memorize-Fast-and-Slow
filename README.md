@@ -140,7 +140,11 @@ python3 longbench_kg_pipeline.py \
 
 When a KG build caps extraction with `--max-chunks-per-example`, the default
 `--chunk-selection hybrid` ranks all source chunks with BM25 and the configured
-BGE embedder, then extracts only the highest-ranked chunks. Use
+BGE embedder, then extracts only the highest-ranked chunks. Dense scoring
+splits each source chunk into 448-token windows with 64-token overlap and uses
+the best window similarity, so the BGE model never silently truncates a
+macro-chunk to its 512-token sequence limit. Window vectors are batched during
+KG construction, aggregated to one score per macro-chunk, and discarded. Use
 `--chunk-selection first` to reproduce the legacy first-N behavior. Extraction
 and verification receive the question and choices but never the benchmark
 answer. Builds write `<session>_chunk_selection.jsonl` and

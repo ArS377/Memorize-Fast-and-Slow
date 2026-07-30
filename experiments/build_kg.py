@@ -117,6 +117,8 @@ def build_kg(
     max_chunks_per_example: Optional[int] = None,
     chunk_selection: str = "hybrid",
     chunk_selection_rrf_k: int = 60,
+    chunk_embedding_window_tokens: int = 448,
+    chunk_embedding_window_overlap_tokens: int = 64,
     chunk_embedding_model: str = "BAAI/bge-small-en-v1.5",
     chunk_embedding_revision: Optional[str] = None,
     chunk_embedding_device: str = "cpu",
@@ -260,6 +262,10 @@ def build_kg(
             run_id=f"build_{session_id}",
             chunk_selection=chunk_selection,
             chunk_selection_rrf_k=chunk_selection_rrf_k,
+            chunk_embedding_window_tokens=chunk_embedding_window_tokens,
+            chunk_embedding_window_overlap_tokens=(
+                chunk_embedding_window_overlap_tokens
+            ),
             chunk_embedding_model=chunk_embedding_model,
             chunk_embedding_revision=chunk_embedding_revision,
             chunk_embedding_device=chunk_embedding_device,
@@ -424,6 +430,12 @@ def _add_cli(parser: argparse.ArgumentParser) -> None:
         help="How to choose chunks when --max-chunks-per-example truncates context.",
     )
     parser.add_argument("--chunk-selection-rrf-k", type=int, default=60)
+    parser.add_argument("--chunk-embedding-window-tokens", type=int, default=448)
+    parser.add_argument(
+        "--chunk-embedding-window-overlap-tokens",
+        type=int,
+        default=64,
+    )
     parser.add_argument(
         "--chunk-embedding-model",
         default="BAAI/bge-small-en-v1.5",
@@ -458,6 +470,10 @@ def main(argv: Optional[List[str]] = None) -> Path:
         max_chunks_per_example=args.max_chunks_per_example,
         chunk_selection=args.chunk_selection,
         chunk_selection_rrf_k=args.chunk_selection_rrf_k,
+        chunk_embedding_window_tokens=args.chunk_embedding_window_tokens,
+        chunk_embedding_window_overlap_tokens=(
+            args.chunk_embedding_window_overlap_tokens
+        ),
         chunk_embedding_model=args.chunk_embedding_model,
         chunk_embedding_revision=args.chunk_embedding_revision,
         chunk_embedding_device=args.chunk_embedding_device,

@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence
 import numpy as np
 
 from neurosym.adapters.dense_index import (
+    EmbeddingTextWindow,
     SentenceTransformerEmbedder,
     query_text_v1,
 )
@@ -23,6 +24,13 @@ SOURCE_EVIDENCE_SCHEMA_VERSION = "source_evidence_v1"
 class ChunkEmbeddingProvider(Protocol):
     def encode_documents(self, texts: Sequence[str]) -> np.ndarray: ...
     def encode_query(self, text: str) -> np.ndarray: ...
+    def document_windows(
+        self,
+        text: str,
+        *,
+        max_tokens: int,
+        overlap_tokens: int,
+    ) -> List[EmbeddingTextWindow]: ...
     def metadata(self) -> Mapping[str, Any]: ...
 
 
@@ -119,6 +127,11 @@ class SelectedChunk:
     bm25_rank: Optional[int] = None
     dense_similarity: Optional[float] = None
     dense_rank: Optional[int] = None
+    dense_window_count: Optional[int] = None
+    dense_winning_window_index: Optional[int] = None
+    dense_winning_token_start: Optional[int] = None
+    dense_winning_token_end: Optional[int] = None
+    dense_winning_token_count: Optional[int] = None
 
     def audit_record(
         self,
@@ -149,6 +162,11 @@ class SelectedChunk:
                 "bm25_rank": self.bm25_rank,
                 "dense_similarity": self.dense_similarity,
                 "dense_rank": self.dense_rank,
+                "dense_window_count": self.dense_window_count,
+                "dense_winning_window_index": self.dense_winning_window_index,
+                "dense_winning_token_start": self.dense_winning_token_start,
+                "dense_winning_token_end": self.dense_winning_token_end,
+                "dense_winning_token_count": self.dense_winning_token_count,
             },
             "sentence_ids": sentence_ids,
             "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
@@ -226,6 +244,8 @@ class ChunkSelector:
         *,
         mode: str = "first",
         rrf_k: int = 60,
+        window_tokens: int = 448,
+        window_overlap_tokens: int = 64,
         embedding_config: Optional[EmbeddingConfig] = None,
         embedder: Optional[ChunkEmbeddingProvider] = None,
     ) -> None:
@@ -235,8 +255,20 @@ class ChunkSelector:
             )
         if rrf_k < 1:
             raise ValueError("chunk selection RRF k must be at least 1")
+        if window_tokens < 1:
+            raise ValueError("chunk embedding window size must be at least 1")
+        if (
+            window_overlap_tokens < 0
+            or window_overlap_tokens >= window_tokens
+        ):
+            raise ValueError(
+                "chunk embedding window overlap must be non-negative and "
+                "smaller than the window size"
+            )
         self.mode = mode
         self.rrf_k = int(rrf_k)
+        self.window_tokens = int(window_tokens)
+        self.window_overlap_tokens = int(window_overlap_tokens)
         self.embedding_config = embedding_config or EmbeddingConfig()
         self._embedder = embedder
         self._embedding_metadata: Optional[Dict[str, Any]] = None
@@ -299,18 +331,65 @@ class ChunkSelector:
         documents = [chunk_text(records) for records in rows]
         bm25_scores = _bm25_scores(query, documents)
         provider = self._provider()
-        document_vectors = _normalized(
-            provider.encode_documents(documents),
-            rows=len(documents),
+        windows_by_document = [
+            provider.document_windows(
+                document,
+                max_tokens=self.window_tokens,
+                overlap_tokens=self.window_overlap_tokens,
+            )
+            for document in documents
+        ]
+        if any(not windows for windows in windows_by_document):
+            raise ValueError(
+                "chunk embedding provider returned no windows for a document"
+            )
+        flattened_windows = [
+            window
+            for windows in windows_by_document
+            for window in windows
+        ]
+        window_vectors = _normalized(
+            provider.encode_documents(
+                [window.text for window in flattened_windows]
+            ),
+            rows=len(flattened_windows),
         )
         query_vector = _normalized(
             provider.encode_query(query_text_v1(query)),
             rows=1,
         )[0]
-        if document_vectors.shape[1] != query_vector.shape[0]:
+        if window_vectors.shape[1] != query_vector.shape[0]:
             raise ValueError("chunk and query embedding dimensions differ")
-        dense_scores = (document_vectors @ query_vector).astype(float).tolist()
+        similarities = np.sum(
+            window_vectors * query_vector[np.newaxis, :],
+            axis=1,
+            dtype=np.float32,
+        )
+        if not np.isfinite(similarities).all():
+            raise ValueError(
+                "chunk embedding similarity produced NaN or infinity"
+            )
+        window_scores = similarities.astype(float).tolist()
+        dense_scores: List[float] = []
+        winning_windows: List[tuple[int, EmbeddingTextWindow]] = []
+        window_offset = 0
+        for windows in windows_by_document:
+            scores = window_scores[window_offset : window_offset + len(windows)]
+            winning_index = max(
+                range(len(scores)),
+                key=lambda index: (scores[index], -index),
+            )
+            dense_scores.append(float(scores[winning_index]))
+            winning_windows.append((winning_index, windows[winning_index]))
+            window_offset += len(windows)
         self._embedding_metadata = dict(provider.metadata())
+        self._embedding_metadata.update(
+            {
+                "chunk_window_tokens": self.window_tokens,
+                "chunk_window_overlap_tokens": self.window_overlap_tokens,
+                "chunk_window_aggregation": "max_cosine_similarity",
+            }
+        )
 
         bm25_ranks = _ranks(bm25_scores)
         dense_ranks = _ranks(dense_scores)
@@ -333,12 +412,17 @@ class ChunkSelector:
                 chunk_index=index,
                 records=rows[index],
                 selection_rank=selection_rank,
-                selection_method="hybrid_rrf",
+                selection_method="hybrid_windowed_rrf",
                 score=float(fused_scores[index]),
                 bm25_score=float(bm25_scores[index]),
                 bm25_rank=bm25_ranks[index],
                 dense_similarity=float(dense_scores[index]),
                 dense_rank=dense_ranks[index],
+                dense_window_count=len(windows_by_document[index]),
+                dense_winning_window_index=winning_windows[index][0],
+                dense_winning_token_start=winning_windows[index][1].token_start,
+                dense_winning_token_end=winning_windows[index][1].token_end,
+                dense_winning_token_count=winning_windows[index][1].token_count,
             )
             for selection_rank, index in enumerate(
                 ordered[:limit],

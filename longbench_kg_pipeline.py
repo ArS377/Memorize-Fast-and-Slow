@@ -92,6 +92,8 @@ class PipelineConfig:
     rejections_output_path: Optional[Path] = None
     chunk_selection: str = "first"
     chunk_selection_rrf_k: int = 60
+    chunk_embedding_window_tokens: int = 448
+    chunk_embedding_window_overlap_tokens: int = 64
     chunk_embedding_model: str = DEFAULT_EMBEDDING_MODEL
     chunk_embedding_revision: Optional[str] = None
     chunk_embedding_device: str = "cpu"
@@ -107,6 +109,10 @@ class LongBenchKGPipeline:
         self.chunk_selector = ChunkSelector(
             mode=config.chunk_selection,
             rrf_k=config.chunk_selection_rrf_k,
+            window_tokens=config.chunk_embedding_window_tokens,
+            window_overlap_tokens=(
+                config.chunk_embedding_window_overlap_tokens
+            ),
             embedding_config=EmbeddingConfig(
                 model=config.chunk_embedding_model,
                 requested_revision=config.chunk_embedding_revision,
@@ -938,6 +944,12 @@ def parse_args() -> PipelineConfig:
         help="How to choose chunks when --max-chunks-per-example truncates the context.",
     )
     parser.add_argument("--chunk-selection-rrf-k", type=int, default=60)
+    parser.add_argument("--chunk-embedding-window-tokens", type=int, default=448)
+    parser.add_argument(
+        "--chunk-embedding-window-overlap-tokens",
+        type=int,
+        default=64,
+    )
     parser.add_argument("--chunk-embedding-model", default=DEFAULT_EMBEDDING_MODEL)
     parser.add_argument("--chunk-embedding-revision", default=None)
     parser.add_argument("--chunk-embedding-device", default="cpu")
@@ -978,6 +990,10 @@ def parse_args() -> PipelineConfig:
         neo4j_stateless=args.stateless,
         chunk_selection=args.chunk_selection,
         chunk_selection_rrf_k=args.chunk_selection_rrf_k,
+        chunk_embedding_window_tokens=args.chunk_embedding_window_tokens,
+        chunk_embedding_window_overlap_tokens=(
+            args.chunk_embedding_window_overlap_tokens
+        ),
         chunk_embedding_model=args.chunk_embedding_model,
         chunk_embedding_revision=args.chunk_embedding_revision,
         chunk_embedding_device=args.chunk_embedding_device,

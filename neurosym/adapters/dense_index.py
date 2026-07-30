@@ -27,6 +27,14 @@ class EmbeddingProvider(Protocol):
     def metadata(self) -> Mapping[str, Any]: ...
 
 
+@dataclass(frozen=True)
+class EmbeddingTextWindow:
+    text: str
+    token_start: int
+    token_end: int
+    token_count: int
+
+
 def fact_text_v1(fact: Mapping[str, Any]) -> str:
     return (
         f"subject: {fact.get('subject', '')}\n"
@@ -126,6 +134,80 @@ class SentenceTransformerEmbedder:
     def encode_query(self, text: str) -> np.ndarray:
         return self._encode([text])[0]
 
+    def document_windows(
+        self,
+        text: str,
+        *,
+        max_tokens: int,
+        overlap_tokens: int,
+    ) -> List[EmbeddingTextWindow]:
+        if max_tokens < 1:
+            raise ValueError("embedding window size must be at least 1")
+        if overlap_tokens < 0 or overlap_tokens >= max_tokens:
+            raise ValueError(
+                "embedding window overlap must be non-negative and smaller "
+                "than the window size"
+            )
+
+        model = self._load()
+        tokenizer = model.tokenizer
+        special_tokens = int(tokenizer.num_special_tokens_to_add(pair=False))
+        model_limit = int(model.max_seq_length)
+        if max_tokens + special_tokens > model_limit:
+            raise ValueError(
+                "embedding window plus special tokens exceeds the model's "
+                f"{model_limit}-token sequence limit"
+            )
+        try:
+            encoded = tokenizer(
+                str(text),
+                add_special_tokens=False,
+                return_offsets_mapping=True,
+                truncation=False,
+                verbose=False,
+            )
+            token_ids = list(encoded["input_ids"])
+            offsets = list(encoded["offset_mapping"])
+        except (KeyError, TypeError, ValueError, NotImplementedError) as exc:
+            raise DenseRetrievalError(
+                "dense_backend_failure",
+                "embedding tokenizer could not produce token offsets",
+            ) from exc
+        if len(token_ids) != len(offsets):
+            raise DenseRetrievalError(
+                "dense_backend_failure",
+                "embedding tokenizer returned inconsistent token offsets",
+            )
+        if not token_ids:
+            return [
+                EmbeddingTextWindow(
+                    text=str(text),
+                    token_start=0,
+                    token_end=0,
+                    token_count=0,
+                )
+            ]
+
+        windows: List[EmbeddingTextWindow] = []
+        stride = max_tokens - overlap_tokens
+        token_start = 0
+        while token_start < len(token_ids):
+            token_end = min(token_start + max_tokens, len(token_ids))
+            char_start = int(offsets[token_start][0])
+            char_end = int(offsets[token_end - 1][1])
+            windows.append(
+                EmbeddingTextWindow(
+                    text=str(text)[char_start:char_end],
+                    token_start=token_start,
+                    token_end=token_end,
+                    token_count=token_end - token_start,
+                )
+            )
+            if token_end == len(token_ids):
+                break
+            token_start += stride
+        return windows
+
     def metadata(self) -> Mapping[str, Any]:
         if self._metadata is None:
             model = self._load()
@@ -164,6 +246,7 @@ class SentenceTransformerEmbedder:
                 "resolved_revision": str(resolved),
                 "sentence_transformers_version": importlib.metadata.version("sentence-transformers"),
                 "vector_dimension": dimension,
+                "max_sequence_length": int(model.max_seq_length),
             }
         return dict(self._metadata)
 
