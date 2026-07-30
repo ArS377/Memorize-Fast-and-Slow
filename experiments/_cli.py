@@ -125,7 +125,7 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument(
             "--retrieval-mode",
             choices=["sparse", "dense", "hybrid", "dense_ppr"],
-            default="hybrid",
+            default="dense_ppr" if cell_id == 6 else "hybrid",
         )
         p.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
         p.add_argument("--embedding-revision", default=None)
@@ -173,7 +173,7 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
             p.add_argument(
                 "--max-tool-calls",
                 type=_positive_int,
-                default=3,
+                default=2 if cell_id == 6 else 3,
                 help="Maximum native knowledge-graph tool calls per example",
             )
             p.add_argument(
@@ -418,6 +418,7 @@ def run_cell(
                 order_gap_window_mean: Optional[float] = None
                 rlm_completion_count: Optional[int] = None
                 diagnostic_predicted = ""
+                outcome_status: Optional[str] = None
                 try:
                     if qwen_tool_mode:
                         from neurosym.adapters.qwen_rlm import qwen_rlm_tool_answer
@@ -446,6 +447,7 @@ def run_cell(
                             order_gap_min_iterations=args.order_gap_min_iterations,
                             validate_memory_updates=(cell_id == 6),
                             require_memory_update=True,
+                            allow_unsupported_fallback=(cell_id == 6),
                         )
                         trace_dir = args.tool_trace_dir or (out_path.parent / "tool_traces")
                         trace_path = _write_tool_trace(
@@ -472,6 +474,7 @@ def run_cell(
                         diagnostic_predicted = str(
                             getattr(outcome, "diagnostic_predicted", "") or ""
                         )
+                        outcome_status = str(getattr(outcome, "status", "") or "") or None
                         print(
                             f"  [{i}/{len(examples)}] tool_trace={trace_path} "
                             f"termination={outcome.termination_reason}",
@@ -618,6 +621,7 @@ def run_cell(
                     retrieval_rrf_settings=retrieval_summary.get("rrf"),
                     termination_mode=termination_mode,
                     termination_reason=termination_reason,
+                    outcome_status=outcome_status,
                     order_gap_final=order_gap_final,
                     order_gap_window_mean=order_gap_window_mean,
                     rlm_completion_count=rlm_completion_count,

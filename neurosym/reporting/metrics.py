@@ -10,8 +10,24 @@ def _mean(values: Sequence[float]) -> float | None:
 def summarize_experiment_rows(rows: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
     values = list(rows)
     answered = [row for row in values if row.get("predicted") and not row.get("error")]
+    grounded = [
+        row
+        for row in values
+        if row.get("outcome_status") == "supported"
+        and row.get("predicted")
+        and not row.get("error")
+    ]
+    fallback = [
+        row
+        for row in values
+        if row.get("outcome_status") == "unsupported_fallback"
+        and row.get("predicted")
+        and not row.get("error")
+    ]
     diagnostic_answered = [row for row in values if row.get("diagnostic_predicted")]
     correct = sum(1 for row in answered if row.get("correct"))
+    grounded_correct = sum(1 for row in grounded if row.get("correct"))
+    fallback_correct = sum(1 for row in fallback if row.get("correct"))
     diagnostic_correct = sum(
         1 for row in diagnostic_answered if row.get("diagnostic_correct")
     )
@@ -28,7 +44,16 @@ def summarize_experiment_rows(rows: Sequence[Mapping[str, Any]]) -> Dict[str, An
     return {
         "n_examples": len(values),
         "n_answered": len(answered),
-        "accuracy": correct / len(answered) if answered else None,
+        "accuracy": correct / len(values) if values else None,
+        "n_grounded": len(grounded),
+        "grounded_accuracy": (
+            grounded_correct / len(grounded) if grounded else None
+        ),
+        "grounded_coverage": len(grounded) / len(values) if values else None,
+        "n_fallback": len(fallback),
+        "fallback_accuracy": (
+            fallback_correct / len(fallback) if fallback else None
+        ),
         "mean_latency_s": _mean(latencies),
         "mean_triples": _mean(triples),
         "n_errors": sum(1 for row in values if row.get("error")),

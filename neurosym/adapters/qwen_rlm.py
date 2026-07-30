@@ -258,7 +258,31 @@ def _question_message(example: Mapping[str, Any]) -> str:
     )
 
 
-def _native_tool_instructions(max_tool_calls: int) -> str:
+def _native_tool_instructions(
+    max_tool_calls: int, allow_unsupported_fallback: bool = False
+) -> str:
+    retrieval_policy = (
+        "You may make at most one knowledge-graph search in the entire RLM trajectory. "
+        "After that search, you may call the working-memory update tool once when facts "
+        "were returned, but do not issue another search. If the returned facts do not "
+        "adequately support one option, use your own reasoning and emit FINAL_ANSWER with "
+        "no CITED_FACT_IDS. The controller will record that as an unsupported fallback, "
+        "not as a graph-supported answer."
+        if allow_unsupported_fallback
+        else f"You may make at most {max_tool_calls} tool calls in the entire RLM trajectory. "
+        "Do not stop searching merely because working memory already contains a fact. "
+        "If the selected facts do not distinguish the answer from plausible alternatives, "
+        "use a remaining call for an option-specific or missing-relation search, then "
+        "update working memory with any newly selected evidence."
+    )
+    completion_policy = (
+        "If the graph evidence is insufficient after that one search, do not emit "
+        "EVIDENCE_INSUFFICIENT. Choose the most likely option using your own reasoning "
+        "and return FINAL_ANSWER without CITED_FACT_IDS."
+        if allow_unsupported_fallback
+        else "For insufficient evidence, set `answer[\"content\"]` to "
+        "`EVIDENCE_INSUFFICIENT: <brief reason>` and set `answer[\"ready\"] = True`."
+    )
     return f"""
 The root model has native `{SEARCH_TOOL_NAME}` and `{UPDATE_TOOL_NAME}` functions. The REPL
 contains no pre-retrieved facts. Call the native function when graph evidence
@@ -270,12 +294,7 @@ On the first search, omit `predicates`. Only use exact UPPER_SNAKE_CASE predicat
 names copied from an earlier tool result; never invent generic predicate filters.
 After status="ok" with an empty results list, reformulate with an alias or follow
 an intermediate entity. A
-status="error" response is a failed call, not a no-hit. You may make at most
-{max_tool_calls} tool calls in the entire RLM trajectory.
-Do not stop searching merely because working memory already contains a fact.
-If the selected facts do not distinguish the answer from plausible alternatives,
-use a remaining call for an option-specific or missing-relation search, then
-update working memory with any newly selected evidence.
+status="error" response is a failed call, not a no-hit. {retrieval_policy}
 
 After selecting evidence, call `{UPDATE_TOOL_NAME}` with the returned fact IDs
 to compile shaped working memory. Never invent an ID or pass scope/session
@@ -292,8 +311,7 @@ answer["content"] = "FINAL_ANSWER: <A|B|C|D>\\nCITED_FACT_IDS: <returned fact ID
 answer["ready"] = True
 ```
 
-For insufficient evidence, set `answer["content"]` to
-`EVIDENCE_INSUFFICIENT: <brief reason>` and set `answer["ready"] = True`.
+{completion_policy}
 
 Never accept an answer supported by a fact ID that was not returned by the
 native tool.
@@ -585,6 +603,7 @@ class NativeToolSession:
         order_gap_window: int = 2,
         order_gap_min_iterations: int = 2,
         aggregate_token_limit: int = 64_000,
+        allow_unsupported_fallback: bool = False,
     ) -> None:
         if max_tool_calls < 1:
             raise ValueError("max_tool_calls must be at least 1")
@@ -612,6 +631,7 @@ class NativeToolSession:
         self.execute_update_tool = execute_update_tool
         self.validate_memory_updates = validate_memory_updates
         self.require_memory_update = require_memory_update
+        self.allow_unsupported_fallback = allow_unsupported_fallback
         self.termination_mode = termination_mode
         self.aggregate_token_limit = int(aggregate_token_limit)
         self.state_tracker = EpistemicStateTracker(
@@ -627,8 +647,10 @@ class NativeToolSession:
         self.working_memory_artifact_ids: List[str] = []
         self.working_memory_fact_ids: Set[str] = set()
         self.tool_call_count = 0
+        self.search_call_count = 0
         self.tool_result_chars = 0
         self.model_completion_count = 0
+        self.fallback_correction_count = 0
         self.seen_ready_rejections: Set[str] = set()
         self.last_evidence_adequate = False
         self.diagnostic_predicted = ""
@@ -648,6 +670,8 @@ class NativeToolSession:
             "tool_names": [SEARCH_TOOL_NAME, UPDATE_TOOL_NAME],
             "tool_choice": tool_choice,
             "max_tool_calls": max_tool_calls,
+            "max_search_calls": 1 if allow_unsupported_fallback else None,
+            "allow_unsupported_fallback": allow_unsupported_fallback,
             "aggregate_token_limit": self.aggregate_token_limit,
             "termination_mode": termination_mode,
             "order_gap_config": {
@@ -661,7 +685,9 @@ class NativeToolSession:
 
     def _messages_with_state(self, prompt: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         messages = [dict(message) for message in prompt]
-        instructions = _native_tool_instructions(self.max_tool_calls)
+        instructions = _native_tool_instructions(
+            self.max_tool_calls, self.allow_unsupported_fallback
+        )
         if messages and messages[0].get("role") == "system":
             messages[0]["content"] = f"{messages[0].get('content', '')}\n\n{instructions}"
         else:
@@ -863,7 +889,29 @@ class NativeToolSession:
         citations: List[str],
         assessment: Mapping[str, Any],
     ) -> Optional[str]:
-        if self.termination_mode != "order_gap" or not self.state_tracker.stable:
+        if self.termination_mode != "order_gap":
+            return None
+        if (
+            self.allow_unsupported_fallback
+            and self.search_call_count >= 1
+            and predicted
+            and not citations
+        ):
+            self.controller_termination_reason = (
+                "unsupported_fallback_after_single_retrieval"
+            )
+            self.trace["events"].append(
+                {
+                    "event": "order_gap_stop",
+                    "rlm_completion": self.model_completion_count,
+                    "reason": self.controller_termination_reason,
+                    "diagnostic_predicted": predicted,
+                    "cited_fact_ids": [],
+                    "window_mean": self.state_tracker.window_mean,
+                }
+            )
+            return _rlm_ready_block(f"FINAL_ANSWER: {predicted}")
+        if not self.state_tracker.stable:
             return None
         state = self.state_tracker.state
         successful_search = state.successful_searches > 0
@@ -937,6 +985,17 @@ class NativeToolSession:
 
     def _request_tool_choice(self) -> str:
         if self.tool_call_count >= self.max_tool_calls or self.last_evidence_adequate:
+            return "none"
+        if (
+            self.allow_unsupported_fallback
+            and self.search_call_count >= 1
+        ):
+            if (
+                self.require_memory_update
+                and bool(self.retrieved_fact_ids)
+                and not self.working_memory_fact_ids
+            ):
+                return "required"
             return "none"
         if (
             self.tool_choice == "required"
@@ -1032,6 +1091,40 @@ class NativeToolSession:
             f"Returned fact IDs: {retrieved}. Committed fact IDs: {committed}."
         )
 
+    def _append_fallback_correction(
+        self,
+        messages: List[Dict[str, Any]],
+        *,
+        completion_index: int,
+        native_turn: int,
+        reason: str,
+    ) -> bool:
+        if self.fallback_correction_count:
+            return False
+        self.fallback_correction_count += 1
+        self.trace["events"].append(
+            {
+                "event": "fallback_answer_forced",
+                "rlm_completion": completion_index,
+                "native_turn": native_turn,
+                "reason": reason,
+            }
+        )
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "The single retrieval is complete. Do not return "
+                    "EVIDENCE_INSUFFICIENT and do not call another tool. "
+                    "Use the retrieved context plus your own reasoning to "
+                    "choose the most likely option. Reply in the exact RLM "
+                    "ready format with FINAL_ANSWER: <A|B|C|D> and no "
+                    "CITED_FACT_IDS."
+                ),
+            }
+        )
+        return True
+
     def _track_response(self, base_client: Any, response: Any) -> None:
         track_cost = getattr(base_client, "_track_cost", None)
         if callable(track_cost):
@@ -1045,7 +1138,9 @@ class NativeToolSession:
         if "initial_model_messages" not in self.trace:
             self.trace["initial_model_messages"] = [dict(message) for message in messages]
 
-        max_native_turns = self.max_tool_calls + 2
+        max_native_turns = self.max_tool_calls + (
+            4 if self.allow_unsupported_fallback else 2
+        )
         for native_turn in range(1, max_native_turns + 1):
             request_tool_choice = self._request_tool_choice()
             self.trace["events"].append(
@@ -1163,6 +1258,39 @@ class NativeToolSession:
                     # the candidate, then require the normal controller-side grounding
                     # and working-memory checks below before it can terminate the run.
                     predicted = candidate
+                if (
+                    self.allow_unsupported_fallback
+                    and self.search_call_count >= 1
+                    and not predicted
+                    and candidate
+                ):
+                    # Cell 6 still records this as unsupported, but it should not
+                    # discard a clear A-D choice merely because Qwen used prose.
+                    predicted = candidate
+                if (
+                    evidence_insufficient
+                    and self.allow_unsupported_fallback
+                    and self.search_call_count >= 1
+                ):
+                    if self._append_fallback_correction(
+                        messages,
+                        completion_index=completion_index,
+                        native_turn=native_turn,
+                        reason="evidence_insufficient_after_single_retrieval",
+                    ):
+                        continue
+                    self.controller_termination_reason = (
+                        "fallback_failed_after_forced_answer"
+                    )
+                    self.trace["events"].append(
+                        {
+                            "event": "fallback_answer_failed",
+                            "rlm_completion": completion_index,
+                            "native_turn": native_turn,
+                            "reason": self.controller_termination_reason,
+                        }
+                    )
+                    return _rlm_ready_block(completion_content)
                 citations, citations_synthesized = self._resolve_citations(
                     predicted, model_citations
                 )
@@ -1193,11 +1321,34 @@ class NativeToolSession:
                 completion_errors = self._completion_errors(
                     predicted, citations, assessment
                 )
+                fallback_allowed = bool(
+                    self.allow_unsupported_fallback
+                    and predicted
+                    and self.search_call_count >= 1
+                    and completion_errors
+                )
+                if fallback_allowed:
+                    discarded_citations = list(citations)
+                    citations = []
+                    assessment = self._option_evidence(predicted, citations)
+                    self.last_evidence_adequate = False
+                    completion_content = f"FINAL_ANSWER: {predicted}"
+                    self.trace["events"].append(
+                        {
+                            "event": "unsupported_fallback_selected",
+                            "rlm_completion": completion_index,
+                            "native_turn": native_turn,
+                            "predicted": predicted,
+                            "discarded_cited_fact_ids": discarded_citations,
+                            "grounding_errors": completion_errors,
+                        }
+                    )
                 if (
                     ready_payload is not None
                     and self.termination_mode == "order_gap"
                     and not evidence_insufficient
                     and completion_errors
+                    and not fallback_allowed
                 ):
                     rejection_signature = json.dumps(
                         {
@@ -1264,6 +1415,41 @@ class NativeToolSession:
                         assessment=assessment,
                     )
                     if state_completion is not None:
+                        state_payload = (
+                            _ready_answer_payload(state_completion)
+                            or state_completion
+                        )
+                        (
+                            _state_predicted,
+                            _state_citations,
+                            state_evidence_insufficient,
+                        ) = _parse_final_response(state_payload)
+                        if (
+                            state_evidence_insufficient
+                            and self.allow_unsupported_fallback
+                            and self.search_call_count >= 1
+                        ):
+                            if self._append_fallback_correction(
+                                messages,
+                                completion_index=completion_index,
+                                native_turn=native_turn,
+                                reason=(
+                                    "controller_evidence_insufficient_after_"
+                                    "single_retrieval"
+                                ),
+                            ):
+                                continue
+                            self.controller_termination_reason = (
+                                "fallback_failed_after_forced_answer"
+                            )
+                            self.trace["events"].append(
+                                {
+                                    "event": "fallback_answer_failed",
+                                    "rlm_completion": completion_index,
+                                    "native_turn": native_turn,
+                                    "reason": self.controller_termination_reason,
+                                }
+                            )
                         return state_completion
                     if ready_payload is not None:
                         self.trace["events"].append(
@@ -1288,7 +1474,19 @@ class NativeToolSession:
                 signature: Optional[str] = None
                 elapsed_seconds = 0.0
 
-                if self.tool_call_count >= self.max_tool_calls:
+                if (
+                    self.allow_unsupported_fallback
+                    and name == SEARCH_TOOL_NAME
+                    and self.search_call_count >= 1
+                ):
+                    tool_response = _tool_error(
+                        "single_search_limit",
+                        "Cell 6 permits only one knowledge-graph search before final reasoning.",
+                        retryable=False,
+                        graph_source=self.graph_source,
+                        example_id=self.example_id,
+                    )
+                elif self.tool_call_count >= self.max_tool_calls:
                     tool_response = _tool_error(
                         "call_limit_exceeded",
                         f"maximum of {self.max_tool_calls} tool calls already reached",
@@ -1298,6 +1496,8 @@ class NativeToolSession:
                     )
                 else:
                     self.tool_call_count += 1
+                    if name == SEARCH_TOOL_NAME:
+                        self.search_call_count += 1
                     arguments, parse_error = _parse_arguments(raw_arguments)
                     if parse_error:
                         tool_response = _tool_error(
@@ -1660,6 +1860,7 @@ def qwen_rlm_tool_answer(
     execute_update_tool: Callable[..., Mapping[str, Any]] = execute_update_working_memory,
     validate_memory_updates: bool = True,
     require_memory_update: bool = False,
+    allow_unsupported_fallback: bool = False,
 ) -> QwenRLMToolOutcome:
     """Run one Qwen-first native-tool trajectory inside the RLM structure."""
     example_id = str(example.get("_id", ""))
@@ -1687,6 +1888,7 @@ def qwen_rlm_tool_answer(
         order_gap_window=order_gap_window,
         order_gap_min_iterations=order_gap_min_iterations,
         aggregate_token_limit=max_tokens,
+        allow_unsupported_fallback=allow_unsupported_fallback,
     )
     rlm = make_qwen_tool_rlm(
         backend=backend,
@@ -1729,19 +1931,48 @@ def qwen_rlm_tool_answer(
 
     predicted, citations, evidence_insufficient = _parse_final_response(raw_answer)
     if evidence_insufficient:
+        fallback_failed = bool(
+            allow_unsupported_fallback and session.search_call_count >= 1
+        )
         return session.finish(
-            status="evidence_insufficient",
+            status="fallback_failed" if fallback_failed else "evidence_insufficient",
             predicted="",
             raw_answer=raw_answer,
-            error=None,
+            error=(
+                "Qwen did not choose an option after the forced fallback turn"
+                if fallback_failed
+                else None
+            ),
             termination_reason=(
-                session.controller_termination_reason or "evidence_insufficient"
+                session.controller_termination_reason
+                or (
+                    "fallback_failed_after_forced_answer"
+                    if fallback_failed
+                    else "evidence_insufficient"
+                )
             ),
             cited_fact_ids=[],
         )
 
     unknown_citations = sorted(set(citations) - session.retrieved_fact_ids)
     missing_from_memory = sorted(set(citations) - session.working_memory_fact_ids)
+    if (
+        allow_unsupported_fallback
+        and predicted
+        and not citations
+        and session.search_call_count >= 1
+    ):
+        return session.finish(
+            status="unsupported_fallback",
+            predicted=predicted,
+            raw_answer=raw_answer,
+            error=None,
+            termination_reason=(
+                session.controller_termination_reason
+                or "unsupported_fallback_after_single_retrieval"
+            ),
+            cited_fact_ids=[],
+        )
     final_assessment = session._option_evidence(predicted, citations)
     if (
         predicted

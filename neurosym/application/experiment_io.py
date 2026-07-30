@@ -48,6 +48,7 @@ CELL_SCHEMA: List[str] = [
     "retrieval_rrf_settings",
     "termination_mode",
     "termination_reason",
+    "outcome_status",
     "order_gap_final",
     "order_gap_window_mean",
     "rlm_completion_count",

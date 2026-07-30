@@ -21,7 +21,9 @@ from neurosym.reporting import read_jsonl, summarize_experiment_rows
 
 SUMMARY_COLUMNS = [
     "cell_id", "label", "retrieval", "validator", "recursion",
-    "n_examples", "n_answered", "accuracy", "mean_latency_s",
+    "n_examples", "n_answered", "accuracy",
+    "n_grounded", "grounded_accuracy", "grounded_coverage",
+    "n_fallback", "fallback_accuracy", "mean_latency_s",
     "mean_triples", "n_errors", "n_diagnostic_answered", "diagnostic_accuracy",
 ]
 
@@ -48,6 +50,11 @@ def collect_summary(results_dir: Path) -> List[Dict[str, Any]]:
             "n_examples": 0,
             "n_answered": 0,
             "accuracy": None,
+            "n_grounded": 0,
+            "grounded_accuracy": None,
+            "grounded_coverage": None,
+            "n_fallback": 0,
+            "fallback_accuracy": None,
             "mean_latency_s": None,
             "mean_triples": None,
             "n_errors": 0,
@@ -71,7 +78,15 @@ def write_summary_csv(summary: List[Dict[str, Any]], path: Path) -> None:
         w.writeheader()
         for row in summary:
             out_row = dict(row)
-            for k in ("accuracy", "mean_latency_s", "mean_triples", "diagnostic_accuracy"):
+            for k in (
+                "accuracy",
+                "grounded_accuracy",
+                "grounded_coverage",
+                "fallback_accuracy",
+                "mean_latency_s",
+                "mean_triples",
+                "diagnostic_accuracy",
+            ):
                 v = out_row.get(k)
                 if isinstance(v, float):
                     out_row[k] = f"{v:.4f}"
@@ -109,10 +124,10 @@ def render_figure(summary: List[Dict[str, Any]], path: Path) -> None:
         flat_acc.append(0.0 if f_acc is None else float(f_acc))
         rlm_acc.append(0.0 if r_acc is None else float(r_acc))
         flat_label.append(
-            "n/a" if f_acc is None else f"{f_acc:.2f} (n={f.get('n_answered', 0)})"
+            "n/a" if f_acc is None else f"{f_acc:.2f} (n={f.get('n_examples', 0)})"
         )
         rlm_label.append(
-            "n/a" if r_acc is None else f"{r_acc:.2f} (n={r.get('n_answered', 0)})"
+            "n/a" if r_acc is None else f"{r_acc:.2f} (n={r.get('n_examples', 0)})"
         )
 
     fig, ax = plt.subplots(figsize=(8.5, 5.0))

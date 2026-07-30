@@ -143,6 +143,11 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
         "--no-aggregate",
     ]
     if cell_id in KG_CELL_IDS:
+        retrieval_mode = (
+            getattr(args, "cell6_retrieval_mode", "dense_ppr")
+            if cell_id == 6
+            else getattr(args, "retrieval_mode", "hybrid")
+        )
         if args.neo4j_uri:
             base += ["--neo4j-uri", args.neo4j_uri]
         if args.neo4j_user:
@@ -158,7 +163,7 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             base += ["--limit-triples", str(args.limit_triples)]
         base += [
             "--memory-scope", args.memory_scope,
-            "--retrieval-mode", getattr(args, "retrieval_mode", "hybrid"),
+            "--retrieval-mode", retrieval_mode,
             "--embedding-model", getattr(args, "embedding_model", "BAAI/bge-small-en-v1.5"),
             "--embedding-device", getattr(args, "embedding_device", "cpu"),
             "--embedding-batch-size", str(getattr(args, "embedding_batch_size", 32)),
@@ -166,7 +171,7 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             "--dense-failure-policy", getattr(args, "dense_failure_policy", "error"),
             "--rrf-k", str(getattr(args, "rrf_k", 60)),
         ]
-        if getattr(args, "retrieval_mode", "hybrid") == "dense_ppr":
+        if retrieval_mode == "dense_ppr":
             base += [
                 "--ppr-seed-count", str(getattr(args, "ppr_seed_count", 20)),
                 "--ppr-similarity-threshold", str(
@@ -199,7 +204,9 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             if not getattr(args, "fixed_kg_retrieval", False):
                 base += [
                     "--qwen-tool-retrieval",
-                    "--max-tool-calls", str(args.max_tool_calls),
+                    "--max-tool-calls", str(
+                        2 if cell_id == 6 else args.max_tool_calls
+                    ),
                     "--tool-choice", args.tool_choice,
                     "--tool-timeout", str(args.tool_timeout),
                     "--tool-max-tokens", str(args.tool_max_tokens),
@@ -248,6 +255,12 @@ def main(argv: Optional[List[str]] = None) -> None:
         "--retrieval-mode",
         choices=["sparse", "dense", "hybrid", "dense_ppr"],
         default="hybrid",
+    )
+    parser.add_argument(
+        "--cell6-retrieval-mode",
+        choices=["sparse", "dense", "hybrid", "dense_ppr"],
+        default="dense_ppr",
+        help="Cell 6 retrieval mode; defaults to HippoRAG-style dense PPR.",
     )
     parser.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
     parser.add_argument("--embedding-revision", default=None)
@@ -362,6 +375,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         "memory_scope": args.memory_scope,
         "retrieval_config": retrieval_config.to_dict(),
         "retrieval_mode": args.retrieval_mode,
+        "cell6_retrieval_mode": args.cell6_retrieval_mode,
         "embedding_model": args.embedding_model,
         "embedding_revision": args.embedding_revision,
         "embedding_device": args.embedding_device,

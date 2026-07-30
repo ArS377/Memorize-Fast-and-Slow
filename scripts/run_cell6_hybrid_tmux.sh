@@ -96,7 +96,7 @@ fi
 export NEO4J_PASSWORD
 
 mkdir -p "$RESULTS_DIR"
-echo "Cell 6 hybrid run: $RUN_ID"
+echo "Cell 6 dense_ppr run: $RUN_ID"
 echo "Results: $RESULTS_DIR"
 echo "Attach/detach safely; the run continues inside tmux."
 
@@ -114,7 +114,7 @@ PYTHONPATH="$ROOT" "$PYTHON_BIN" -m experiments.cells.cell6_rlm_kg_scallop \
   --neo4j-user "$NEO4J_USER" \
   --session-id "$SESSION_ID" \
   --scallop-validator-url "$SCALLOP_VALIDATOR_URL" \
-  --retrieval-mode hybrid \
+  --retrieval-mode dense_ppr \
   --embedding-model BAAI/bge-small-en-v1.5 \
   --embedding-device cpu \
   --dense-failure-policy error \
@@ -124,7 +124,7 @@ PYTHONPATH="$ROOT" "$PYTHON_BIN" -m experiments.cells.cell6_rlm_kg_scallop \
   --max-depth 2 \
   --max-iterations 10 \
   --max-tokens 64000 \
-  --max-tool-calls 3 \
+  --max-tool-calls 2 \
   --termination-mode order_gap \
   --order-gap-epsilon 0.025 \
   --order-gap-window 2 \

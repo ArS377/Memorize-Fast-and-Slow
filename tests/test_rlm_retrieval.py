@@ -72,6 +72,11 @@ EXAMPLE = {
 class FakeHybridIndex:
     def __init__(self, session_id: str) -> None:
         self.session_id = session_id
+        self.facts = [
+            {**fact, "session_id": session_id}
+            for fact in FACTS
+            if fact["example_id"] == "ex1"
+        ]
         self.manifest = SimpleNamespace(
             identity={"source_session_id": session_id, "schema_version": "test.v1"}
         )
@@ -94,7 +99,7 @@ def _hybrid_graph_source(open_kwargs: Dict[str, Any], source_class=GraphSource) 
         retrieval_config=open_kwargs["retrieval_config"],
         dense_indexes={session_id: FakeHybridIndex(session_id)},
     )
-    assert source.retrieval_config.mode == "hybrid"
+    assert source.retrieval_config.mode == open_kwargs["retrieval_config"].mode
     return source
 
 
@@ -253,6 +258,14 @@ def test_native_tool_instructions_use_the_rlm_completion_protocol() -> None:
     assert 'answer["ready"] = True' in instructions
     assert "FINAL_ANSWER:" in instructions
     assert "do not answer in prose" in instructions
+
+
+def test_cell6_instructions_require_reasoned_fallback_after_one_search() -> None:
+    instructions = _native_tool_instructions(2, allow_unsupported_fallback=True)
+
+    assert "at most one knowledge-graph search" in instructions
+    assert "do not emit EVIDENCE_INSUFFICIENT" in instructions
+    assert "return FINAL_ANSWER without CITED_FACT_IDS" in instructions
 
 
 def test_native_tool_rlm_disables_automatic_model_retries(tmp_path: Path) -> None:
@@ -487,6 +500,257 @@ def test_order_gap_does_not_attach_committed_facts_to_uncited_prose() -> None:
     assert "FINAL_ANSWER:" not in completion
     assert session.diagnostic_predicted == "A"
     assert session.controller_termination_reason == "order_gap_evidence_insufficient"
+
+
+def test_cell6_uncited_answer_becomes_first_class_fallback() -> None:
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "update",
+                        {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                        name="update_working_memory",
+                    )
+                ]
+            ),
+            _response(content="The graph is inconclusive, so the correct answer is C."),
+        ]
+    )
+    session = _session(
+        client,
+        max_tool_calls=2,
+        require_memory_update=True,
+        validate_memory_updates=False,
+        allow_unsupported_fallback=True,
+    )
+
+    completion = session.complete(client, _messages())
+
+    assert 'answer["ready"] = True' in completion
+    assert "FINAL_ANSWER: C" in completion
+    assert "EVIDENCE_INSUFFICIENT" not in completion
+    assert session.search_call_count == 1
+    assert session.controller_termination_reason == (
+        "unsupported_fallback_after_single_retrieval"
+    )
+    assert "tools" not in client.completions.requests[-1]
+
+
+def test_cell6_forces_one_answer_turn_after_evidence_insufficient() -> None:
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search-empty",
+                        {"query": "missing", "seed_entities": ["Missing"]},
+                    )
+                ]
+            ),
+            _response(content="EVIDENCE_INSUFFICIENT: no graph support"),
+            _response(content="FINAL_ANSWER: B"),
+        ]
+    )
+    session = _session(
+        client,
+        max_tool_calls=2,
+        require_memory_update=True,
+        allow_unsupported_fallback=True,
+    )
+
+    completion = session.complete(client, _messages())
+
+    assert "FINAL_ANSWER: B" in completion
+    assert session.fallback_correction_count == 1
+    assert session.controller_termination_reason == (
+        "unsupported_fallback_after_single_retrieval"
+    )
+    assert "tools" not in client.completions.requests[-1]
+    assert any(
+        event.get("event") == "fallback_answer_forced"
+        for event in session.trace["events"]
+    )
+
+
+def test_cell6_forces_answer_when_controller_detects_insufficient_state() -> None:
+    reasoning = "```repl\nprint(SHOW_VARS())\n```"
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "update",
+                        {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                        name="update_working_memory",
+                    )
+                ]
+            ),
+            _response(content=reasoning),
+            _response(content=reasoning),
+            _response(content="FINAL_ANSWER: B"),
+        ]
+    )
+    session = _session(
+        client,
+        max_tool_calls=2,
+        require_memory_update=True,
+        validate_memory_updates=False,
+        allow_unsupported_fallback=True,
+    )
+
+    assert session.complete(client, _messages()) == reasoning
+    completion = session.complete(client, _messages())
+
+    assert "FINAL_ANSWER: B" in completion
+    assert session.controller_termination_reason == (
+        "unsupported_fallback_after_single_retrieval"
+    )
+    forced = [
+        event
+        for event in session.trace["events"]
+        if event.get("event") == "fallback_answer_forced"
+    ]
+    assert len(forced) == 1
+    assert forced[0]["reason"] == (
+        "controller_evidence_insufficient_after_single_retrieval"
+    )
+
+
+def test_cell6_downgrades_inadequate_citations_to_fallback() -> None:
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "update",
+                        {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                        name="update_working_memory",
+                    )
+                ]
+            ),
+            _response(
+                content='''```repl
+answer["content"] = "FINAL_ANSWER: B\\nCITED_FACT_IDS: f1"
+answer["ready"] = True
+```'''
+            ),
+        ]
+    )
+    session = _session(
+        client,
+        max_tool_calls=2,
+        require_memory_update=True,
+        validate_memory_updates=False,
+        allow_unsupported_fallback=True,
+    )
+
+    completion = session.complete(client, _messages())
+
+    assert "FINAL_ANSWER: B" in completion
+    assert "CITED_FACT_IDS:" not in completion
+    assert session.controller_termination_reason == (
+        "unsupported_fallback_after_single_retrieval"
+    )
+    fallback = next(
+        event
+        for event in session.trace["events"]
+        if event.get("event") == "unsupported_fallback_selected"
+    )
+    assert fallback["discarded_cited_fact_ids"] == ["f1"]
+    assert fallback["grounding_errors"] == ["cited facts do not support option B"]
+
+
+def test_cell6_records_failed_fallback_without_looping() -> None:
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search-empty",
+                        {"query": "missing", "seed_entities": ["Missing"]},
+                    )
+                ]
+            ),
+            _response(content="EVIDENCE_INSUFFICIENT: no graph support"),
+            _response(content="EVIDENCE_INSUFFICIENT: still cannot decide"),
+        ]
+    )
+    session = _session(
+        client,
+        max_tool_calls=2,
+        require_memory_update=True,
+        allow_unsupported_fallback=True,
+    )
+
+    completion = session.complete(client, _messages())
+
+    assert "EVIDENCE_INSUFFICIENT:" in completion
+    assert session.fallback_correction_count == 1
+    assert session.controller_termination_reason == (
+        "fallback_failed_after_forced_answer"
+    )
+    assert len(client.completions.requests) == 3
+
+
+def test_cell6_tool_outcome_preserves_fallback_prediction() -> None:
+    def fake_rlm(**kwargs: Any) -> Any:
+        kwargs["tool_session"].search_call_count = 1
+        return SimpleNamespace(
+            completion=lambda **_kwargs: SimpleNamespace(
+                response="FINAL_ANSWER: D"
+            ),
+            close=lambda: None,
+        )
+
+    with patch(
+        "neurosym.adapters.qwen_rlm.make_qwen_tool_rlm",
+        side_effect=fake_rlm,
+    ):
+        outcome = qwen_rlm_tool_answer(
+            backend="openai",
+            model="Qwen/Qwen3-4B",
+            base_url="http://localhost:8000/v1",
+            api_key="EMPTY",
+            max_depth=2,
+            max_iterations=10,
+            max_tokens=64000,
+            log_dir=Path("rlm_logs"),
+            verbose=False,
+            graph_source=_source(),
+            example=EXAMPLE,
+            max_tool_calls=2,
+            allow_unsupported_fallback=True,
+        )
+
+    assert outcome.status == "unsupported_fallback"
+    assert outcome.predicted == "D"
+    assert outcome.error is None
+    assert outcome.cited_fact_ids == []
 
 
 def test_required_tool_choice_applies_only_until_the_first_search() -> None:
@@ -1044,6 +1308,17 @@ def test_cli_exposes_one_integrated_retrieval_flag() -> None:
     assert "--rlm-retrieval-steps" not in parser.format_help()
 
 
+def test_direct_cell6_cli_defaults_to_dense_ppr() -> None:
+    parser = build_arg_parser(
+        cell_id=6,
+        label="rlm_kg_scallop",
+        kind="rlm",
+        retrieval="kg",
+    )
+
+    assert parser.parse_args([]).retrieval_mode == "dense_ppr"
+
+
 def test_official_schema_does_not_expose_scope_controls() -> None:
     properties = SEARCH_KNOWLEDGE_GRAPH_TOOL["function"]["parameters"]["properties"]
 
@@ -1099,8 +1374,12 @@ def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
     assert "--scallop-validator-url" not in enabled
     assert cell6[cell6.index("--scallop-validator-url") + 1] == "http://validator:8765"
     assert "--max-tool-calls" in enabled
+    assert enabled[enabled.index("--max-tool-calls") + 1] == "3"
+    assert cell6[cell6.index("--max-tool-calls") + 1] == "2"
     assert "--rlm-retrieval" not in enabled
     assert enabled[enabled.index("--retrieval-mode") + 1] == "hybrid"
+    assert cell6[cell6.index("--retrieval-mode") + 1] == "dense_ppr"
+    assert "--ppr-seed-count" in cell6
     assert enabled[enabled.index("--dense-failure-policy") + 1] == "error"
     assert enabled[enabled.index("--termination-mode") + 1] == "order_gap"
     assert enabled[enabled.index("--order-gap-epsilon") + 1] == "0.025"
@@ -1212,7 +1491,7 @@ def test_cell2_and_cell3_execute_hybrid_retrieval_before_flat_qwen(tmp_path: Pat
     assert [call["validator_url"] for call in open_calls] == [None, None]
 
 
-def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path: Path) -> None:
+def test_cell5_and_cell6_enable_integrated_mode_specific_defaults(tmp_path: Path) -> None:
     class NoPreRetrievalSource(GraphSource):
         def context_for(self, *args, **kwargs):
             raise AssertionError("cell 6 must use integrated retrieval by default")
@@ -1276,11 +1555,19 @@ def test_cell5_and_cell6_enable_identical_integrated_retrieval_defaults(tmp_path
             )
             result = json.loads(output_path.read_text(encoding="utf-8"))
             assert result["predicted"] == "A"
-            assert result["n_triples"] == 1
-            assert result["configured_retrieval_mode"] == "hybrid"
-            assert result["effective_retrieval_mode"] == "hybrid"
+            assert result["n_triples"] > 0
+            expected_mode = "hybrid" if cell_id == 5 else "dense_ppr"
+            assert result["configured_retrieval_mode"] == expected_mode
+            assert result["effective_retrieval_mode"] == expected_mode
             assert result["retrieval_degraded"] is False
-            assert result["retrieval_branch_counts"] == {"sparse": 1, "dense": 1}
+            if cell_id == 5:
+                assert result["retrieval_branch_counts"] == {
+                    "sparse": 1,
+                    "dense": 1,
+                }
+            else:
+                assert result["retrieval_branch_counts"]["dense"] == 1
+                assert result["retrieval_branch_counts"]["ppr"] >= 1
             assert result["dense_index_identity"]
             if cell_id == 5:
                 assert result["validator_backend"] == "none"

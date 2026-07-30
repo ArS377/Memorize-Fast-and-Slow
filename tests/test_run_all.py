@@ -31,7 +31,7 @@ def test_materialize_pilot_input_freezes_one_sorted_shared_slice(tmp_path: Path)
     assert len(metadata["sha256"]) == 64
 
 
-def test_default_cell6_arguments_do_not_enable_ppr(tmp_path: Path) -> None:
+def test_cell6_arguments_default_to_dense_ppr(tmp_path: Path) -> None:
     args = SimpleNamespace(
         input=tmp_path / "input.jsonl",
         pilot_input=tmp_path / "pilot.jsonl",
@@ -43,7 +43,7 @@ def test_default_cell6_arguments_do_not_enable_ppr(tmp_path: Path) -> None:
         run_id="run",
         neo4j_uri=None,
         neo4j_user=None,
-        kg_sessions={6: "session"},
+        kg_sessions={5: "session", 6: "session"},
         hops=2,
         limit_triples=50,
         memory_scope="example",
@@ -63,12 +63,12 @@ def test_default_cell6_arguments_do_not_enable_ppr(tmp_path: Path) -> None:
         fixed_kg_retrieval=True,
     )
 
-    normal = _common_cell_args(args, 6)
-    args.retrieval_mode = "dense_ppr"
-    experimental = _common_cell_args(args, 6)
+    cell6 = _common_cell_args(args, 6)
+    other_cell = _common_cell_args(args, 5)
 
-    assert normal[normal.index("--retrieval-mode") + 1] == "hybrid"
-    assert not any(value.startswith("--ppr-") for value in normal)
-    assert "--ppr-seed-count" in experimental
+    assert cell6[cell6.index("--retrieval-mode") + 1] == "dense_ppr"
+    assert "--ppr-seed-count" in cell6
+    assert other_cell[other_cell.index("--retrieval-mode") + 1] == "hybrid"
+    assert not any(value.startswith("--ppr-") for value in other_cell)
     assert "ppr" not in RetrievalConfig().to_dict()
     assert RetrievalConfig(mode="dense_ppr").to_dict()["ppr"]["seed_count"] == 20
