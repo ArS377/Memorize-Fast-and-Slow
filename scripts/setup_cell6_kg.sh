@@ -52,7 +52,7 @@ fi
 echo "[setup-cell6] installing KG build dependencies in $KG_ENV..."
 "$KG_PY" -m pip install -q --upgrade pip setuptools wheel
 "$KG_PY" -m pip install -q \
-  openai neo4j pydantic tqdm httpx \
+  openai neo4j pydantic tqdm httpx numpy "sentence-transformers==3.4.1" \
   "scallopy @ https://github.com/scallop-lang/scallop/releases/download/0.2.4/scallopy-0.2.4-cp310-cp310-manylinux_2_27_x86_64.whl"
 
 if ! curl -fsS "$SCALLOP_VALIDATOR_URL/health" >/dev/null; then
@@ -86,6 +86,7 @@ PYTHONPATH="$ROOT" "$KG_PY" -m experiments.build_kg \
   --neo4j-password "$NEO4J_PASSWORD" \
   --scallop-validator-url "$SCALLOP_VALIDATOR_URL" \
   --max-chunks-per-example 3 \
+  --chunk-selection hybrid \
   --max-tokens 2048
 
 if [[ ! -s "$FACTS_FILE" ]]; then

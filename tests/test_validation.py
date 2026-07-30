@@ -92,6 +92,37 @@ def test_fact_extraction_format():
     
     print("All required fields are present in extraction prompt.")
 
+
+def test_indexing_prompts_never_include_the_gold_answer():
+    example = {
+        "_id": "test_no_answer_leakage",
+        "question": "Which option is supported?",
+        "choice_A": "Alpha",
+        "choice_B": "Beta",
+        "choice_C": "Gamma",
+        "choice_D": "Delta",
+        "answer": "SECRET_GOLD_ANSWER",
+    }
+    chunk = [{"title": "test", "sent_id": 0, "text": "Beta is supported."}]
+    facts = [{
+        "verification_id": "f0",
+        "subject": "Beta",
+        "predicate": "IS",
+        "object": "supported",
+        "support_text": "Beta is supported.",
+        "provenance": [{"title": "test", "sent_id": 0}],
+    }]
+
+    question_metadata = json.loads(pipe.build_question_block(example))
+    extraction_prompt = pipe.build_extraction_prompt(example, chunk, 0)
+    verification_prompt = pipe.build_verification_prompt(example, facts)
+
+    assert "answer" not in question_metadata
+    assert question_metadata["choice_B"] == "Beta"
+    assert "SECRET_GOLD_ANSWER" not in extraction_prompt
+    assert "SECRET_GOLD_ANSWER" not in verification_prompt
+
+
 def test_status_normalization():
     """Test status normalization function."""
     

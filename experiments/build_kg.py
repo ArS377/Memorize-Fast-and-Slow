@@ -11,7 +11,8 @@ The build is idempotent: if the target session already has facts and
 ``--rebuild`` is not passed, we skip the LLM extraction and reuse what is
 there. Committed facts are mirrored to
 ``results/kg_builds/<session>_facts.jsonl`` so cells can fall back to the
-JSONL when Neo4j is unreachable, mirroring ``rlm_graph_baseline.py``.
+JSONL when Neo4j is unreachable, mirroring ``rlm_graph_baseline.py``. Source
+sentences and chunk-selection decisions are snapshotted beside that mirror.
 """
 
 from __future__ import annotations
@@ -60,6 +61,23 @@ def _dump_session_facts(graph, session_id: str, out_path: Path) -> int:
     return len(rows)
 
 
+def _append_jsonl(path: Path, rows: List[Dict[str, Any]]) -> None:
+    if not rows:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as fp:
+        for row in rows:
+            fp.write(
+                json.dumps(
+                    row,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
+
+
 def _finalize_session(
     graph,
     *,
@@ -97,6 +115,12 @@ def build_kg(
     chunk_chars: int = 12000,
     max_tokens: int = 2048,
     max_chunks_per_example: Optional[int] = None,
+    chunk_selection: str = "hybrid",
+    chunk_selection_rrf_k: int = 60,
+    chunk_embedding_model: str = "BAAI/bge-small-en-v1.5",
+    chunk_embedding_revision: Optional[str] = None,
+    chunk_embedding_device: str = "cpu",
+    chunk_embedding_batch_size: int = 32,
     verify_batch_size: int = 20,
     facts_out_dir: Path = Path("results/kg_builds"),
     scallop_validator_url: Optional[str] = None,
@@ -120,6 +144,8 @@ def build_kg(
 
     out_path = facts_out_dir / f"{session_id}_facts.jsonl"
     rejections_path = facts_out_dir / f"{session_id}_rejections.jsonl"
+    selection_path = facts_out_dir / f"{session_id}_chunk_selection.jsonl"
+    evidence_path = facts_out_dir / f"{session_id}_source_evidence.jsonl"
 
     graph = Neo4jGraph(
         uri=neo4j_uri,
@@ -154,6 +180,8 @@ def build_kg(
 
         rejections_path.parent.mkdir(parents=True, exist_ok=True)
         rejections_path.write_text("", encoding="utf-8")
+        selection_path.write_text("", encoding="utf-8")
+        evidence_path.write_text("", encoding="utf-8")
 
         if candidate_facts_path is not None:
             candidates = []
@@ -230,6 +258,12 @@ def build_kg(
             neo4j_password=None,
             verify_batch_size=verify_batch_size,
             run_id=f"build_{session_id}",
+            chunk_selection=chunk_selection,
+            chunk_selection_rrf_k=chunk_selection_rrf_k,
+            chunk_embedding_model=chunk_embedding_model,
+            chunk_embedding_revision=chunk_embedding_revision,
+            chunk_embedding_device=chunk_embedding_device,
+            chunk_embedding_batch_size=chunk_embedding_batch_size,
         )
         pipeline = LongBenchKGPipeline(cfg)
 
@@ -242,18 +276,43 @@ def build_kg(
 
             sentence_records = flatten_context_to_sentence_records(example)
             chunks = chunk_sentence_records(sentence_records, chunk_chars)
-            if max_chunks_per_example is not None:
-                chunks = chunks[:max_chunks_per_example]
+            selected_chunks = pipeline.select_chunks(example, chunks)
+            _append_jsonl(
+                selection_path,
+                pipeline.chunk_selection_audit(
+                    example,
+                    selected_chunks,
+                    session_id=session_id,
+                    total_chunks=len(chunks),
+                ),
+            )
+            _append_jsonl(
+                evidence_path,
+                pipeline.source_evidence_snapshot(
+                    example,
+                    chunks,
+                    selected_chunks,
+                    session_id=session_id,
+                ),
+            )
 
             extracted: List[Dict[str, Any]] = []
-            for ci, chunk in enumerate(chunks):
+            for selected in selected_chunks:
+                chunk = selected.records
                 text_chars = sum(len(str(record.get("text", ""))) for record in chunk)
                 print(
-                    f"           chunk {ci + 1}/{len(chunks)} "
+                    f"           selected_rank={selected.selection_rank} "
+                    f"source_chunk={selected.chunk_index + 1}/{len(chunks)} "
                     f"sentences={len(chunk)} text_chars={text_chars}",
                     file=sys.stderr,
                 )
-                extracted.extend(pipeline.extract_facts(example, chunk, ci))
+                extracted.extend(
+                    pipeline.extract_facts(
+                        example,
+                        chunk,
+                        selected.chunk_index,
+                    )
+                )
 
             verified = pipeline.verify_facts(example, extracted)
             for fact in verified:
@@ -358,6 +417,20 @@ def _add_cli(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--chunk-chars", type=int, default=12000)
     parser.add_argument("--max-tokens", type=int, default=2048)
     parser.add_argument("--max-chunks-per-example", type=int, default=None)
+    parser.add_argument(
+        "--chunk-selection",
+        choices=["first", "hybrid"],
+        default="hybrid",
+        help="How to choose chunks when --max-chunks-per-example truncates context.",
+    )
+    parser.add_argument("--chunk-selection-rrf-k", type=int, default=60)
+    parser.add_argument(
+        "--chunk-embedding-model",
+        default="BAAI/bge-small-en-v1.5",
+    )
+    parser.add_argument("--chunk-embedding-revision", default=None)
+    parser.add_argument("--chunk-embedding-device", default="cpu")
+    parser.add_argument("--chunk-embedding-batch-size", type=int, default=32)
     parser.add_argument("--verify-batch-size", type=int, default=20)
     parser.add_argument("--facts-out-dir", type=Path, default=Path("results/kg_builds"))
 
@@ -383,6 +456,12 @@ def main(argv: Optional[List[str]] = None) -> Path:
         chunk_chars=args.chunk_chars,
         max_tokens=args.max_tokens,
         max_chunks_per_example=args.max_chunks_per_example,
+        chunk_selection=args.chunk_selection,
+        chunk_selection_rrf_k=args.chunk_selection_rrf_k,
+        chunk_embedding_model=args.chunk_embedding_model,
+        chunk_embedding_revision=args.chunk_embedding_revision,
+        chunk_embedding_device=args.chunk_embedding_device,
+        chunk_embedding_batch_size=args.chunk_embedding_batch_size,
         verify_batch_size=args.verify_batch_size,
         facts_out_dir=args.facts_out_dir,
         scallop_validator_url=args.scallop_validator_url,

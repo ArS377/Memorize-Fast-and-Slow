@@ -138,6 +138,16 @@ python3 longbench_kg_pipeline.py \
     --limit 10
 ```
 
+When a KG build caps extraction with `--max-chunks-per-example`, the default
+`--chunk-selection hybrid` ranks all source chunks with BM25 and the configured
+BGE embedder, then extracts only the highest-ranked chunks. Use
+`--chunk-selection first` to reproduce the legacy first-N behavior. Extraction
+and verification receive the question and choices but never the benchmark
+answer. Builds write `<session>_chunk_selection.jsonl` and
+`<session>_source_evidence.jsonl` beside the facts mirror; the latter preserves
+every source sentence, its original chunk, whether it was selected, and the
+same `sentence_id` used by fact provenance.
+
 ### Stateless run (graph wiped after session)
 ```bash
 python3 longbench_kg_pipeline.py \

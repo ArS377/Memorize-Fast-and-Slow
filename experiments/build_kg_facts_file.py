@@ -3,7 +3,8 @@
 This is the setup path for KG-backed cells when a live Neo4j instance is not
 available. It mirrors the extraction, verification, and optional Scallop
 validation used by ``experiments.build_kg``, then writes the fallback facts file
-consumed by cells 2/3/5/6.
+consumed by cells 2/3/5/6. It also snapshots source sentences and
+chunk-selection decisions used by extraction.
 """
 
 from __future__ import annotations
@@ -25,6 +26,23 @@ def _write_jsonl(path: Path, rows: List[Dict[str, Any]]) -> None:
             fp.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def _append_jsonl(path: Path, rows: List[Dict[str, Any]]) -> None:
+    if not rows:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as fp:
+        for row in rows:
+            fp.write(
+                json.dumps(
+                    row,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
+
+
 def build_kg_facts_file(
     *,
     session_id: str,
@@ -36,6 +54,12 @@ def build_kg_facts_file(
     limit: Optional[int] = None,
     chunk_chars: int = 12000,
     max_chunks_per_example: Optional[int] = 3,
+    chunk_selection: str = "hybrid",
+    chunk_selection_rrf_k: int = 60,
+    chunk_embedding_model: str = "BAAI/bge-small-en-v1.5",
+    chunk_embedding_revision: Optional[str] = None,
+    chunk_embedding_device: str = "cpu",
+    chunk_embedding_batch_size: int = 32,
     verify_batch_size: int = 20,
     max_tokens: int = 768,
     facts_out_dir: Path = Path("results/kg_builds"),
@@ -56,8 +80,12 @@ def build_kg_facts_file(
 
     out_path = facts_out_dir / f"{session_id}_facts.jsonl"
     rejections_path = facts_out_dir / f"{session_id}_rejections.jsonl"
+    selection_path = facts_out_dir / f"{session_id}_chunk_selection.jsonl"
+    evidence_path = facts_out_dir / f"{session_id}_source_evidence.jsonl"
     rejections_path.parent.mkdir(parents=True, exist_ok=True)
     rejections_path.write_text("", encoding="utf-8")
+    selection_path.write_text("", encoding="utf-8")
+    evidence_path.write_text("", encoding="utf-8")
 
     cfg = PipelineConfig(
         input_path=Path(input_path),
@@ -68,7 +96,7 @@ def build_kg_facts_file(
         temperature=0.0,
         max_tokens=max_tokens,
         chunk_chars=chunk_chars,
-        max_chunks_per_example=None,
+        max_chunks_per_example=max_chunks_per_example,
         limit=None,
         sleep_seconds=0.0,
         use_json_mode=False,
@@ -77,6 +105,12 @@ def build_kg_facts_file(
         neo4j_password=None,
         verify_batch_size=verify_batch_size,
         run_id=f"build_{session_id}",
+        chunk_selection=chunk_selection,
+        chunk_selection_rrf_k=chunk_selection_rrf_k,
+        chunk_embedding_model=chunk_embedding_model,
+        chunk_embedding_revision=chunk_embedding_revision,
+        chunk_embedding_device=chunk_embedding_device,
+        chunk_embedding_batch_size=chunk_embedding_batch_size,
     )
     pipeline = LongBenchKGPipeline(cfg)
     examples = iter_pilot_examples(input_path, limit)
@@ -102,12 +136,35 @@ def build_kg_facts_file(
 
             sentence_records = flatten_context_to_sentence_records(example)
             chunks = chunk_sentence_records(sentence_records, chunk_chars)
-            if max_chunks_per_example is not None and max_chunks_per_example > 0:
-                chunks = chunks[:max_chunks_per_example]
+            selected_chunks = pipeline.select_chunks(example, chunks)
+            _append_jsonl(
+                selection_path,
+                pipeline.chunk_selection_audit(
+                    example,
+                    selected_chunks,
+                    session_id=session_id,
+                    total_chunks=len(chunks),
+                ),
+            )
+            _append_jsonl(
+                evidence_path,
+                pipeline.source_evidence_snapshot(
+                    example,
+                    chunks,
+                    selected_chunks,
+                    session_id=session_id,
+                ),
+            )
 
             extracted: List[Dict[str, Any]] = []
-            for ci, chunk in enumerate(chunks):
-                extracted.extend(pipeline.extract_facts(example, chunk, ci))
+            for selected in selected_chunks:
+                extracted.extend(
+                    pipeline.extract_facts(
+                        example,
+                        selected.records,
+                        selected.chunk_index,
+                    )
+                )
 
             verified = pipeline.verify_facts(example, extracted)
             for fact in verified:
@@ -204,6 +261,19 @@ def main(argv: Optional[List[str]] = None) -> Path:
     parser.add_argument("--api-key", default=os.getenv("VLLM_API_KEY", "EMPTY"))
     parser.add_argument("--chunk-chars", type=int, default=12000)
     parser.add_argument("--max-chunks-per-example", type=int, default=3)
+    parser.add_argument(
+        "--chunk-selection",
+        choices=["first", "hybrid"],
+        default="hybrid",
+    )
+    parser.add_argument("--chunk-selection-rrf-k", type=int, default=60)
+    parser.add_argument(
+        "--chunk-embedding-model",
+        default="BAAI/bge-small-en-v1.5",
+    )
+    parser.add_argument("--chunk-embedding-revision", default=None)
+    parser.add_argument("--chunk-embedding-device", default="cpu")
+    parser.add_argument("--chunk-embedding-batch-size", type=int, default=32)
     parser.add_argument("--verify-batch-size", type=int, default=20)
     parser.add_argument("--max-tokens", type=int, default=768)
     parser.add_argument("--facts-out-dir", type=Path, default=Path("results/kg_builds"))
@@ -219,6 +289,12 @@ def main(argv: Optional[List[str]] = None) -> Path:
         limit=args.limit,
         chunk_chars=args.chunk_chars,
         max_chunks_per_example=args.max_chunks_per_example,
+        chunk_selection=args.chunk_selection,
+        chunk_selection_rrf_k=args.chunk_selection_rrf_k,
+        chunk_embedding_model=args.chunk_embedding_model,
+        chunk_embedding_revision=args.chunk_embedding_revision,
+        chunk_embedding_device=args.chunk_embedding_device,
+        chunk_embedding_batch_size=args.chunk_embedding_batch_size,
         verify_batch_size=args.verify_batch_size,
         max_tokens=args.max_tokens,
         facts_out_dir=args.facts_out_dir,

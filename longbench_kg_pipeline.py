@@ -43,11 +43,22 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from openai import OpenAI
 
+from neurosym.adapters.chunk_selection import (
+    CHUNK_SELECTION_MODES,
+    ChunkSelector,
+    SelectedChunk,
+    chunk_selection_query,
+    source_evidence_snapshot,
+)
 from neurosym.domain.compiled_memory import fact_to_compiled_fact
+from neurosym.domain.retrieval_config import (
+    DEFAULT_EMBEDDING_MODEL,
+    EmbeddingConfig,
+)
 from neurosym.adapters.neo4j_graph import Neo4jGraph
 from neurosym.reporting.rejections import append_rejection_jsonl, build_rejection_record
 
@@ -79,6 +90,12 @@ class PipelineConfig:
     verify_batch_size: int = 20
     run_id: Optional[str] = None
     rejections_output_path: Optional[Path] = None
+    chunk_selection: str = "first"
+    chunk_selection_rrf_k: int = 60
+    chunk_embedding_model: str = DEFAULT_EMBEDDING_MODEL
+    chunk_embedding_revision: Optional[str] = None
+    chunk_embedding_device: str = "cpu"
+    chunk_embedding_batch_size: int = 32
 
 
 class LongBenchKGPipeline:
@@ -87,6 +104,16 @@ class LongBenchKGPipeline:
         self.client = OpenAI(base_url=config.vllm_base_url, api_key=config.api_key)
         self.graph: Optional[Neo4jGraph] = None
         self.run_id = config.run_id or make_run_id(config)
+        self.chunk_selector = ChunkSelector(
+            mode=config.chunk_selection,
+            rrf_k=config.chunk_selection_rrf_k,
+            embedding_config=EmbeddingConfig(
+                model=config.chunk_embedding_model,
+                requested_revision=config.chunk_embedding_revision,
+                device=config.chunk_embedding_device,
+                batch_size=config.chunk_embedding_batch_size,
+            ),
+        )
 
         if config.neo4j_uri:
             if not config.neo4j_user or not config.neo4j_password:
@@ -117,6 +144,55 @@ class LongBenchKGPipeline:
             self.graph.close()
             self.graph = None
 
+    def select_chunks(
+        self,
+        example: Mapping[str, Any],
+        chunks: Sequence[Sequence[Mapping[str, Any]]],
+    ) -> List[SelectedChunk]:
+        return self.chunk_selector.select(
+            example,
+            chunks,
+            limit=self.config.max_chunks_per_example,
+        )
+
+    def chunk_selection_audit(
+        self,
+        example: Mapping[str, Any],
+        selected: Sequence[SelectedChunk],
+        *,
+        session_id: str,
+        total_chunks: int,
+    ) -> List[Dict[str, Any]]:
+        query = chunk_selection_query(example)
+        query_sha256 = hashlib.sha256(query.encode("utf-8")).hexdigest()
+        example_id = str(example.get("_id", "unknown"))
+        return [
+            item.audit_record(
+                example_id=example_id,
+                session_id=session_id,
+                total_chunks=total_chunks,
+                query_sha256=query_sha256,
+                embedding=self.chunk_selector.embedding_metadata,
+            )
+            for item in selected
+        ]
+
+    def source_evidence_snapshot(
+        self,
+        example: Mapping[str, Any],
+        chunks: Sequence[Sequence[Mapping[str, Any]]],
+        selected: Sequence[SelectedChunk],
+        *,
+        session_id: str,
+    ) -> List[Dict[str, Any]]:
+        return source_evidence_snapshot(
+            example,
+            chunks,
+            selected,
+            session_id=session_id,
+            selection_mode=self.config.chunk_selection,
+        )
+
     def run(self) -> None:
         examples = load_longbench_examples(self.config.input_path)
         if self.config.limit is not None:
@@ -140,13 +216,15 @@ class LongBenchKGPipeline:
 
                 sentence_records = flatten_context_to_sentence_records(example)
                 chunks = chunk_sentence_records(sentence_records, self.config.chunk_chars)
-
-                if self.config.max_chunks_per_example is not None:
-                    chunks = chunks[: self.config.max_chunks_per_example]
+                selected_chunks = self.select_chunks(example, chunks)
 
                 extracted: List[Fact] = []
-                for chunk_index, chunk in enumerate(chunks):
-                    facts = self.extract_facts(example, chunk, chunk_index)
+                for selected in selected_chunks:
+                    facts = self.extract_facts(
+                        example,
+                        selected.records,
+                        selected.chunk_index,
+                    )
                     extracted.extend(facts)
                     polite_sleep(self.config.sleep_seconds)
 
@@ -719,7 +797,6 @@ def build_question_block(example: Dict[str, Any]) -> str:
         "choice_B": example.get("choice_B"),
         "choice_C": example.get("choice_C"),
         "choice_D": example.get("choice_D"),
-        "answer": example.get("answer"),
     }
     return json.dumps(fields, ensure_ascii=False, indent=2)
 
@@ -854,6 +931,17 @@ def parse_args() -> PipelineConfig:
     parser.add_argument("--max-tokens", type=int, default=2048)
     parser.add_argument("--chunk-chars", type=int, default=12000, help="Approx max characters per context chunk.")
     parser.add_argument("--max-chunks-per-example", type=int, default=None, help="Debug option to cap chunks per example.")
+    parser.add_argument(
+        "--chunk-selection",
+        choices=sorted(CHUNK_SELECTION_MODES),
+        default="hybrid",
+        help="How to choose chunks when --max-chunks-per-example truncates the context.",
+    )
+    parser.add_argument("--chunk-selection-rrf-k", type=int, default=60)
+    parser.add_argument("--chunk-embedding-model", default=DEFAULT_EMBEDDING_MODEL)
+    parser.add_argument("--chunk-embedding-revision", default=None)
+    parser.add_argument("--chunk-embedding-device", default="cpu")
+    parser.add_argument("--chunk-embedding-batch-size", type=int, default=32)
     parser.add_argument("--limit", type=int, default=None, help="Debug option to cap number of examples.")
     parser.add_argument("--sleep-seconds", type=float, default=0.0, help="Optional delay between model calls.")
     parser.add_argument("--use-json-mode", action="store_true", help="Try OpenAI JSON mode; fallback if unsupported.")
@@ -888,6 +976,12 @@ def parse_args() -> PipelineConfig:
         neo4j_database=args.neo4j_database,
         neo4j_session_id=args.session_id,
         neo4j_stateless=args.stateless,
+        chunk_selection=args.chunk_selection,
+        chunk_selection_rrf_k=args.chunk_selection_rrf_k,
+        chunk_embedding_model=args.chunk_embedding_model,
+        chunk_embedding_revision=args.chunk_embedding_revision,
+        chunk_embedding_device=args.chunk_embedding_device,
+        chunk_embedding_batch_size=args.chunk_embedding_batch_size,
     )
 
 
