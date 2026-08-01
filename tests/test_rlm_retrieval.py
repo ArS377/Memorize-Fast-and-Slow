@@ -17,9 +17,13 @@ from neurosym.adapters.kg_search import (
 from neurosym.adapters.qwen_rlm import (
     NativeToolSession,
     _native_tool_instructions,
+    _parse_candidate_answer,
+    _parse_final_response,
+    _question_message,
     make_qwen_tool_rlm,
     qwen_rlm_tool_answer,
 )
+from experiments._cli import normalize_short_answer, short_answer_scores
 from experiments.run_all import _common_cell_args
 from neurosym.adapters.working_memory_tool import UPDATE_WORKING_MEMORY_TOOL
 
@@ -408,9 +412,12 @@ def test_order_gap_stops_repeated_no_evidence_prose() -> None:
     completion = session.complete(client, _messages())
 
     assert 'answer["ready"] = True' in completion
-    assert "EVIDENCE_INSUFFICIENT:" in completion
+    assert "FINAL_ANSWER: C" in completion
     assert session.diagnostic_predicted == "C"
-    assert session.controller_termination_reason == "order_gap_evidence_insufficient"
+    assert (
+        session.controller_termination_reason
+        == "order_gap_evidence_insufficient_fallback"
+    )
     assert session.state_tracker.stable is True
     assert any(
         event.get("event") == "order_gap_stop" for event in session.trace["events"]
@@ -496,10 +503,13 @@ def test_order_gap_does_not_attach_committed_facts_to_uncited_prose() -> None:
     assert session.complete(client, _messages()) == prose
     completion = session.complete(client, _messages())
 
-    assert "EVIDENCE_INSUFFICIENT:" in completion
-    assert "FINAL_ANSWER:" not in completion
+    assert "FINAL_ANSWER: A" in completion
+    assert "CITED_FACT_IDS" not in completion
     assert session.diagnostic_predicted == "A"
-    assert session.controller_termination_reason == "order_gap_evidence_insufficient"
+    assert (
+        session.controller_termination_reason
+        == "order_gap_evidence_insufficient_fallback"
+    )
 
 
 def test_cell6_uncited_answer_becomes_first_class_fallback() -> None:
@@ -1574,3 +1584,127 @@ def test_cell5_and_cell6_enable_integrated_mode_specific_defaults(tmp_path: Path
 
     assert answer.call_count == 2
     assert [call["validator_url"] for call in open_calls] == [None, "http://validator:8765"]
+
+
+# ---------------------------------------------------------------------------
+# answer_format="short" -- HotpotQA / 2WikiMultihopQA free-text answers
+# ---------------------------------------------------------------------------
+
+
+def test_short_format_question_message_omits_mcq_choices() -> None:
+    message = _question_message(EXAMPLE, answer_format="short")
+    assert message == "Question: Where is Kalamang spoken?"
+    assert "A)" not in message and "choice" not in message.lower()
+
+
+def test_short_format_instructions_drop_mcq_letters() -> None:
+    instructions = _native_tool_instructions(
+        2, allow_unsupported_fallback=True, answer_format="short"
+    )
+    assert "<A|B|C|D>" not in instructions
+    assert "give your best short answer" in instructions.lower()
+    assert 'FINAL_ANSWER: <brief answer' in instructions
+
+
+def test_short_format_parses_free_text_final_answer() -> None:
+    predicted, citations, insufficient = _parse_final_response(
+        'FINAL_ANSWER: East Indonesia\nCITED_FACT_IDS: f1, f2',
+        answer_format="short",
+    )
+    assert predicted == "East Indonesia"
+    assert citations == ["f1", "f2"]
+    assert insufficient is False
+
+
+def test_short_format_candidate_answer_requires_structured_label() -> None:
+    assert (
+        _parse_candidate_answer(
+            'FINAL_ANSWER: East Indonesia', answer_format="short"
+        )
+        == "East Indonesia"
+    )
+    # Unlike MCQ mode, short mode never infers an answer from bare prose --
+    # there is no fixed letter set to pattern-match against.
+    assert _parse_candidate_answer("East Indonesia.", answer_format="short") == ""
+
+
+def test_short_format_evidence_grounds_against_predicted_text_not_a_choice_key() -> None:
+    client = FakeRLMClient([])
+    session = _session(
+        client,
+        answer_format="short",
+        choices={},
+        question="Where is Kalamang spoken?",
+    )
+    session.retrieved_fact_ids = {"f1", "f2"}
+    session.retrieved_facts = {row["fact_id"]: row for row in FACTS if "fact_id" in row}
+    session.working_memory_fact_ids = {"f1"}
+
+    grounded = session._grounded_fact_ids("East Indonesia")
+    assert grounded == ["f1"]
+
+    assessment = session._evidence_assessment("East Indonesia", ["f1"])
+    assert assessment["adequate"] is True
+    assert assessment["missing_evidence"] == []
+
+    unsupported = session._evidence_assessment("Antarctica", ["f1"])
+    assert unsupported["adequate"] is False
+    assert "cited facts do not support the answer" in unsupported["missing_evidence"]
+
+    uncited = session._evidence_assessment("East Indonesia", [])
+    assert uncited["adequate"] is False
+    assert "no cited fact IDs" in uncited["missing_evidence"]
+
+
+def test_short_format_full_trajectory_search_commit_then_free_text_answer() -> None:
+    client = FakeRLMClient(
+        [
+            _response(tool_calls=[_tool_call(
+                "search", {"query": "Kalamang", "seed_entities": ["Kalamang"]}
+            )]),
+            _response(tool_calls=[_tool_call(
+                "update",
+                {"entity": "Kalamang", "selected_fact_ids": ["f1"]},
+                name="update_working_memory",
+            )]),
+            _response(
+                content='''```repl
+answer["content"] = "FINAL_ANSWER: East Indonesia\\nCITED_FACT_IDS: f1"
+answer["ready"] = True
+```'''
+            ),
+        ]
+    )
+    session = _session(
+        client,
+        max_tool_calls=3,
+        require_memory_update=True,
+        validate_memory_updates=False,
+        answer_format="short",
+        choices={},
+    )
+
+    content = session.complete(client, _messages())
+
+    assert "FINAL_ANSWER: East Indonesia" in content
+    assert session.working_memory_fact_ids == {"f1"}
+    assert session.diagnostic_predicted == "East Indonesia"
+    # The system prompt sent to the model should never mention A/B/C/D.
+    first_system_content = client.completions.requests[0]["messages"][0]["content"]
+    assert "<A|B|C|D>" not in first_system_content
+
+
+def test_short_answer_scores_normalizes_and_computes_f1() -> None:
+    assert normalize_short_answer("The Galați City!") == "galați city"
+    exact, f1 = short_answer_scores("Galati City", "the Galați city")
+    assert exact is False  # diacritic mismatch, standard HotpotQA-style behavior
+    assert f1 == 0.5  # only "city" token overlaps
+    exact, f1 = short_answer_scores("the city of Galati", "Galati")
+    assert exact is False
+    assert f1 == 0.5
+    exact, f1 = short_answer_scores("A galati", "the Galati")
+    assert exact is True
+    assert f1 == 1.0
+    exact, f1 = short_answer_scores("Bucharest", "Galati")
+    assert exact is False
+    assert f1 == 0.0

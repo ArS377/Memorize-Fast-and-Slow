@@ -43,14 +43,64 @@ def test_self_reflection_questions():
         "2. Is it atomic, not a bundle of multiple claims?",
         "3. Are subject/object aliases and pronouns resolved correctly?",
         "4. Is the predicate specific and meaningful?",
-        "5. Is the fact useful or potentially useful for answering the question?",
         "6. Is there any unsupported inference?"
     ]
     
     for question in required_questions:
         assert question in prompt, f"Missing self-reflection question: {question}"
-    
+
+    # Check 5 must not re-filter facts by question-relevance: verification
+    # should not reject a fact just because it doesn't obviously answer the
+    # question (this was found to starve multi-hop KGs of bridge facts).
+    assert "question-relevance is\n   not a verification criterion" in prompt
+    assert "useful or potentially useful for answering the question" not in prompt
+
     print("All required self-reflection questions are present in verification prompt.")
+
+def test_verification_prompt_does_not_leak_gold_answer():
+    """Verification (and extraction) must not see the gold answer -- passing
+    it in is oracle leakage into KG construction, not just an over-narrow
+    filter."""
+    example = {
+        "_id": "test_1",
+        "question": "Test question",
+        "choice_A": "wrong",
+        "choice_B": "right",
+        "answer": "B",
+        "context": "Test context about Kalamang language.",
+    }
+    facts = [
+        {
+            "verification_id": "f0",
+            "subject": "Kalamang",
+            "predicate": "SPOKEN_IN",
+            "object": "East Indonesia",
+            "support_text": "It is spoken by around 130 people in East Indonesia.",
+            "provenance": [{"title": "test", "sent_id": 0}],
+            "confidence": "supported",
+        }
+    ]
+    verification_prompt = pipe.build_verification_prompt(example, facts)
+    extraction_prompt = pipe.build_extraction_prompt(
+        example,
+        [{"title": "test", "sent_id": 0, "text": "Kalamang is spoken by around 130 people in East Indonesia."}],
+        0,
+    )
+    assert '"answer": "B"' not in verification_prompt
+    assert '"answer": "B"' not in extraction_prompt
+
+
+def test_extraction_prompt_frames_question_as_background_not_filter():
+    """Extraction must not require every fact to justify itself against the
+    question -- that biases toward a narrow, answer-anchored subset instead
+    of a general per-document KG (starves multi-hop bridge facts)."""
+    example = {"_id": "test_1", "question": "Test question", "context": "..."}
+    chunk = [{"title": "test", "sent_id": 0, "text": "Kalamang is spoken by around 130 people in East Indonesia."}]
+    prompt = pipe.build_extraction_prompt(example, chunk, 0)
+    assert "why this fact could help answer the current multiple-choice question" not in prompt
+    assert "not a filter for which facts to keep" in prompt
+    assert "Extract every explicit, well-supported fact in the passage, not just ones tied to the question." in prompt
+
 
 def test_fact_extraction_format():
     """Test that extraction produces the required format."""
@@ -82,7 +132,7 @@ def test_fact_extraction_format():
         '"temporal": {"valid_from": null, "valid_to": null}',
         '"provenance": [{"title": "...", "sent_id": 0}]',
         '"support_text": "exact supporting sentence(s)"',
-        '"question_relevance": "why this fact could help answer the current multiple-choice question"',
+        '"question_relevance": "one-line plain description of what this fact states"',
         '"confidence": "supported"',
         '"normalization_notes": "alias/pronoun decisions, or empty string"'
     ]

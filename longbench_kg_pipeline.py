@@ -712,10 +712,24 @@ def build_extraction_prompt(example: Dict[str, Any], chunk: List[SentenceRecord]
     question_block = build_question_block(example)
     context_block = json.dumps(chunk, ensure_ascii=False)
 
+    # NOTE: general-purpose extraction, not question-targeted. Earlier this
+    # prompt showed the question before extraction and required every fact to
+    # justify "why this could help answer the question," which biased the
+    # model toward a narrow, answer-anchored subset of the passage instead of
+    # a general per-document KG. For multi-hop QA the fact needed to bridge to
+    # the next hop is often a general fact about the current document that
+    # doesn't look question-relevant on its own -- it only matters once you're
+    # a hop in. The question is still passed below as background context (so
+    # extraction can stay reasonably scoped to the passage's salient content),
+    # but it is no longer the filter for which facts survive.
     return f"""
-You are extracting atomic facts from a LongBench-v2-style example.
+You are extracting atomic facts from a passage. Extract facts about the
+entities and relationships described in the passage generally -- do not
+restrict extraction to facts that obviously help answer the question below.
+The question is background context only, to help you judge what is salient
+in a long or noisy passage, not a filter for which facts to keep.
 
-Task metadata:
+Background context (not a filter):
 {question_block}
 
 Context chunk index: {chunk_index}
@@ -735,7 +749,7 @@ Return this exact JSON shape:
       "temporal": {{"valid_from": null, "valid_to": null}},
       "provenance": [{{"title": "...", "sent_id": 0}}],
       "support_text": "exact supporting sentence(s)",
-      "question_relevance": "why this fact could help answer the current multiple-choice question",
+      "question_relevance": "one-line plain description of what this fact states",
       "confidence": "supported",
       "normalization_notes": "alias/pronoun decisions, or empty string"
     }}
@@ -745,10 +759,11 @@ Return this exact JSON shape:
 Rules:
 - One fact per subject-predicate-object claim.
 - Keep claims atomic.
+- Extract every explicit, well-supported fact in the passage, not just ones tied to the question.
 - Use provenance sent_id values from the sentence records.
 - Use temporal.valid_from / temporal.valid_to only when the text gives an
   explicit time range, date, year, or event time; otherwise leave both null.
-- If no useful facts are explicitly supported, return {{"facts": []}}.
+- If no facts are explicitly supported, return {{"facts": []}}.
 """.strip()
 
 
@@ -770,7 +785,10 @@ For each fact, answer these self-reflection checks:
 2. Is it atomic, not a bundle of multiple claims?
 3. Are subject/object aliases and pronouns resolved correctly?
 4. Is the predicate specific and meaningful?
-5. Is the fact useful or potentially useful for answering the question?
+5. Is it a substantive claim (not incidental filler, e.g. not a bare pronoun
+   reference or a formatting artifact)? Do NOT reject a fact merely because it
+   does not obviously relate to the question above -- question-relevance is
+   not a verification criterion.
 6. Is there any unsupported inference?
 
 Return this exact JSON shape:
@@ -792,6 +810,9 @@ Mark as supported only if the claim is explicit in the cited support text.
 
 
 def build_question_block(example: Dict[str, Any]) -> str:
+    # NOTE: deliberately excludes "answer". Earlier revisions passed the gold
+    # answer straight into the extraction/verification prompts, which is
+    # oracle leakage into KG construction, not just an over-narrow filter.
     fields = {
         "_id": example.get("_id"),
         "domain": example.get("domain"),

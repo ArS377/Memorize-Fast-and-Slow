@@ -338,8 +338,24 @@ def expand(state: EpistemicState, evidence: Mapping[str, Any]) -> EpistemicState
                 for choice, assessment in raw_option_evidence.items()
                 if isinstance(assessment, Mapping)
             }
-        choice = str(evidence.get("candidate") or "").strip().upper()
-        if choice not in {"A", "B", "C", "D"}:
+        raw_candidate = str(evidence.get("candidate") or "").strip()
+        # MCQ: candidate is always a bare A-D letter (by construction of the
+        # controller's parser), so this upper() + membership check is a no-op
+        # for that format. Short-answer mode: candidate is free text, which
+        # this accepts directly instead of discarding it as an unknown
+        # "option" -- there is no fixed choice set to validate against.
+        # Note: free-text answer identity is exact-string-based (via
+        # _answer_id's content hash), so two differently-worded paraphrases
+        # of the same underlying answer are tracked as distinct nodes rather
+        # than recognized as one converging answer. That's untuned for now;
+        # order-gap stability may behave more conservatively on short answers
+        # than it does on the closed A-D set.
+        choice = (
+            raw_candidate.upper()
+            if raw_candidate.upper() in {"A", "B", "C", "D"}
+            else raw_candidate
+        )
+        if not choice:
             return state
         answer_id = _answer_id(choice)
         answer_text = state.choices.get(choice, "")
@@ -347,7 +363,7 @@ def expand(state: EpistemicState, evidence: Mapping[str, Any]) -> EpistemicState
             state.nodes[answer_id] = EpistemicNode(
                 node_id=answer_id,
                 node_type="partial_answer",
-                label=f"{choice}) {answer_text}".strip(),
+                label=f"{choice}) {answer_text}".strip() if answer_text else choice,
                 confidence=0.5,
                 attributes={"choice": choice, "answer_text": answer_text},
             )

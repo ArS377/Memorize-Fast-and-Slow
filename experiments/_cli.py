@@ -27,6 +27,46 @@ from neurosym.domain.retrieval_config import EmbeddingConfig, PPRConfig, Retriev
 from neurosym.application.cells import CellSpec, RunConfig
 
 
+_ARTICLES_RE = re.compile(r"\b(a|an|the)\b")
+_PUNCTUATION_RE = re.compile(r"[^\w\s]")
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def normalize_short_answer(text: str) -> str:
+    """Standard HotpotQA/SQuAD-style answer normalization: lowercase, drop
+    punctuation and articles, collapse whitespace. Used for short-answer
+    (free-text) scoring only -- MCQ answers are compared as exact letters."""
+    text = str(text or "").casefold()
+    text = _PUNCTUATION_RE.sub(" ", text)
+    text = _ARTICLES_RE.sub(" ", text)
+    text = _WHITESPACE_RE.sub(" ", text).strip()
+    return text
+
+
+def short_answer_scores(predicted: str, gold: str) -> "tuple[bool, float]":
+    """(exact_match, f1) between a predicted and gold short answer, both
+    normalized first. F1 is token-overlap F1, matching the official
+    HotpotQA/2WikiMultihopQA evaluation scripts."""
+    norm_pred = normalize_short_answer(predicted)
+    norm_gold = normalize_short_answer(gold)
+    exact_match = bool(norm_gold) and norm_pred == norm_gold
+    pred_tokens = norm_pred.split()
+    gold_tokens = norm_gold.split()
+    if not pred_tokens or not gold_tokens:
+        return exact_match, float(pred_tokens == gold_tokens)
+    common: Dict[str, int] = {}
+    for token in pred_tokens:
+        if token in gold_tokens:
+            common[token] = min(pred_tokens.count(token), gold_tokens.count(token))
+    num_same = sum(common.values())
+    if num_same == 0:
+        return exact_match, 0.0
+    precision = num_same / len(pred_tokens)
+    recall = num_same / len(gold_tokens)
+    f1 = 2 * precision * recall / (precision + recall)
+    return exact_match, f1
+
+
 def _positive_int(value: str) -> int:
     parsed = int(value)
     if parsed < 1:
@@ -134,6 +174,8 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--dense-index-root", type=Path, default=Path("results/dense_indexes"))
         p.add_argument("--dense-failure-policy", choices=["error", "sparse"], default="error")
         p.add_argument("--rrf-k", type=_positive_int, default=60)
+        p.add_argument("--branch-candidate-multiplier", type=_positive_int, default=3)
+        p.add_argument("--branch-candidate-cap", type=_positive_int, default=50)
         p.add_argument("--ppr-seed-count", type=_positive_int, default=20)
         p.add_argument("--ppr-similarity-threshold", type=float, default=0.0)
         p.add_argument("--ppr-temperature", type=_positive_float, default=0.1)
@@ -166,6 +208,18 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
                 ),
             )
             p.add_argument(
+                "--answer-format",
+                choices=["mcq", "short"],
+                default="mcq",
+                help=(
+                    "'mcq' is the LongBench-v2 A/B/C/D protocol. 'short' is a "
+                    "free-text short answer (HotpotQA / 2WikiMultihopQA style): "
+                    "no choices are shown to the model, and correctness is "
+                    "scored by normalized exact-match/F1 against 'answer' "
+                    "instead of exact A-D match."
+                ),
+            )
+            p.add_argument(
                 "--fixed-kg-retrieval",
                 action="store_true",
                 help="Run the legacy pre-retrieved KG baseline instead of native tools",
@@ -175,6 +229,25 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
                 type=_positive_int,
                 default=2 if cell_id == 6 else 3,
                 help="Maximum native knowledge-graph tool calls per example",
+            )
+            p.add_argument(
+                "--allow-unsupported-fallback",
+                dest="allow_unsupported_fallback",
+                action="store_true",
+                default=(cell_id == 6),
+                help=(
+                    "Cap the model to one search then force an MCQ guess instead of "
+                    "EVIDENCE_INSUFFICIENT. Defaults on for cell 6."
+                ),
+            )
+            p.add_argument(
+                "--no-allow-unsupported-fallback",
+                dest="allow_unsupported_fallback",
+                action="store_false",
+                help=(
+                    "Let the model use the full --max-tool-calls budget and chain "
+                    "follow-up searches instead of being capped to one."
+                ),
             )
             p.add_argument(
                 "--tool-choice",
@@ -323,6 +396,8 @@ def run_cell(
         retrieval_config = RetrievalConfig(
             mode=args.retrieval_mode,
             rrf_k=args.rrf_k,
+            branch_candidate_multiplier=args.branch_candidate_multiplier,
+            branch_candidate_cap=args.branch_candidate_cap,
             index_root=args.dense_index_root,
             embedding=EmbeddingConfig(
                 model=args.embedding_model,
@@ -376,9 +451,14 @@ def run_cell(
         retrieval_eval_path.write_text("", encoding="utf-8")
     try:
         with out_path.open("w", encoding="utf-8") as out:
+            answer_format = getattr(args, "answer_format", "mcq")
             for i, ex in enumerate(examples, start=1):
                 example_id = str(ex.get("_id", f"ex_{i}"))
-                gold = str(ex.get("answer", "")).strip().upper()
+                gold = (
+                    str(ex.get("answer", "")).strip()
+                    if answer_format == "short"
+                    else str(ex.get("answer", "")).strip().upper()
+                )
                 question = format_question(ex)
                 if graph_source is not None:
                     graph_source.reset_retrieval_history()
@@ -447,7 +527,8 @@ def run_cell(
                             order_gap_min_iterations=args.order_gap_min_iterations,
                             validate_memory_updates=(cell_id == 6),
                             require_memory_update=True,
-                            allow_unsupported_fallback=(cell_id == 6),
+                            allow_unsupported_fallback=args.allow_unsupported_fallback,
+                            answer_format=args.answer_format,
                         )
                         trace_dir = args.tool_trace_dir or (out_path.parent / "tool_traces")
                         trace_path = _write_tool_trace(
@@ -513,8 +594,20 @@ def run_cell(
                     )
 
                 elapsed = round(time.time() - t0, 2)
-                correct = bool(predicted) and predicted == gold and not error
-                diagnostic_correct = bool(diagnostic_predicted) and diagnostic_predicted == gold
+                f1 = None
+                if answer_format == "short":
+                    correct, f1 = (
+                        (False, 0.0)
+                        if not predicted or error
+                        else short_answer_scores(predicted, gold)
+                    )
+                    diagnostic_correct = (
+                        bool(diagnostic_predicted)
+                        and short_answer_scores(diagnostic_predicted, gold)[0]
+                    )
+                else:
+                    correct = bool(predicted) and predicted == gold and not error
+                    diagnostic_correct = bool(diagnostic_predicted) and diagnostic_predicted == gold
                 if correct:
                     n_correct += 1
 
@@ -573,9 +666,11 @@ def run_cell(
                     cell_id=cell_id,
                     label=label,
                     example_id=example_id,
+                    answer_format=answer_format,
                     predicted=predicted,
                     gold=gold,
                     correct=correct,
+                    f1=f1,
                     n_context_chars=n_context_chars,
                     n_triples=n_triples,
                     elapsed_seconds=elapsed,

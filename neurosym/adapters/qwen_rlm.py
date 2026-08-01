@@ -248,7 +248,9 @@ def _execute_with_timeout(
         pool.shutdown(wait=False, cancel_futures=True)
 
 
-def _question_message(example: Mapping[str, Any]) -> str:
+def _question_message(example: Mapping[str, Any], answer_format: str = "mcq") -> str:
+    if answer_format == "short":
+        return f"Question: {example.get('question', '')}"
     return (
         f"Question: {example.get('question', '')}\n"
         f"A) {example.get('choice_A', '')}\n"
@@ -259,29 +261,49 @@ def _question_message(example: Mapping[str, Any]) -> str:
 
 
 def _native_tool_instructions(
-    max_tool_calls: int, allow_unsupported_fallback: bool = False
+    max_tool_calls: int,
+    allow_unsupported_fallback: bool = False,
+    answer_format: str = "mcq",
 ) -> str:
+    is_short = answer_format == "short"
+    support_noun = "the answer" if is_short else "one option"
+    choose_phrase = (
+        "Give your best short answer using your own reasoning"
+        if is_short
+        else "Choose the most likely option using your own reasoning"
+    )
+    distinguish_phrase = (
+        "does not clearly identify the answer"
+        if is_short
+        else "does not distinguish the answer from plausible alternatives"
+    )
     retrieval_policy = (
         "You may make at most one knowledge-graph search in the entire RLM trajectory. "
         "After that search, you may call the working-memory update tool once when facts "
-        "were returned, but do not issue another search. If the returned facts do not "
-        "adequately support one option, use your own reasoning and emit FINAL_ANSWER with "
+        f"were returned, but do not issue another search. If the returned facts do not "
+        f"adequately support {support_noun}, use your own reasoning and emit FINAL_ANSWER with "
         "no CITED_FACT_IDS. The controller will record that as an unsupported fallback, "
         "not as a graph-supported answer."
         if allow_unsupported_fallback
         else f"You may make at most {max_tool_calls} tool calls in the entire RLM trajectory. "
         "Do not stop searching merely because working memory already contains a fact. "
-        "If the selected facts do not distinguish the answer from plausible alternatives, "
-        "use a remaining call for an option-specific or missing-relation search, then "
+        f"If the selected facts {distinguish_phrase}, "
+        "use a remaining call for a targeted or missing-relation search, then "
         "update working memory with any newly selected evidence."
     )
     completion_policy = (
         "If the graph evidence is insufficient after that one search, do not emit "
-        "EVIDENCE_INSUFFICIENT. Choose the most likely option using your own reasoning "
+        f"EVIDENCE_INSUFFICIENT. {choose_phrase} "
         "and return FINAL_ANSWER without CITED_FACT_IDS."
         if allow_unsupported_fallback
         else "For insufficient evidence, set `answer[\"content\"]` to "
         "`EVIDENCE_INSUFFICIENT: <brief reason>` and set `answer[\"ready\"] = True`."
+    )
+    answer_placeholder = (
+        "<brief answer: a name, date, number, or short phrase copied from the "
+        "evidence -- no explanation or full sentence>"
+        if is_short
+        else "<A|B|C|D>"
     )
     return f"""
 The root model has native `{SEARCH_TOOL_NAME}` and `{UPDATE_TOOL_NAME}` functions. The REPL
@@ -307,7 +329,7 @@ the RLM answer and marks it ready. The fence label must be `repl`, not `python`,
 for example:
 
 ```repl
-answer["content"] = "FINAL_ANSWER: <A|B|C|D>\\nCITED_FACT_IDS: <returned fact IDs>"
+answer["content"] = "FINAL_ANSWER: {answer_placeholder}\\nCITED_FACT_IDS: <returned fact IDs>"
 answer["ready"] = True
 ```
 
@@ -320,6 +342,10 @@ native tool.
 
 _FINAL_ANSWER_RE = re.compile(
     r"^\s*FINAL_ANSWER\s*:\s*([ABCD])(?=\s|\)|$).*$",
+    re.MULTILINE,
+)
+_FINAL_ANSWER_SHORT_RE = re.compile(
+    r"^\s*FINAL_ANSWER\s*:\s*(.+?)\s*$",
     re.MULTILINE,
 )
 _CITATIONS_RE = re.compile(r"^\s*CITED_FACT_IDS\s*:\s*(.+?)\s*$", re.MULTILINE)
@@ -357,11 +383,14 @@ _GROUNDING_STOPWORDS = {
 }
 
 
-def _parse_final_response(content: str) -> Tuple[str, List[str], bool]:
+def _parse_final_response(
+    content: str, answer_format: str = "mcq"
+) -> Tuple[str, List[str], bool]:
     text = content or ""
     if _INSUFFICIENT_RE.search(text):
         return "", [], True
-    answer_match = _FINAL_ANSWER_RE.search(text)
+    answer_re = _FINAL_ANSWER_SHORT_RE if answer_format == "short" else _FINAL_ANSWER_RE
+    answer_match = answer_re.search(text)
     citations_match = _CITATIONS_RE.search(text)
     if not answer_match:
         return "", [], False
@@ -374,12 +403,21 @@ def _parse_final_response(content: str) -> Tuple[str, List[str], bool]:
             if fact_id and fact_id not in seen:
                 citations.append(fact_id)
                 seen.add(fact_id)
-    return answer_match.group(1), citations, False
+    answer = answer_match.group(1)
+    if answer_format == "short":
+        answer = answer.strip().strip("`\"'")
+    return answer, citations, False
 
 
-def _parse_candidate_answer(content: str) -> str:
-    """Extract only an explicitly labelled multiple-choice answer from prose."""
+def _parse_candidate_answer(content: str, answer_format: str = "mcq") -> str:
+    """Extract only an explicitly labelled answer from prose (MCQ letter or
+    short free-text span -- never inferred from unlabelled prose)."""
     text = str(content or "")
+    if answer_format == "short":
+        structured = _FINAL_ANSWER_SHORT_RE.search(text)
+        if structured:
+            return structured.group(1).strip().strip("`\"'")
+        return ""
     structured = re.search(r"\bFINAL_ANSWER\s*:\s*([ABCD])\b", text)
     if structured:
         return structured.group(1).upper()
@@ -604,6 +642,7 @@ class NativeToolSession:
         order_gap_min_iterations: int = 2,
         aggregate_token_limit: int = 64_000,
         allow_unsupported_fallback: bool = False,
+        answer_format: str = "mcq",
     ) -> None:
         if max_tool_calls < 1:
             raise ValueError("max_tool_calls must be at least 1")
@@ -617,7 +656,10 @@ class NativeToolSession:
             raise ValueError("termination_mode must be 'order_gap' or 'external_budget'")
         if aggregate_token_limit < 1:
             raise ValueError("aggregate_token_limit must be positive")
+        if answer_format not in ("mcq", "short"):
+            raise ValueError("answer_format must be 'mcq' or 'short'")
 
+        self.answer_format = answer_format
         self.model = model
         self.graph_source = graph_source
         self.example_id = example_id
@@ -686,7 +728,9 @@ class NativeToolSession:
     def _messages_with_state(self, prompt: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         messages = [dict(message) for message in prompt]
         instructions = _native_tool_instructions(
-            self.max_tool_calls, self.allow_unsupported_fallback
+            self.max_tool_calls,
+            self.allow_unsupported_fallback,
+            answer_format=self.answer_format,
         )
         if messages and messages[0].get("role") == "system":
             messages[0]["content"] = f"{messages[0].get('content', '')}\n\n{instructions}"
@@ -855,6 +899,53 @@ class NativeToolSession:
             "adequate": bool(predicted and cited and not missing),
         }
 
+    def _answer_evidence(
+        self, predicted: str, citations: List[str]
+    ) -> Dict[str, Any]:
+        """Short-answer counterpart to ``_option_evidence``. There is no fixed
+        choice set to contrast against, so adequacy is just: an answer was
+        given, at least one committed fact was cited, and the cited facts'
+        text actually grounds the predicted answer (reuses the same
+        ``_choice_supports_fact`` token-overlap check MCQ mode uses per
+        option, applied to the one free-text candidate instead)."""
+        eligible_fact_ids = (
+            self.working_memory_fact_ids
+            if self.require_memory_update
+            else self.retrieved_fact_ids
+        )
+        facts = {
+            fact_id: self.retrieved_facts[fact_id]
+            for fact_id in eligible_fact_ids
+            if fact_id in self.retrieved_facts
+        }
+        cited = list(dict.fromkeys(citations))
+        cited_set = set(cited)
+        support_ids = {
+            fact_id
+            for fact_id, fact in facts.items()
+            if _choice_supports_fact(predicted, fact)
+        }
+        missing: List[str] = []
+        if not predicted:
+            missing.append("no answer given")
+        if not cited:
+            missing.append("no cited fact IDs")
+        if cited and not cited_set.intersection(support_ids):
+            missing.append("cited facts do not support the answer")
+        return {
+            "candidate": predicted or None,
+            "by_option": {},
+            "missing_evidence": list(dict.fromkeys(missing)),
+            "adequate": bool(predicted and cited and not missing),
+        }
+
+    def _evidence_assessment(
+        self, predicted: str, citations: List[str]
+    ) -> Dict[str, Any]:
+        if self.answer_format == "short":
+            return self._answer_evidence(predicted, citations)
+        return self._option_evidence(predicted, citations)
+
     def _observe_epistemic(
         self,
         evidence: Mapping[str, Any],
@@ -965,6 +1056,11 @@ class NativeToolSession:
                 f"FINAL_ANSWER: {predicted}\n"
                 f"CITED_FACT_IDS: {', '.join(cited_ids)}"
             )
+        elif self.diagnostic_predicted:
+            self.controller_termination_reason = (
+                "order_gap_evidence_insufficient_fallback"
+            )
+            final_content = f"FINAL_ANSWER: {self.diagnostic_predicted}"
         else:
             self.controller_termination_reason = "order_gap_evidence_insufficient"
             final_content = (
@@ -1022,7 +1118,13 @@ class NativeToolSession:
         return [self.tool_schema, self.update_tool_schema]
 
     def _grounded_fact_ids(self, predicted: str) -> List[str]:
-        choice = str(self.state_tracker.state.choices.get(predicted) or "")
+        # MCQ mode: `predicted` is a choice letter, look up its text. Short
+        # mode: `predicted` already *is* the free-text answer to ground.
+        choice = (
+            predicted
+            if self.answer_format == "short"
+            else str(self.state_tracker.state.choices.get(predicted) or "")
+        )
         ranked = sorted(
             (
                 (_grounding_score(choice, self.retrieved_facts[fact_id]), fact_id)
@@ -1110,15 +1212,23 @@ class NativeToolSession:
                 "reason": reason,
             }
         )
+        answer_hint = (
+            "<brief answer>" if self.answer_format == "short" else "<A|B|C|D>"
+        )
+        choose_phrase = (
+            "give your best short answer"
+            if self.answer_format == "short"
+            else "choose the most likely option"
+        )
         messages.append(
             {
                 "role": "user",
                 "content": (
                     "The single retrieval is complete. Do not return "
                     "EVIDENCE_INSUFFICIENT and do not call another tool. "
-                    "Use the retrieved context plus your own reasoning to "
-                    "choose the most likely option. Reply in the exact RLM "
-                    "ready format with FINAL_ANSWER: <A|B|C|D> and no "
+                    f"Use the retrieved context plus your own reasoning to "
+                    f"{choose_phrase}. Reply in the exact RLM "
+                    f"ready format with FINAL_ANSWER: {answer_hint} and no "
                     "CITED_FACT_IDS."
                 ),
             }
@@ -1170,7 +1280,6 @@ class NativeToolSession:
                 self._budgeted_completion_tokens(base_client, request)
             )
             if budgeted_tokens < MIN_BUDGETED_COMPLETION_TOKENS:
-                self.controller_termination_reason = "aggregate_token_budget_guard"
                 self.trace["events"].append(
                     {
                         "event": "token_budget_guard",
@@ -1182,6 +1291,14 @@ class NativeToolSession:
                         "available_completion_tokens": budgeted_tokens,
                     }
                 )
+                if self.diagnostic_predicted:
+                    self.controller_termination_reason = (
+                        "aggregate_token_budget_guard_fallback"
+                    )
+                    return _rlm_ready_block(
+                        f"FINAL_ANSWER: {self.diagnostic_predicted}"
+                    )
+                self.controller_termination_reason = "aggregate_token_budget_guard"
                 return _rlm_ready_block(
                     "EVIDENCE_INSUFFICIENT: the fixed aggregate RLM token budget "
                     "cannot safely fit another model turn"
@@ -1248,9 +1365,11 @@ class NativeToolSession:
                     raise RuntimeError("Qwen returned neither tool calls nor text")
                 ready_payload = _ready_answer_payload(content)
                 completion_content = ready_payload if ready_payload is not None else content
-                candidate = _parse_candidate_answer(completion_content)
+                candidate = _parse_candidate_answer(
+                    completion_content, answer_format=self.answer_format
+                )
                 predicted, model_citations, evidence_insufficient = _parse_final_response(
-                    completion_content
+                    completion_content, answer_format=self.answer_format
                 )
                 if ready_payload is not None and not predicted:
                     # Qwen sometimes compresses an otherwise valid stabilized answer to
@@ -1294,7 +1413,7 @@ class NativeToolSession:
                 citations, citations_synthesized = self._resolve_citations(
                     predicted, model_citations
                 )
-                assessment = self._option_evidence(predicted, citations)
+                assessment = self._evidence_assessment(predicted, citations)
                 self.last_evidence_adequate = bool(assessment["adequate"])
                 if citations_synthesized:
                     completion_content = (
@@ -1330,7 +1449,7 @@ class NativeToolSession:
                 if fallback_allowed:
                     discarded_citations = list(citations)
                     citations = []
-                    assessment = self._option_evidence(predicted, citations)
+                    assessment = self._evidence_assessment(predicted, citations)
                     self.last_evidence_adequate = False
                     completion_content = f"FINAL_ANSWER: {predicted}"
                     self.trace["events"].append(
@@ -1423,7 +1542,9 @@ class NativeToolSession:
                             _state_predicted,
                             _state_citations,
                             state_evidence_insufficient,
-                        ) = _parse_final_response(state_payload)
+                        ) = _parse_final_response(
+                            state_payload, answer_format=self.answer_format
+                        )
                         if (
                             state_evidence_insufficient
                             and self.allow_unsupported_fallback
@@ -1861,8 +1982,19 @@ def qwen_rlm_tool_answer(
     validate_memory_updates: bool = True,
     require_memory_update: bool = False,
     allow_unsupported_fallback: bool = False,
+    answer_format: str = "mcq",
 ) -> QwenRLMToolOutcome:
-    """Run one Qwen-first native-tool trajectory inside the RLM structure."""
+    """Run one Qwen-first native-tool trajectory inside the RLM structure.
+
+    ``answer_format="short"`` switches from the LongBench-style A/B/C/D
+    multiple-choice protocol to a free-text short answer (HotpotQA / 2Wiki
+    style): no choices are shown to the model, FINAL_ANSWER captures the rest
+    of its line verbatim, and evidence adequacy is judged by whether cited
+    facts textually ground the predicted answer rather than by contrasting
+    against alternative options (there are none to contrast against).
+    """
+    if answer_format not in ("mcq", "short"):
+        raise ValueError(f"answer_format must be 'mcq' or 'short', got {answer_format!r}")
     example_id = str(example.get("_id", ""))
     session = NativeToolSession(
         model=model,
@@ -1879,16 +2011,21 @@ def qwen_rlm_tool_answer(
         validate_memory_updates=validate_memory_updates,
         require_memory_update=require_memory_update,
         question=str(example.get("question") or ""),
-        choices={
-            letter: str(example.get(f"choice_{letter}") or "")
-            for letter in ("A", "B", "C", "D")
-        },
+        choices=(
+            {}
+            if answer_format == "short"
+            else {
+                letter: str(example.get(f"choice_{letter}") or "")
+                for letter in ("A", "B", "C", "D")
+            }
+        ),
         termination_mode=termination_mode,
         order_gap_epsilon=order_gap_epsilon,
         order_gap_window=order_gap_window,
         order_gap_min_iterations=order_gap_min_iterations,
         aggregate_token_limit=max_tokens,
         allow_unsupported_fallback=allow_unsupported_fallback,
+        answer_format=answer_format,
     )
     rlm = make_qwen_tool_rlm(
         backend=backend,
@@ -1905,7 +2042,7 @@ def qwen_rlm_tool_answer(
         model_max_retries=model_max_retries,
     )
 
-    root_prompt = _question_message(example)
+    root_prompt = _question_message(example, answer_format=answer_format)
     empty_context = {
         "retrieval_state": (
             "No facts are preloaded. The root Qwen model must use the native "
@@ -1929,7 +2066,9 @@ def qwen_rlm_tool_answer(
         if callable(close):
             close()
 
-    predicted, citations, evidence_insufficient = _parse_final_response(raw_answer)
+    predicted, citations, evidence_insufficient = _parse_final_response(
+        raw_answer, answer_format=answer_format
+    )
     if evidence_insufficient:
         fallback_failed = bool(
             allow_unsupported_fallback and session.search_call_count >= 1
@@ -1956,11 +2095,17 @@ def qwen_rlm_tool_answer(
 
     unknown_citations = sorted(set(citations) - session.retrieved_fact_ids)
     missing_from_memory = sorted(set(citations) - session.working_memory_fact_ids)
+    diagnostic_fallback = session.controller_termination_reason in (
+        "order_gap_evidence_insufficient_fallback",
+        "aggregate_token_budget_guard_fallback",
+    )
     if (
-        allow_unsupported_fallback
-        and predicted
+        predicted
         and not citations
-        and session.search_call_count >= 1
+        and (
+            (allow_unsupported_fallback and session.search_call_count >= 1)
+            or diagnostic_fallback
+        )
     ):
         return session.finish(
             status="unsupported_fallback",
@@ -1973,7 +2118,7 @@ def qwen_rlm_tool_answer(
             ),
             cited_fact_ids=[],
         )
-    final_assessment = session._option_evidence(predicted, citations)
+    final_assessment = session._evidence_assessment(predicted, citations)
     if (
         predicted
         and citations
