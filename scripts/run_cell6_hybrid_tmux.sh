@@ -121,7 +121,7 @@ PYTHONPATH="$ROOT" "$PYTHON_BIN" -m experiments.cells.cell6_rlm_kg_scallop \
   --rrf-k 60 \
   --hops 2 \
   --limit-triples 50 \
-  --max-depth 2 \
+  --max-depth 1 \
   --max-iterations 10 \
   --max-tokens 64000 \
   --max-tool-calls 2 \

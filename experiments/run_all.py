@@ -275,7 +275,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--ppr-damping", type=_positive_float, default=0.5)
     parser.add_argument("--ppr-tolerance", type=_positive_float, default=1e-8)
     parser.add_argument("--ppr-max-iterations", type=_positive_int, default=100)
-    parser.add_argument("--max-depth", type=int, default=2)
+    parser.add_argument("--max-depth", type=int, default=1)
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
     parser.add_argument(

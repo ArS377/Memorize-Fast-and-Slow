@@ -189,7 +189,7 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         # package (ignores base_url). To talk to an already-running vLLM HTTP
         # server use backend="openai" (vLLM is OpenAI-API compatible).
         p.add_argument("--backend", default="openai")
-        p.add_argument("--max-depth", type=int, default=2)
+        p.add_argument("--max-depth", type=int, default=1)
         p.add_argument("--max-iterations", type=int, default=10)
         # RLM total token budget (summed across all sub-LM calls per example).
         # 32000 was too tight for Qwen3 with <think> reasoning blocks: a
