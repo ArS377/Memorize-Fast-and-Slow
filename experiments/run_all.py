@@ -24,6 +24,10 @@ from typing import List, Optional
 
 from neurosym.application.experiment_io import CELLS, iter_pilot_examples
 from neurosym.adapters.kg_search import TOOL_VERSION as SEARCH_TOOL_VERSION
+from neurosym.adapters.rlm import (
+    FULL_CONTEXT_COMPACTION_THRESHOLD_PCT,
+    FULL_CONTEXT_SUBQUERY_CHARS,
+)
 from neurosym.domain.retrieval_config import EmbeddingConfig, PPRConfig, RetrievalConfig
 from neurosym.adapters.working_memory_tool import TOOL_VERSION as MEMORY_TOOL_VERSION
 from neurosym.domain.validation_rules import DEFAULT_RULE_PARAMETERS
@@ -191,8 +195,13 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
         if cell_id == 6 and getattr(args, "scallop_validator_url", None):
             base += ["--scallop-validator-url", args.scallop_validator_url]
     else:
-        if args.raw_max_chars is not None:
-            base += ["--raw-max-chars", str(args.raw_max_chars)]
+        raw_max_chars = (
+            getattr(args, "cell4_raw_max_chars", None)
+            if cell_id == 4
+            else args.raw_max_chars
+        )
+        if raw_max_chars is not None:
+            base += ["--raw-max-chars", str(raw_max_chars)]
     if cell_id in (4, 5, 6):
         base += [
             "--max-depth", str(args.max_depth),
@@ -245,7 +254,21 @@ def main(argv: Optional[List[str]] = None) -> None:
                         help="Comma-separated cell ids, e.g. '1,3,5'. Default: all six.")
     parser.add_argument("--results-dir", type=Path, default=None)
     parser.add_argument("--run-id", default=None)
-    parser.add_argument("--raw-max-chars", type=int, default=32000)
+    parser.add_argument(
+        "--raw-max-chars",
+        type=_positive_int,
+        default=32000,
+        help="Cell 1 raw-context cap in characters (default: 32000).",
+    )
+    parser.add_argument(
+        "--cell4-raw-max-chars",
+        type=_positive_int,
+        default=None,
+        help=(
+            "Optional Cell 4 external-context cap. By default Cell 4 exposes the "
+            "full document to the RLM REPL."
+        ),
+    )
     parser.add_argument("--hops", type=int, default=2)
     parser.add_argument("--limit-triples", type=int, default=50)
     parser.add_argument("--memory-scope", choices=["example", "session", "session_set"], default="example")
@@ -370,6 +393,9 @@ def main(argv: Optional[List[str]] = None) -> None:
         "neo4j_uri": args.neo4j_uri,
         "cells": cells,
         "raw_max_chars": args.raw_max_chars,
+        "cell4_raw_max_chars": args.cell4_raw_max_chars,
+        "cell4_subquery_max_chars": FULL_CONTEXT_SUBQUERY_CHARS,
+        "cell4_compaction_threshold_pct": FULL_CONTEXT_COMPACTION_THRESHOLD_PCT,
         "hops": args.hops,
         "limit_triples": args.limit_triples,
         "memory_scope": args.memory_scope,

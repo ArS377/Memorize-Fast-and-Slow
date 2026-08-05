@@ -121,8 +121,16 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
 
     # Raw-context cells
     if retrieval == "raw":
-        p.add_argument("--raw-max-chars", type=int, default=32000,
-                       help="Truncate raw context to this many chars")
+        raw_default = None if cell_id == 4 else 32000
+        p.add_argument(
+            "--raw-max-chars",
+            type=_positive_int,
+            default=raw_default,
+            help=(
+                "Optional raw-context cap in characters. Cell 4 defaults to full "
+                "external context; Cell 1 defaults to 32000."
+            ),
+        )
 
     if kind == "flat":
         p.add_argument("--max-completion-tokens", type=int, default=2048,
@@ -583,6 +591,7 @@ def run_cell(
                             max_tokens=args.max_tokens,
                             log_dir=rlm_log_dir,
                             verbose=args.verbose,
+                            full_context=(cell_id == 4 and args.raw_max_chars is None),
                         )
                         predicted, _raw, error = rlm_answer(rlm, context, question)
                 except Exception as e:

@@ -53,7 +53,7 @@ def build_kg_facts_file(
     api_key: str,
     limit: Optional[int] = None,
     chunk_chars: int = 12000,
-    max_chunks_per_example: Optional[int] = 3,
+    max_chunks_per_example: Optional[int] = None,
     chunk_selection: str = "hybrid",
     chunk_selection_rrf_k: int = 60,
     chunk_embedding_window_tokens: int = 448,
@@ -266,7 +266,12 @@ def main(argv: Optional[List[str]] = None) -> Path:
     parser.add_argument("--vllm-base-url", default="http://localhost:8000/v1")
     parser.add_argument("--api-key", default=os.getenv("VLLM_API_KEY", "EMPTY"))
     parser.add_argument("--chunk-chars", type=int, default=12000)
-    parser.add_argument("--max-chunks-per-example", type=int, default=3)
+    parser.add_argument(
+        "--max-chunks-per-example",
+        type=int,
+        default=None,
+        help="Optional extraction cap; default is exhaustive over all source chunks.",
+    )
     parser.add_argument(
         "--chunk-selection",
         choices=["first", "hybrid"],
