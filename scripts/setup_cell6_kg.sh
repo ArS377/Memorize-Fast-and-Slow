@@ -26,6 +26,7 @@ fi
 echo "[setup-cell6] repo: $ROOT"
 echo "[setup-cell6] model: $MODEL"
 echo "[setup-cell6] vLLM:  $VLLM_BASE_URL"
+echo "[setup-cell6] KG extraction: exhaustive (all source chunks)"
 
 if ! curl -fsS "$VLLM_BASE_URL/models" >/dev/null; then
   echo "[setup-cell6] ERROR: vLLM is not reachable at $VLLM_BASE_URL" >&2
@@ -85,10 +86,6 @@ PYTHONPATH="$ROOT" "$KG_PY" -m experiments.build_kg \
   --neo4j-user "$NEO4J_USER" \
   --neo4j-password "$NEO4J_PASSWORD" \
   --scallop-validator-url "$SCALLOP_VALIDATOR_URL" \
-  --max-chunks-per-example 3 \
-  --chunk-selection hybrid \
-  --chunk-embedding-window-tokens 448 \
-  --chunk-embedding-window-overlap-tokens 64 \
   --max-tokens 2048
 
 if [[ ! -s "$FACTS_FILE" ]]; then
