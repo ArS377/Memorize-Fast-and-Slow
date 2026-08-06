@@ -1,0 +1,63 @@
+{
+  "run_id": "cells123_exhaustive_ynez_20260805",
+  "completed_date": "2026-08-06",
+  "completed_at_note": "The exact completion timestamp is not recoverable from the copied logs.",
+  "report_generated_at": "2026-08-06T23:30:00Z",
+  "server": "ynez",
+  "model": "Qwen/Qwen3-4B",
+  "sample": {
+    "dataset": "LongBench v2",
+    "limit": 50,
+    "seed": 0
+  },
+  "input_sha256": "82b7f112eaca68f2456283745f72e495c351f85f2a37921f7a9871f73ffa4b53",
+  "input_audit": "Archived result cohorts revalidated; the frozen source input was not duplicated in this package.",
+  "code": {
+    "cell1_and_candidate_extraction": "76f72138e065afa2c5260efbe2e18531c746e447",
+    "cell2_cell3_and_cell4_runner": "5c1e0dd241d537d79a743adacee2557450a6839f",
+    "note": "The later commit changes Cell 4 limits and exhaustive defaults; Cell 2/3 answer logic is unchanged from the extraction checkout."
+  },
+  "kg": {
+    "candidate_facts": 9681,
+    "scallop_accepted": 7902,
+    "scallop_rejected": 1779,
+    "scallop_retention": 0.8162379919429811
+  },
+  "results_sha256": {
+    "cell1": "d3c1e7a63a72f0b7177d0195ceee75b401adc83034a16fa01af4132d0e917371",
+    "cell2": "28047703188d7ca41afc3f761c9deaf2843f0cb6ac7b3b18045321af6776c74f",
+    "cell3": "89a3a635625ca8c5f071ac1fad981fbe8d41523ab27284adb23e7512b5da1d6a",
+    "cell4": "a0ca07d368364c3bcab591bf1cedf992b34c2493d0fed7b88318165ea0f5405e"
+  },
+  "validation": {
+    "same_ordered_example_ids": true,
+    "same_gold_labels": true,
+    "valid_mcq_predictions": 199,
+    "blank_or_invalid_predictions": 1,
+    "runtime_errors": 0,
+    "retrieval_degradations_cells2_3": 0,
+    "status": "share_with_caveats"
+  },
+  "remote_cleanup": {
+    "completed": true,
+    "gpu_memory_after_mib": [
+      4,
+      4,
+      4,
+      4
+    ],
+    "gpu_utilization_after_pct": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "tmux_sessions_remaining": 0,
+    "run_graph_nodes_deleted": 29810,
+    "run_graph_relationships_deleted": 27264,
+    "orphan_endpoint_entities_deleted": 5908,
+    "run_graph_prefix_remaining": 0,
+    "isolated_paths_remaining": 0,
+    "note": "Only locally archived result rows and logs remain; shared model caches and the shared Neo4j installation were not run artifacts and were not removed."
+  }
+}

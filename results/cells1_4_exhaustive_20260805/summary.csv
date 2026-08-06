@@ -1,0 +1,5 @@
+cell_id,label,evidence,validator,recursion,n_examples,n_answered,correct,accuracy,ci95_low,ci95_high,mean_latency_s,median_latency_s,mean_triples,zero_triple_examples,sparse_zero_examples,n_errors
+1,flat_raw,Raw text,n/a,flat,50,50,11,0.2200,0.1275,0.3524,19.3450,17.2950,0,50,,0
+2,flat_kg_noscallop,KG,none,flat,50,50,9,0.1800,0.0977,0.3080,18.0662,19.4700,41.0600,1,32,0
+3,flat_kg_scallop,KG,scallop,flat,50,50,15,0.3000,0.1910,0.4375,18.2618,19.0550,39.8400,1,32,0
+4,rlm_raw,Raw text,n/a,rlm,50,49,17,0.3400,0.2244,0.4785,108.6202,103.9400,0,50,,0

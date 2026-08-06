@@ -179,6 +179,20 @@ candidate corpus. Treat a run as valid evidence only when its generated
 `compliance_report.md` passes. See the
 [`Summer 6/20 execution contract`](docs/summer-6-20-implementation.md).
 
+### Latest validated Cells 1–4 pilot
+
+The August 2026 Ynez run completed Cells 1–4 on the same ordered 50-example
+LongBench v2 seed-0 cohort. Observed accuracy was 22% for Cell 1, 18% for Cell
+2, 30% for Cell 3, and 34% for Cell 4. The 95% intervals overlap, and only the
+Cell 2/3 pair closely isolates Scallop validation; comparisons involving Cells
+1 or 4 also change evidence exposure or orchestration.
+
+See the [technical report](results/cells1_4_exhaustive_20260805/README.md) for
+figures, paired statistics, provenance, and comparison caveats. The canonical
+top-level Cell 1–4 result files and `results/summary.csv` now refer to this run;
+the previous Cell 2 snapshot is not comparable because it used pre-hybrid code
+and a different KG.
+
 Cells 5 and 6 both use Qwen-first native KG tools by default. They share the
 same search/update orchestration; Scallop transition gating is the only intended
 difference between them:
