@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from experiments._cli import build_arg_parser
+from neurosym.adapters.rlm import FULL_CONTEXT_TOTAL_TOKEN_BUDGET
 from neurosym.domain.retrieval_config import RetrievalConfig
 from experiments.run_all import _common_cell_args, _materialize_pilot_input
 
@@ -45,9 +46,24 @@ def test_raw_cell_defaults_keep_cell1_capped_and_cell4_full_context() -> None:
         kind="rlm",
         retrieval="raw",
     ).parse_args([])
+    cell5 = build_arg_parser(
+        cell_id=5,
+        label="rlm_kg_noscallop",
+        kind="rlm",
+        retrieval="kg",
+    ).parse_args([])
+    cell6 = build_arg_parser(
+        cell_id=6,
+        label="rlm_kg_scallop",
+        kind="rlm",
+        retrieval="kg",
+    ).parse_args([])
 
     assert cell1.raw_max_chars == 32_000
     assert cell4.raw_max_chars is None
+    assert cell4.max_tokens == FULL_CONTEXT_TOTAL_TOKEN_BUDGET
+    assert cell5.max_tokens == 64_000
+    assert cell6.max_tokens == 64_000
 
 
 def test_run_all_passes_no_cell4_cap_unless_explicitly_requested(tmp_path: Path) -> None:
@@ -65,12 +81,16 @@ def test_run_all_passes_no_cell4_cap_unless_explicitly_requested(tmp_path: Path)
         max_depth=2,
         max_iterations=10,
         max_tokens=64_000,
+        cell4_max_tokens=FULL_CONTEXT_TOTAL_TOKEN_BUDGET,
     )
 
     cell1 = _common_cell_args(common, 1)
     cell4 = _common_cell_args(common, 4)
     assert cell1[cell1.index("--raw-max-chars") + 1] == "32000"
     assert "--raw-max-chars" not in cell4
+    assert cell4[cell4.index("--max-tokens") + 1] == str(
+        FULL_CONTEXT_TOTAL_TOKEN_BUDGET
+    )
 
     common.cell4_raw_max_chars = 48_000
     capped_cell4 = _common_cell_args(common, 4)

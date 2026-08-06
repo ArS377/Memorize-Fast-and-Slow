@@ -25,8 +25,11 @@ from typing import List, Optional
 from neurosym.application.experiment_io import CELLS, iter_pilot_examples
 from neurosym.adapters.kg_search import TOOL_VERSION as SEARCH_TOOL_VERSION
 from neurosym.adapters.rlm import (
+    FULL_CONTEXT_BATCH_CHARS,
     FULL_CONTEXT_COMPACTION_THRESHOLD_PCT,
+    FULL_CONTEXT_RESPONSE_CHARS,
     FULL_CONTEXT_SUBQUERY_CHARS,
+    FULL_CONTEXT_TOTAL_TOKEN_BUDGET,
 )
 from neurosym.domain.retrieval_config import EmbeddingConfig, PPRConfig, RetrievalConfig
 from neurosym.adapters.working_memory_tool import TOOL_VERSION as MEMORY_TOOL_VERSION
@@ -203,10 +206,15 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
         if raw_max_chars is not None:
             base += ["--raw-max-chars", str(raw_max_chars)]
     if cell_id in (4, 5, 6):
+        max_tokens = (
+            getattr(args, "cell4_max_tokens", FULL_CONTEXT_TOTAL_TOKEN_BUDGET)
+            if cell_id == 4
+            else args.max_tokens
+        )
         base += [
             "--max-depth", str(args.max_depth),
             "--max-iterations", str(args.max_iterations),
-            "--max-tokens", str(args.max_tokens),
+            "--max-tokens", str(max_tokens),
             "--log-dir", str(args.results_dir / f"cell{cell_id}_{next(c['label'] for c in CELLS if c['cell_id'] == cell_id)}" / "rlm_logs"),
         ]
         if cell_id in (5, 6):
@@ -302,6 +310,12 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
     parser.add_argument(
+        "--cell4-max-tokens",
+        type=_positive_int,
+        default=FULL_CONTEXT_TOTAL_TOKEN_BUDGET,
+        help="Cell 4 aggregate RLM execution budget after bounded sub-calls.",
+    )
+    parser.add_argument(
         "--qwen-tool-retrieval",
         action="store_true",
         help="Deprecated compatibility flag; native Qwen tools are now the cells 5/6 default",
@@ -395,6 +409,9 @@ def main(argv: Optional[List[str]] = None) -> None:
         "raw_max_chars": args.raw_max_chars,
         "cell4_raw_max_chars": args.cell4_raw_max_chars,
         "cell4_subquery_max_chars": FULL_CONTEXT_SUBQUERY_CHARS,
+        "cell4_batch_max_chars": FULL_CONTEXT_BATCH_CHARS,
+        "cell4_response_max_chars": FULL_CONTEXT_RESPONSE_CHARS,
+        "cell4_max_tokens": args.cell4_max_tokens,
         "cell4_compaction_threshold_pct": FULL_CONTEXT_COMPACTION_THRESHOLD_PCT,
         "hops": args.hops,
         "limit_triples": args.limit_triples,

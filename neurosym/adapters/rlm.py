@@ -7,8 +7,9 @@ fresh RLM (stateless) over the supplied prompt and root_prompt.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 from neurosym.application.experiment_io import extract_letter
 
@@ -19,6 +20,9 @@ from neurosym.application.experiment_io import extract_letter
 # is a per-sub-call bound, not a document cap: every source character remains
 # available in ``context`` and the RLM can scan ordered chunks or batch them.
 FULL_CONTEXT_SUBQUERY_CHARS = 32_000
+FULL_CONTEXT_BATCH_CHARS = 64_000
+FULL_CONTEXT_RESPONSE_CHARS = 16_000
+FULL_CONTEXT_TOTAL_TOKEN_BUDGET = 128_000
 FULL_CONTEXT_COMPACTION_THRESHOLD_PCT = 0.20
 FULL_CONTEXT_SYSTEM_SUFFIX = f"""
 
@@ -29,10 +33,131 @@ part of this root prompt. Never send the complete `context` value to
 `llm_query`, `llm_query_batched`, `rlm_query`, or `rlm_query_batched`. Keep the
 document portion of every individual sub-query at or below
 {FULL_CONTEXT_SUBQUERY_CHARS:,} characters. Scan longer documents as ordered
-chunks with modest overlap (batched where useful), retain evidence with its
-chunk position, and combine only the compact evidence. This instruction
-supersedes any larger sub-LLM context estimate elsewhere in this prompt.
+chunks with modest overlap, retain evidence with its chunk position, and
+combine only the compact evidence. Batched calls may contain at most
+{FULL_CONTEXT_BATCH_CHARS:,} prompt characters in total. These limits are
+enforced by the runtime; rejected calls return an explanatory error so you can
+retry with smaller slices. Sub-query responses longer than
+{FULL_CONTEXT_RESPONSE_CHARS:,} characters are truncated before entering the
+REPL. This instruction supersedes any larger sub-LLM context estimate elsewhere
+in this prompt.
+
+For this multiple-choice experiment, submit exactly one of A, B, C, or D in
+`answer["content"]`; never submit an option number or the option text.
 """
+
+
+def _rejected_subquery(length: int) -> str:
+    return (
+        "Error: sub-query rejected by the experiment runtime: "
+        f"{length:,} characters exceeds the {FULL_CONTEXT_SUBQUERY_CHARS:,}-character "
+        "limit. Slice the document into smaller ordered chunks and retry."
+    )
+
+
+def _rejected_batch(length: int) -> str:
+    return (
+        "Error: batched sub-query rejected by the experiment runtime: adding this "
+        f"prompt would raise the batch to {length:,} characters, above the "
+        f"{FULL_CONTEXT_BATCH_CHARS:,}-character aggregate limit. Use a smaller batch."
+    )
+
+
+def _bounded_response(value: Any) -> Any:
+    if not isinstance(value, str) or len(value) <= FULL_CONTEXT_RESPONSE_CHARS:
+        return value
+    omitted = len(value) - FULL_CONTEXT_RESPONSE_CHARS
+    return (
+        value[:FULL_CONTEXT_RESPONSE_CHARS]
+        + f"\n[experiment runtime truncated {omitted:,} response characters]"
+    )
+
+
+def _install_full_context_guards(environment: Any) -> None:
+    """Hard-bound Cell 4 sub-calls without modifying the external ``rlms`` package."""
+    if getattr(environment, "_neurosym_full_context_guards", False):
+        return
+
+    original_single: dict[str, Callable[..., Any]] = {
+        name: getattr(environment, name)
+        for name in ("_llm_query", "_rlm_query")
+    }
+    original_batch: dict[str, Callable[..., Any]] = {
+        name: getattr(environment, name)
+        for name in ("_llm_query_batched", "_rlm_query_batched")
+    }
+
+    def guard_single(original: Callable[..., Any]) -> Callable[..., Any]:
+        def bounded(prompt: str, model: str | None = None) -> Any:
+            if not isinstance(prompt, str):
+                return "Error: sub-query prompt must be a string."
+            if len(prompt) > FULL_CONTEXT_SUBQUERY_CHARS:
+                return _rejected_subquery(len(prompt))
+            return _bounded_response(original(prompt, model))
+
+        return bounded
+
+    def guard_batch(original: Callable[..., Any]) -> Callable[..., Any]:
+        def bounded(prompts: Sequence[str], model: str | None = None) -> list[Any]:
+            if not isinstance(prompts, (list, tuple)):
+                return ["Error: batched sub-query prompts must be a list or tuple."]
+
+            results: list[Any] = [None] * len(prompts)
+            accepted: list[str] = []
+            accepted_indices: list[int] = []
+            batch_chars = 0
+            for index, prompt in enumerate(prompts):
+                if not isinstance(prompt, str):
+                    results[index] = "Error: sub-query prompt must be a string."
+                    continue
+                if len(prompt) > FULL_CONTEXT_SUBQUERY_CHARS:
+                    results[index] = _rejected_subquery(len(prompt))
+                    continue
+                proposed_chars = batch_chars + len(prompt)
+                if proposed_chars > FULL_CONTEXT_BATCH_CHARS:
+                    results[index] = _rejected_batch(proposed_chars)
+                    continue
+                accepted.append(prompt)
+                accepted_indices.append(index)
+                batch_chars = proposed_chars
+
+            if accepted:
+                accepted_results = original(accepted, model)
+                for index, value in zip(accepted_indices, accepted_results, strict=True):
+                    results[index] = _bounded_response(value)
+            return results
+
+        return bounded
+
+    environment._llm_query = guard_single(original_single["_llm_query"])
+    environment._rlm_query = guard_single(original_single["_rlm_query"])
+    environment._llm_query_batched = guard_batch(original_batch["_llm_query_batched"])
+    environment._rlm_query_batched = guard_batch(original_batch["_rlm_query_batched"])
+    environment._neurosym_full_context_guards = True
+
+    # LocalREPL captures bound callables in its globals during setup. Replace
+    # those references too; its scaffold restoration will preserve these
+    # instance-level wrappers after subsequent code executions.
+    if hasattr(environment, "globals"):
+        environment.globals.update(
+            llm_query=environment._llm_query,
+            llm_query_batched=environment._llm_query_batched,
+            rlm_query=environment._rlm_query,
+            rlm_query_batched=environment._rlm_query_batched,
+        )
+
+
+def _bounded_rlm_class(base_rlm: type) -> type:
+    class BoundedFullContextRLM(base_rlm):
+        @contextmanager
+        def _spawn_completion_context(self, prompt):
+            with super()._spawn_completion_context(prompt) as resources:
+                _lm_handler, environment = resources
+                _install_full_context_guards(environment)
+                yield resources
+
+    BoundedFullContextRLM.__name__ = "BoundedFullContextRLM"
+    return BoundedFullContextRLM
 
 
 def make_rlm(
@@ -67,7 +192,8 @@ def make_rlm(
             compaction=True,
             compaction_threshold_pct=FULL_CONTEXT_COMPACTION_THRESHOLD_PCT,
         )
-    return RLM(
+    rlm_class = _bounded_rlm_class(RLM) if full_context else RLM
+    return rlm_class(
         backend=backend,
         backend_kwargs={"model_name": model, "base_url": base_url, "api_key": api_key},
         environment="local",
