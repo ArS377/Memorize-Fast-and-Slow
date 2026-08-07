@@ -477,8 +477,22 @@ def _fact_grounding_text(fact: Mapping[str, Any]) -> str:
 
 def _choice_supports_fact(choice: str, fact: Mapping[str, Any]) -> bool:
     choice_text = _grounding_text(choice)
+    if not choice_text:
+        return False
+    choice_tokens = choice_text.split()
+    if choice_tokens and all(re.fullmatch(r"\d+(?:\.\d+)?", t) for t in choice_tokens):
+        # A purely numeric option (e.g. an MCQ choice of "3072") must be the
+        # fact's actually-asserted value, not merely a number that appears
+        # somewhere in the supporting sentence -- source tables routinely
+        # list several related numbers together (e.g. 768/1536/3072/6144
+        # GPU counts across parallelism configs), so a full-text substring
+        # check would match every numeric option against the same fact.
+        object_numbers = set(
+            re.findall(r"\d+(?:\.\d+)?", _grounding_text(fact.get("object")))
+        )
+        return bool(object_numbers) and set(choice_tokens) <= object_numbers
     fact_text = _fact_grounding_text(fact)
-    if not choice_text or not fact_text:
+    if not fact_text:
         return False
     if choice_text in fact_text:
         return True
@@ -833,6 +847,11 @@ class NativeToolSession:
         cited = list(dict.fromkeys(citations))
         cited_set = set(cited)
         predicted_support = support_sets.get(predicted, set())
+        conflicting_options = sorted(
+            option
+            for option, support_ids in support_sets.items()
+            if option != predicted and cited_set & support_ids
+        )
         missing: List[str] = []
         if not predicted:
             missing.append("no valid answer option")
@@ -840,57 +859,11 @@ class NativeToolSession:
             missing.append("no cited fact IDs")
         if cited and not cited_set.intersection(predicted_support):
             missing.append(f"cited facts do not support option {predicted}")
-
-        cited_text = " ".join(
-            _fact_grounding_text(facts[fact_id])
-            for fact_id in cited
-            if fact_id in facts
-        )
-        question = _grounding_text(self.state_tracker.state.question)
-        option_coverage = sum(bool(ids) for ids in support_sets.values())
-        negative_question = bool(
-            re.search(r"\b(?:not|except|false|incorrect|least likely)\b", question)
-        )
-        comparison_question = bool(
-            re.search(
-                r"\b(?:most|least|higher|lower|greater|fewer|earlier|later|oldest|youngest)\b",
-                question,
+        elif conflicting_options:
+            missing.append(
+                "cited facts also support conflicting option(s) "
+                + ", ".join(conflicting_options)
             )
-        )
-        arithmetic_question = bool(
-            re.search(r"\b(?:total|sum|difference|combined|how many|percent)\b", question)
-        )
-        chronology_question = bool(
-            re.search(r"\b(?:before|after|first|last|earliest|latest|year|when)\b", question)
-        )
-        if negative_question and not (
-            re.search(r"\b(?:not|never|no|except|false|incorrect)\b", cited_text)
-            or option_coverage >= 3
-        ):
-            missing.append("negative/exception question needs explicit negation or broader option coverage")
-        if comparison_question and not (
-            re.search(
-                r"\b(?:most|least|higher|lower|greater|fewer|earlier|later|oldest|youngest)\b",
-                cited_text,
-            )
-            or option_coverage >= 2
-        ):
-            missing.append("comparison question needs evidence covering at least two alternatives")
-        if arithmetic_question:
-            numeric_evidence = re.findall(r"\d+(?:\.\d+)?", cited_text)
-            predicted_numbers = re.findall(
-                r"\d+(?:\.\d+)?",
-                _grounding_text(self.state_tracker.state.choices.get(predicted, "")),
-            )
-            direct_numeric_answer = bool(predicted_numbers) and set(
-                predicted_numbers
-            ) <= set(numeric_evidence)
-            if len(set(numeric_evidence)) < 2 and not direct_numeric_answer:
-                missing.append("arithmetic question lacks the required numeric evidence")
-        if chronology_question and not re.search(
-            r"\b(?:before|after|first|last|earliest|latest|\d{4})\b", cited_text
-        ):
-            missing.append("chronology question lacks dated or ordered evidence")
 
         return {
             "candidate": predicted or None,
@@ -1486,7 +1459,8 @@ class NativeToolSession:
                             "errors": completion_errors,
                         }
                     )
-                    if rejection_signature in self.seen_ready_rejections:
+                    out_of_turns = native_turn >= max_native_turns
+                    if rejection_signature in self.seen_ready_rejections or out_of_turns:
                         self._observe_epistemic(
                             {
                                 "kind": "model",
@@ -1499,6 +1473,31 @@ class NativeToolSession:
                             native_turn=native_turn,
                             completion_boundary=True,
                         )
+                        if out_of_turns:
+                            # No native turns remain to retry. Rather than
+                            # discard a candidate answer that only failed the
+                            # (now-tightened) evidence-adequacy check -- e.g.
+                            # citing facts that also support a conflicting
+                            # option -- surface it as an uncited fallback
+                            # answer, same pattern as the other diagnostic
+                            # fallback paths, instead of erroring out with no
+                            # answer at all once native turns run out.
+                            self.controller_termination_reason = (
+                                "native_turn_budget_exhausted_after_rejection"
+                            )
+                            self.trace["events"].append(
+                                {
+                                    "event": "ready_rejection_accepted_out_of_turns",
+                                    "rlm_completion": completion_index,
+                                    "native_turn": native_turn,
+                                }
+                            )
+                            fallback_candidate = predicted or self.diagnostic_predicted
+                            if fallback_candidate:
+                                return _rlm_ready_block(
+                                    f"FINAL_ANSWER: {fallback_candidate}"
+                                )
+                            return completion_content
                         self.trace["events"].append(
                             {
                                 "event": "duplicate_ready_rejection_deferred",
@@ -2098,6 +2097,7 @@ def qwen_rlm_tool_answer(
     diagnostic_fallback = session.controller_termination_reason in (
         "order_gap_evidence_insufficient_fallback",
         "aggregate_token_budget_guard_fallback",
+        "native_turn_budget_exhausted_after_rejection",
     )
     if (
         predicted

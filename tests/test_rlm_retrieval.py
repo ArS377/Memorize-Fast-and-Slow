@@ -16,6 +16,7 @@ from neurosym.adapters.kg_search import (
 )
 from neurosym.adapters.qwen_rlm import (
     NativeToolSession,
+    _choice_supports_fact,
     _native_tool_instructions,
     _parse_candidate_answer,
     _parse_final_response,
@@ -262,6 +263,8 @@ def test_native_tool_instructions_use_the_rlm_completion_protocol() -> None:
     assert 'answer["ready"] = True' in instructions
     assert "FINAL_ANSWER:" in instructions
     assert "do not answer in prose" in instructions
+
+
 
 
 def test_cell6_instructions_require_reasoned_fallback_after_one_search() -> None:
@@ -1708,3 +1711,116 @@ def test_short_answer_scores_normalizes_and_computes_f1() -> None:
     exact, f1 = short_answer_scores("Bucharest", "Galati")
     assert exact is False
     assert f1 == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Evidence-adequacy tightening + per-option query guidance
+# ---------------------------------------------------------------------------
+
+
+def test_choice_supports_fact_numeric_option_requires_matching_object() -> None:
+    # A source table often lists several related numbers in the same
+    # sentence (e.g. GPU counts across parallelism configs). A numeric MCQ
+    # option must match the fact's actually-asserted value (object), not
+    # merely appear somewhere in the fact's text.
+    fact = {
+        "subject": "Nemotron-4-340B-Base",
+        "predicate": "USED_DURING_PRE_TRAINING",
+        "object": "1536",
+        "support_text": (
+            "Configurations of 768, 1536, 3072, and 6144 GPUs were "
+            "evaluated; 1536 was used during pre-training."
+        ),
+    }
+    assert _choice_supports_fact("1536", fact) is True
+    assert _choice_supports_fact("3072", fact) is False
+    assert _choice_supports_fact("6144", fact) is False
+    assert _choice_supports_fact("768", fact) is False
+
+
+def test_option_evidence_flags_citations_that_also_support_a_conflicting_option() -> None:
+    client = FakeRLMClient([])
+    session = _session(
+        client,
+        choices={
+            "A": "Micro Adaptive Interface Component",
+            "B": "Multi-Agent Incentive Communication",
+            "C": "Measure, Analyze, Improve, Control",
+            "D": "Massive AI-powered Courses",
+        },
+    )
+    facts = {
+        "f-b": {
+            "fact_id": "f-b",
+            "subject": "MAIC",
+            "predicate": "FULL_FORM",
+            "object": "Multi-Agent Incentive Communication",
+            "support_text": "MAIC stands for Multi-Agent Incentive Communication.",
+        },
+        "f-d": {
+            "fact_id": "f-d",
+            "subject": "MAIC",
+            "predicate": "FULL_NAME",
+            "object": "Massive AI-powered Courses",
+            "support_text": "MAIC is short for Massive AI-powered Courses.",
+        },
+    }
+    session.retrieved_fact_ids = {"f-b", "f-d"}
+    session.retrieved_facts = facts
+    session.working_memory_fact_ids = {"f-b", "f-d"}
+
+    # Citing only the fact that actually supports the predicted option: fine.
+    clean = session._option_evidence("B", ["f-b"])
+    assert clean["adequate"] is True
+    assert clean["missing_evidence"] == []
+
+    # Citing both -- one supports B, the other supports the conflicting
+    # option D -- should no longer be treated as adequate.
+    conflicted = session._option_evidence("B", ["f-b", "f-d"])
+    assert conflicted["adequate"] is False
+    assert any(
+        "conflicting option(s) D" in reason
+        for reason in conflicted["missing_evidence"]
+    )
+
+
+def test_native_turn_budget_exhaustion_after_rejection_falls_back_instead_of_erroring() -> None:
+    # A mismatched citation gets rejected by the (now-tightened)
+    # evidence-adequacy check every time the model repeats it. Once native
+    # turns run out, the trajectory should fall back to an uncited answer
+    # instead of raising "native tool turn limit reached without a text
+    # response" and losing the candidate entirely.
+    mismatched_ready = '''```repl
+answer["content"] = "FINAL_ANSWER: C\\nCITED_FACT_IDS: f1"
+answer["ready"] = True
+```'''
+    client = FakeRLMClient(
+        [
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search", {"query": "Kalamang", "seed_entities": ["Kalamang"]}
+                    )
+                ]
+            ),
+            _response(content=mismatched_ready),
+            _response(content=mismatched_ready),
+        ]
+    )
+    session = _session(client, max_tool_calls=1, require_memory_update=False)
+
+    completion = session.complete(client, _messages())
+
+    assert 'answer["ready"] = True' in completion
+    assert "FINAL_ANSWER: C" in completion
+    assert "CITED_FACT_IDS" not in completion
+    assert (
+        session.controller_termination_reason
+        == "native_turn_budget_exhausted_after_rejection"
+    )
+    assert any(
+        event.get("event") == "ready_rejection_accepted_out_of_turns"
+        for event in session.trace["events"]
+    )
+
+

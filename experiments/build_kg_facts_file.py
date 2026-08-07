@@ -62,6 +62,15 @@ def build_kg_facts_file(
     chunk_embedding_revision: Optional[str] = None,
     chunk_embedding_device: str = "cpu",
     chunk_embedding_batch_size: int = 32,
+    chunking_mode: str = "rigid",
+    chunk_semantic_min_chars: int = 800,
+    chunk_semantic_similarity_threshold: float = 0.35,
+    extraction_concurrency: int = 1,
+    verify_concurrency: int = 1,
+    chunk_selection_per_option_queries: bool = False,
+    chunk_selection_relevance_floor: Optional[float] = None,
+    chunk_selection_relevance_floor_min_count: int = 3,
+    chunk_selection_mmr_lambda: Optional[float] = None,
     verify_batch_size: int = 20,
     max_tokens: int = 768,
     facts_out_dir: Path = Path("results/kg_builds"),
@@ -71,7 +80,6 @@ def build_kg_facts_file(
     from longbench_kg_pipeline import (
         LongBenchKGPipeline,
         PipelineConfig,
-        chunk_sentence_records,
         flatten_context_to_sentence_records,
         make_fact_id,
         normalize_status,
@@ -117,6 +125,15 @@ def build_kg_facts_file(
         chunk_embedding_revision=chunk_embedding_revision,
         chunk_embedding_device=chunk_embedding_device,
         chunk_embedding_batch_size=chunk_embedding_batch_size,
+        chunking_mode=chunking_mode,
+        chunk_semantic_min_chars=chunk_semantic_min_chars,
+        chunk_semantic_similarity_threshold=chunk_semantic_similarity_threshold,
+        extraction_concurrency=extraction_concurrency,
+        verify_concurrency=verify_concurrency,
+        chunk_selection_per_option_queries=chunk_selection_per_option_queries,
+        chunk_selection_relevance_floor=chunk_selection_relevance_floor,
+        chunk_selection_relevance_floor_min_count=chunk_selection_relevance_floor_min_count,
+        chunk_selection_mmr_lambda=chunk_selection_mmr_lambda,
     )
     pipeline = LongBenchKGPipeline(cfg)
     examples = iter_pilot_examples(input_path, limit)
@@ -141,7 +158,7 @@ def build_kg_facts_file(
             )
 
             sentence_records = flatten_context_to_sentence_records(example)
-            chunks = chunk_sentence_records(sentence_records, chunk_chars)
+            chunks = pipeline.chunk_records(sentence_records)
             selected_chunks = pipeline.select_chunks(example, chunks)
             _append_jsonl(
                 selection_path,
@@ -162,15 +179,7 @@ def build_kg_facts_file(
                 ),
             )
 
-            extracted: List[Dict[str, Any]] = []
-            for selected in selected_chunks:
-                extracted.extend(
-                    pipeline.extract_facts(
-                        example,
-                        selected.records,
-                        selected.chunk_index,
-                    )
-                )
+            extracted = pipeline.extract_facts_for_chunks(example, selected_chunks)
 
             verified = pipeline.verify_facts(example, extracted)
             for fact in verified:
@@ -291,7 +300,75 @@ def main(argv: Optional[List[str]] = None) -> Path:
     parser.add_argument("--chunk-embedding-revision", default=None)
     parser.add_argument("--chunk-embedding-device", default="cpu")
     parser.add_argument("--chunk-embedding-batch-size", type=int, default=32)
+    parser.add_argument(
+        "--chunking-mode",
+        choices=["rigid", "semantic"],
+        default="rigid",
+        help=(
+            "'rigid' packs sentences up to --chunk-chars. 'semantic' cuts at "
+            "embedding-similarity drops between consecutive sentences, still "
+            "capped by --chunk-chars."
+        ),
+    )
+    parser.add_argument("--chunk-semantic-min-chars", type=int, default=800)
+    parser.add_argument(
+        "--chunk-semantic-similarity-threshold", type=float, default=0.35
+    )
     parser.add_argument("--verify-batch-size", type=int, default=20)
+    parser.add_argument(
+        "--extraction-concurrency",
+        type=int,
+        default=1,
+        help=(
+            "Fan out extraction calls across this many threads. vLLM's "
+            "continuous batching processes several in-flight requests in "
+            "roughly the time of one, so this is a real wall-clock win, not "
+            "just overlapped idle time."
+        ),
+    )
+    parser.add_argument("--verify-concurrency", type=int, default=1)
+    parser.add_argument(
+        "--chunk-selection-per-option-queries",
+        action="store_true",
+        help=(
+            "Score chunks against a separate query per answer option (plus "
+            "the bare question) instead of one blended query, and combine "
+            "via best-per-chunk. Fixes query dilution on multi-hop "
+            "questions where different options' evidence lives in "
+            "different parts of the document."
+        ),
+    )
+    parser.add_argument(
+        "--chunk-selection-relevance-floor",
+        type=float,
+        default=None,
+        help=(
+            "Include every chunk scoring at least this fraction of the top "
+            "dense-similarity score, instead of a flat top-N cutoff. "
+            "Adapts spend to document difficulty: an easy document with one "
+            "sharp match stays cheap, a hard document with diffuse "
+            "relevance pulls in more chunks. Still bounded above by "
+            "--max-chunks-per-example."
+        ),
+    )
+    parser.add_argument(
+        "--chunk-selection-relevance-floor-min-count",
+        type=int,
+        default=3,
+        help="Minimum chunks to keep even if the relevance floor would exclude more.",
+    )
+    parser.add_argument(
+        "--chunk-selection-mmr-lambda",
+        type=float,
+        default=None,
+        help=(
+            "Enable maximal-marginal-relevance reranking (0-1): trades "
+            "relevance for diversity so selection spreads across distinct "
+            "regions of the document instead of clustering on near-duplicate "
+            "passages. 1.0 = pure relevance (no diversity), lower = more "
+            "diversity pressure."
+        ),
+    )
     parser.add_argument("--max-tokens", type=int, default=768)
     parser.add_argument("--facts-out-dir", type=Path, default=Path("results/kg_builds"))
     parser.add_argument("--scallop-validator-url", default=os.getenv("SCALLOP_VALIDATOR_URL"))
@@ -316,6 +393,15 @@ def main(argv: Optional[List[str]] = None) -> Path:
         chunk_embedding_revision=args.chunk_embedding_revision,
         chunk_embedding_device=args.chunk_embedding_device,
         chunk_embedding_batch_size=args.chunk_embedding_batch_size,
+        chunking_mode=args.chunking_mode,
+        chunk_semantic_min_chars=args.chunk_semantic_min_chars,
+        chunk_semantic_similarity_threshold=args.chunk_semantic_similarity_threshold,
+        extraction_concurrency=args.extraction_concurrency,
+        verify_concurrency=args.verify_concurrency,
+        chunk_selection_per_option_queries=args.chunk_selection_per_option_queries,
+        chunk_selection_relevance_floor=args.chunk_selection_relevance_floor,
+        chunk_selection_relevance_floor_min_count=args.chunk_selection_relevance_floor_min_count,
+        chunk_selection_mmr_lambda=args.chunk_selection_mmr_lambda,
         verify_batch_size=args.verify_batch_size,
         max_tokens=args.max_tokens,
         facts_out_dir=args.facts_out_dir,

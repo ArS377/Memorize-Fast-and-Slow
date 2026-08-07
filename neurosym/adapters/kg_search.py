@@ -19,7 +19,7 @@ from neurosym.adapters.graph_source import GraphSource, extract_seed_entities
 TOOL_NAME = "search_knowledge_graph"
 TOOL_VERSION = "search_knowledge_graph.v3"
 DEFAULT_RETRIEVAL_MODE = "hybrid"
-DEFAULT_TOP_K = 10
+DEFAULT_TOP_K = 5
 DEFAULT_HOPS = 2
 
 MAX_QUERY_CHARS = 2_000

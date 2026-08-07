@@ -5,7 +5,7 @@ import math
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence, Tuple
 
 import numpy as np
 
@@ -41,6 +41,32 @@ def chunk_selection_query(example: Mapping[str, Any]) -> str:
         if choice:
             parts.append(f"{label}) {choice}")
     return "\n".join(part for part in parts if part)
+
+
+def chunk_selection_queries_per_option(
+    example: Mapping[str, Any],
+) -> List[Tuple[str, str]]:
+    """One (label, query) pair per answer option, plus the bare question.
+
+    A single blended query (question + all options concatenated) dilutes
+    the signal for multi-hop questions where different options' supporting
+    facts live in different parts of the document -- a chunk that's a
+    strong match for option B alone can rank below a chunk that's a
+    mediocre match for the whole blend. Scoring each option separately and
+    combining downstream (max score per chunk) keeps each sub-question's
+    signal intact.
+    """
+    question = str(example.get("question", "")).strip()
+    pairs: List[Tuple[str, str]] = []
+    if question:
+        pairs.append(("question", question))
+    for label in ("A", "B", "C", "D"):
+        choice = str(example.get(f"choice_{label}", "")).strip()
+        if choice:
+            pairs.append((label, f"{question}\n{label}) {choice}" if question else choice))
+    if not pairs:
+        pairs.append(("question", question))
+    return pairs
 
 
 def chunk_text(records: Sequence[Mapping[str, Any]]) -> str:
@@ -132,6 +158,7 @@ class SelectedChunk:
     dense_winning_token_start: Optional[int] = None
     dense_winning_token_end: Optional[int] = None
     dense_winning_token_count: Optional[int] = None
+    matched_query_label: Optional[str] = None
 
     def audit_record(
         self,
@@ -168,6 +195,7 @@ class SelectedChunk:
                 "dense_winning_token_end": self.dense_winning_token_end,
                 "dense_winning_token_count": self.dense_winning_token_count,
             },
+            "matched_query_label": self.matched_query_label,
             "sentence_ids": sentence_ids,
             "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             "text_chars": len(text),
@@ -248,6 +276,10 @@ class ChunkSelector:
         window_overlap_tokens: int = 64,
         embedding_config: Optional[EmbeddingConfig] = None,
         embedder: Optional[ChunkEmbeddingProvider] = None,
+        per_option_queries: bool = False,
+        relevance_floor: Optional[float] = None,
+        relevance_floor_min_count: int = 3,
+        mmr_lambda: Optional[float] = None,
     ) -> None:
         if mode not in CHUNK_SELECTION_MODES:
             raise ValueError(
@@ -265,6 +297,12 @@ class ChunkSelector:
                 "chunk embedding window overlap must be non-negative and "
                 "smaller than the window size"
             )
+        if relevance_floor is not None and not (0.0 <= relevance_floor <= 1.0):
+            raise ValueError("relevance_floor must be between 0 and 1")
+        if relevance_floor_min_count < 0:
+            raise ValueError("relevance_floor_min_count must not be negative")
+        if mmr_lambda is not None and not (0.0 <= mmr_lambda <= 1.0):
+            raise ValueError("mmr_lambda must be between 0 and 1")
         self.mode = mode
         self.rrf_k = int(rrf_k)
         self.window_tokens = int(window_tokens)
@@ -272,6 +310,10 @@ class ChunkSelector:
         self.embedding_config = embedding_config or EmbeddingConfig()
         self._embedder = embedder
         self._embedding_metadata: Optional[Dict[str, Any]] = None
+        self.per_option_queries = per_option_queries
+        self.relevance_floor = relevance_floor
+        self.relevance_floor_min_count = int(relevance_floor_min_count)
+        self.mmr_lambda = mmr_lambda
 
     @property
     def embedding_metadata(self) -> Optional[Dict[str, Any]]:
@@ -317,8 +359,12 @@ class ChunkSelector:
                 for index in range(limit)
             ]
 
-        query = chunk_selection_query(example)
-        if not query.strip():
+        if self.per_option_queries:
+            query_pairs = chunk_selection_queries_per_option(example)
+        else:
+            query_pairs = [("blended", chunk_selection_query(example))]
+        query_pairs = [(label, q) for label, q in query_pairs if q.strip()]
+        if not query_pairs:
             return [
                 SelectedChunk(
                     chunk_index=index,
@@ -328,8 +374,8 @@ class ChunkSelector:
                 )
                 for index in range(limit)
             ]
+
         documents = [chunk_text(records) for records in rows]
-        bm25_scores = _bm25_scores(query, documents)
         provider = self._provider()
         windows_by_document = [
             provider.document_windows(
@@ -354,78 +400,192 @@ class ChunkSelector:
             ),
             rows=len(flattened_windows),
         )
-        query_vector = _normalized(
-            provider.encode_query(query_text_v1(query)),
-            rows=1,
-        )[0]
-        if window_vectors.shape[1] != query_vector.shape[0]:
-            raise ValueError("chunk and query embedding dimensions differ")
-        similarities = np.sum(
-            window_vectors * query_vector[np.newaxis, :],
-            axis=1,
-            dtype=np.float32,
-        )
-        if not np.isfinite(similarities).all():
-            raise ValueError(
-                "chunk embedding similarity produced NaN or infinity"
-            )
-        window_scores = similarities.astype(float).tolist()
-        dense_scores: List[float] = []
-        winning_windows: List[tuple[int, EmbeddingTextWindow]] = []
-        window_offset = 0
+        doc_window_offset: List[int] = []
+        offset = 0
         for windows in windows_by_document:
-            scores = window_scores[window_offset : window_offset + len(windows)]
-            winning_index = max(
-                range(len(scores)),
-                key=lambda index: (scores[index], -index),
-            )
-            dense_scores.append(float(scores[winning_index]))
-            winning_windows.append((winning_index, windows[winning_index]))
-            window_offset += len(windows)
+            doc_window_offset.append(offset)
+            offset += len(windows)
+
         self._embedding_metadata = dict(provider.metadata())
         self._embedding_metadata.update(
             {
                 "chunk_window_tokens": self.window_tokens,
                 "chunk_window_overlap_tokens": self.window_overlap_tokens,
                 "chunk_window_aggregation": "max_cosine_similarity",
+                "selection_query_count": len(query_pairs),
             }
         )
 
-        bm25_ranks = _ranks(bm25_scores)
-        dense_ranks = _ranks(dense_scores)
-        fused_scores = [
-            1.0 / (self.rrf_k + bm25_ranks[index])
-            + 1.0 / (self.rrf_k + dense_ranks[index])
-            for index in range(len(rows))
+        # Track the best *raw* component score per chunk across sub-queries,
+        # then fuse once at the end. Maxing already-RRF-fused per-query
+        # scores instead would lose information: RRF collapses continuous
+        # similarity into discrete ranks, so with a small candidate set a
+        # narrow win and a perfect win on different sub-queries can produce
+        # the identical fused value, erasing exactly the signal per-option
+        # fan-out is meant to surface.
+        n = len(rows)
+        best_label: List[Optional[str]] = [None] * n
+        best_bm25_score = [0.0] * n
+        best_dense_score = [0.0] * n
+        best_window_index = [0] * n
+        best_window: List[Optional[EmbeddingTextWindow]] = [None] * n
+        best_vector: List[Optional[np.ndarray]] = [None] * n
+        has_score = [False] * n
+
+        for label, query in query_pairs:
+            bm25_scores = _bm25_scores(query, documents)
+            query_vector = _normalized(
+                provider.encode_query(query_text_v1(query)),
+                rows=1,
+            )[0]
+            if window_vectors.shape[1] != query_vector.shape[0]:
+                raise ValueError("chunk and query embedding dimensions differ")
+            similarities = np.sum(
+                window_vectors * query_vector[np.newaxis, :],
+                axis=1,
+                dtype=np.float32,
+            )
+            if not np.isfinite(similarities).all():
+                raise ValueError(
+                    "chunk embedding similarity produced NaN or infinity"
+                )
+            window_scores = similarities.astype(float).tolist()
+            dense_scores: List[float] = []
+            winning_windows: List[tuple[int, EmbeddingTextWindow]] = []
+            window_offset = 0
+            for windows in windows_by_document:
+                scores = window_scores[window_offset : window_offset + len(windows)]
+                winning_index = max(
+                    range(len(scores)),
+                    key=lambda index: (scores[index], -index),
+                )
+                dense_scores.append(float(scores[winning_index]))
+                winning_windows.append((winning_index, windows[winning_index]))
+                window_offset += len(windows)
+
+            for index in range(n):
+                if not has_score[index] or dense_scores[index] > best_dense_score[index]:
+                    best_dense_score[index] = dense_scores[index]
+                    win_idx, win = winning_windows[index]
+                    best_window_index[index] = win_idx
+                    best_window[index] = win
+                    best_vector[index] = window_vectors[
+                        doc_window_offset[index] + win_idx
+                    ]
+                    best_label[index] = label
+                if not has_score[index] or bm25_scores[index] > best_bm25_score[index]:
+                    best_bm25_score[index] = bm25_scores[index]
+                has_score[index] = True
+
+        best_bm25_rank = _ranks(best_bm25_score)
+        best_dense_rank = _ranks(best_dense_score)
+        best_fused = [
+            1.0 / (self.rrf_k + best_bm25_rank[index])
+            + 1.0 / (self.rrf_k + best_dense_rank[index])
+            for index in range(n)
         ]
+
         ordered = sorted(
-            range(len(rows)),
+            range(n),
             key=lambda index: (
-                -fused_scores[index],
-                bm25_ranks[index],
-                dense_ranks[index],
+                -best_fused[index],
+                best_bm25_rank[index],
+                best_dense_rank[index],
                 index,
             ),
         )
+
+        if self.relevance_floor is not None:
+            # Filter on raw dense cosine similarity, not the RRF-fused score.
+            # RRF is rank-based and its output range is compressed to
+            # ~1/(k+1) regardless of how similar or dissimilar the true
+            # matches are, so a "percent of max" floor on the fused score is
+            # nearly always non-restrictive. Cosine similarity has a real
+            # 0-1 scale where a relative floor is meaningful; survivors are
+            # still ordered by the fused (hybrid) score below.
+            top_dense = max((best_dense_score[i] for i in ordered), default=0.0)
+            threshold = self.relevance_floor * top_dense
+            candidate_indices = [i for i in ordered if best_dense_score[i] >= threshold]
+            if len(candidate_indices) < self.relevance_floor_min_count:
+                candidate_set = set(candidate_indices)
+                for i in ordered:
+                    if i in candidate_set:
+                        continue
+                    candidate_indices.append(i)
+                    candidate_set.add(i)
+                    if len(candidate_indices) >= self.relevance_floor_min_count:
+                        break
+            candidate_indices = candidate_indices[:limit]
+        else:
+            candidate_indices = ordered[:limit]
+
+        if self.mmr_lambda is not None and len(candidate_indices) > 1:
+            candidate_indices = self._mmr_rerank(
+                candidate_indices, best_fused, best_vector, self.mmr_lambda
+            )
+
+        method_parts = ["hybrid_windowed_rrf"]
+        if self.per_option_queries:
+            method_parts.append("per_option")
+        if self.relevance_floor is not None:
+            method_parts.append("relevance_floor")
+        if self.mmr_lambda is not None:
+            method_parts.append("mmr")
+        selection_method = "+".join(method_parts)
+
         return [
             SelectedChunk(
                 chunk_index=index,
                 records=rows[index],
                 selection_rank=selection_rank,
-                selection_method="hybrid_windowed_rrf",
-                score=float(fused_scores[index]),
-                bm25_score=float(bm25_scores[index]),
-                bm25_rank=bm25_ranks[index],
-                dense_similarity=float(dense_scores[index]),
-                dense_rank=dense_ranks[index],
+                selection_method=selection_method,
+                score=float(best_fused[index]),
+                bm25_score=float(best_bm25_score[index]),
+                bm25_rank=best_bm25_rank[index],
+                dense_similarity=float(best_dense_score[index]),
+                dense_rank=best_dense_rank[index],
                 dense_window_count=len(windows_by_document[index]),
-                dense_winning_window_index=winning_windows[index][0],
-                dense_winning_token_start=winning_windows[index][1].token_start,
-                dense_winning_token_end=winning_windows[index][1].token_end,
-                dense_winning_token_count=winning_windows[index][1].token_count,
+                dense_winning_window_index=best_window_index[index],
+                dense_winning_token_start=best_window[index].token_start,
+                dense_winning_token_end=best_window[index].token_end,
+                dense_winning_token_count=best_window[index].token_count,
+                matched_query_label=best_label[index],
             )
-            for selection_rank, index in enumerate(
-                ordered[:limit],
-                start=1,
-            )
+            for selection_rank, index in enumerate(candidate_indices, start=1)
         ]
+
+    @staticmethod
+    def _mmr_rerank(
+        candidates: List[int],
+        scores: List[float],
+        vectors: List[Optional[np.ndarray]],
+        lam: float,
+    ) -> List[int]:
+        """Maximal-marginal-relevance reorder: iteratively pick the candidate
+        maximizing (relevance - similarity to what's already been picked),
+        so selection spreads across distinct regions of the document instead
+        of clustering around the single best-matching passage."""
+        values = [scores[i] for i in candidates]
+        lo, hi = min(values), max(values)
+        span = hi - lo if hi > lo else 1.0
+        norm_relevance = {i: (scores[i] - lo) / span for i in candidates}
+
+        remaining = list(candidates)
+        first = max(remaining, key=lambda i: scores[i])
+        selected = [first]
+        remaining.remove(first)
+
+        while remaining:
+            def mmr_key(i: int) -> float:
+                vec_i = vectors[i]
+                max_sim = max(
+                    float(np.dot(vec_i, vectors[s]))
+                    for s in selected
+                    if vectors[s] is not None
+                )
+                return lam * norm_relevance[i] - (1.0 - lam) * max_sim
+
+            nxt = max(remaining, key=mmr_key)
+            selected.append(nxt)
+            remaining.remove(nxt)
+        return selected
