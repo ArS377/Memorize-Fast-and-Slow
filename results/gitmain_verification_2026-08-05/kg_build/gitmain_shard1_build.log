@@ -1,0 +1,28 @@
+[build_kg_facts_file] session=gitmain_pilot50_shard1 validate=True examples=13 model=Qwen/Qwen3-4B
+[build_kg_facts_file] (1/13) extracting 66eae4de5a08c7b9b35dd12d
+           extracted=32 supported=32 llm_rejected=0 validator_rejected=1 committed_total=31
+[build_kg_facts_file] (2/13) extracting 66ebc04a5a08c7b9b35de740
+           extracted=39 supported=39 llm_rejected=0 validator_rejected=6 committed_total=64
+[build_kg_facts_file] (3/13) extracting 66ebc7445a08c7b9b35df155
+           extracted=25 supported=25 llm_rejected=0 validator_rejected=1 committed_total=88
+[build_kg_facts_file] (4/13) extracting 66ebcc335a08c7b9b35df8b6
+           extracted=43 supported=23 llm_rejected=20 validator_rejected=3 committed_total=108
+[build_kg_facts_file] (5/13) extracting 66ebd22e5a08c7b9b35e0126
+           extracted=54 supported=37 llm_rejected=17 validator_rejected=0 committed_total=145
+[build_kg_facts_file] (6/13) extracting 66ebd34d5a08c7b9b35e035d
+           extracted=14 supported=14 llm_rejected=0 validator_rejected=5 committed_total=154
+[build_kg_facts_file] (7/13) extracting 66ebd55f5a08c7b9b35e0698
+           extracted=21 supported=12 llm_rejected=9 validator_rejected=5 committed_total=161
+[build_kg_facts_file] (8/13) extracting 66ebda775a08c7b9b35e0dcb
+           extracted=23 supported=23 llm_rejected=0 validator_rejected=8 committed_total=176
+[build_kg_facts_file] (9/13) extracting 66ebdfb65a08c7b9b35e140a
+           extracted=38 supported=38 llm_rejected=0 validator_rejected=9 committed_total=205
+[build_kg_facts_file] (10/13) extracting 66ebeb5a5a08c7b9b35e1ba5
+           extracted=26 supported=26 llm_rejected=0 validator_rejected=3 committed_total=228
+[build_kg_facts_file] (11/13) extracting 66ec052a5a08c7b9b35e29c7
+           extracted=42 supported=33 llm_rejected=9 validator_rejected=10 committed_total=251
+[build_kg_facts_file] (12/13) extracting 66ec0c4c821e116aacb1994a
+           extracted=33 supported=29 llm_rejected=4 validator_rejected=2 committed_total=278
+[build_kg_facts_file] (13/13) extracting 66ec0f7f821e116aacb19dde
+           extracted=45 supported=45 llm_rejected=0 validator_rejected=2 committed_total=321
+[build_kg_facts_file] done. session=gitmain_pilot50_shard1 mirrored=321 -> results/kg_builds/gitmain_pilot50_shard1_facts.jsonl; rejections -> results/kg_builds/gitmain_pilot50_shard1_rejections.jsonl

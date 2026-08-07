@@ -1,0 +1,14 @@
+label,cell_id,condition,kg_variant,retrieval_mode,n_examples,n_answered,correct,accuracy,ci95_low,ci95_high,mean_latency_s,median_latency_s,mean_triples,zero_triple_examples,n_errors,kg_fact_count
+gitmain_cell5_hybrid,5,no_local_changes,gitmain_cap3,hybrid,50,34,13,0.26,0.1587,0.3955,50.78,49.59,10.04,0,5,1440
+gitmain_cell6_hybrid,6,no_local_changes,gitmain_cap3,hybrid,50,36,14,0.28,0.1747,0.4167,44.47,39.85,9.96,0,4,1440
+gitmain_cell6_dense_ppr,6,no_local_changes,gitmain_cap3,dense_ppr,50,33,14,0.28,0.1747,0.4167,43.4,41.35,10.08,0,5,1440
+semantic20_hybrid,6,local_changes,semantic20_flat,hybrid,50,33,9,0.18,0.0977,0.308,35.53,30.83,5.78,0,4,6127
+semantic20_dense_ppr,6,local_changes,semantic20_flat,dense_ppr,50,38,11,0.22,0.1275,0.3524,44.8,42.09,5.64,0,3,6127
+peropt_hybrid,6,local_changes,semantic20_peropt,hybrid,50,31,10,0.2,0.1124,0.3304,40.43,37.09,5.58,0,6,5677
+peropt_dense_ppr,6,local_changes,semantic20_peropt,dense_ppr,50,34,13,0.26,0.1587,0.3955,34.4,32.08,5.92,0,3,5677
+relfloor_hybrid,6,local_changes,semantic20_relfloor,hybrid,50,36,13,0.26,0.1587,0.3955,35.57,29.57,6.06,0,2,5442
+relfloor_dense_ppr,6,local_changes,semantic20_relfloor,dense_ppr,50,34,10,0.2,0.1124,0.3304,43.75,39.09,5.92,0,3,5442
+mmr_hybrid,6,local_changes,semantic20_mmr,hybrid,50,37,15,0.3,0.191,0.4375,41.21,35.58,5.78,0,2,5863
+mmr_dense_ppr,6,local_changes,semantic20_mmr,dense_ppr,50,37,14,0.28,0.1747,0.4167,34.92,31.33,5.96,0,1,5863
+combined_hybrid,6,local_changes,semantic20_combined,hybrid,50,37,20,0.4,0.2761,0.5382,36.69,32.59,5.82,0,3,5325
+combined_dense_ppr,6,local_changes,semantic20_combined,dense_ppr,50,29,12,0.24,0.143,0.3741,41.6,34.09,6.04,0,7,5325
