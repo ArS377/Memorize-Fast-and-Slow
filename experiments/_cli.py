@@ -191,6 +191,23 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--ppr-tolerance", type=_positive_float, default=1e-8)
         p.add_argument("--ppr-max-iterations", type=_positive_int, default=100)
 
+    # Flat chunk-RAG cells: BM25 / dense / hybrid retrieval directly over raw
+    # document chunks, no fact extraction, no graph. Baseline for isolating
+    # whether the KG's fact-extraction step (not just retrieval-over-facts)
+    # is what helps, independent of graph traversal.
+    if retrieval == "chunk":
+        p.add_argument(
+            "--chunk-retrieval-mode",
+            choices=["bm25", "dense", "hybrid"],
+            default="hybrid",
+        )
+        p.add_argument("--chunk-top-k", type=_positive_int, default=5)
+        p.add_argument("--chunk-max-chars", type=_positive_int, default=12000)
+        p.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
+        p.add_argument("--embedding-revision", default=None)
+        p.add_argument("--embedding-device", default="cpu")
+        p.add_argument("--embedding-batch-size", type=_positive_int, default=32)
+
     # RLM cells
     if kind == "rlm":
         # rlms 0.1.x: backend="vllm" tries to spawn vLLM via the python `vllm`
@@ -403,6 +420,19 @@ def run_cell(
     if kind == "rlm":
         rlm_log_dir = args.log_dir
 
+    chunk_embedder = None
+    if retrieval == "chunk" and args.chunk_retrieval_mode in ("dense", "hybrid"):
+        from neurosym.adapters.dense_index import SentenceTransformerEmbedder
+
+        chunk_embedder = SentenceTransformerEmbedder(
+            EmbeddingConfig(
+                model=args.embedding_model,
+                requested_revision=args.embedding_revision,
+                device=args.embedding_device,
+                batch_size=args.embedding_batch_size,
+            )
+        )
+
     graph_source = None
     validator_backend_label = "n/a"
     retrieval_config = None
@@ -484,6 +514,19 @@ def run_cell(
                 if retrieval == "raw":
                     context = truncate_context(ex.get("context", ""), args.raw_max_chars)
                     n_triples = 0
+                    n_context_chars = len(context)
+                elif retrieval == "chunk":
+                    from neurosym.adapters.flat_chunk_retrieval import select_flat_chunks
+
+                    chunk_result = select_flat_chunks(
+                        ex,
+                        mode=args.chunk_retrieval_mode,
+                        top_k=args.chunk_top_k,
+                        max_chunk_chars=args.chunk_max_chars,
+                        embedder=chunk_embedder,
+                    )
+                    context = chunk_result.context or "No relevant chunks."
+                    n_triples = chunk_result.n_chunks
                     n_context_chars = len(context)
                 elif qwen_tool_mode:
                     # The root RLM sees the question before native retrieval.

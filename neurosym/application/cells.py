@@ -18,12 +18,12 @@ class CellSpec:
     session_id: Optional[str] = None
 
     def __post_init__(self) -> None:
-        if self.cell_id not in range(1, 7):
-            raise ValueError("cell_id must be between 1 and 6")
+        if self.cell_id not in range(1, 10):
+            raise ValueError("cell_id must be between 1 and 9")
         if self.answer_strategy not in {"flat", "rlm"}:
             raise ValueError("answer_strategy must be flat or rlm")
-        if self.context_strategy not in {"raw", "kg"}:
-            raise ValueError("context_strategy must be raw or kg")
+        if self.context_strategy not in {"raw", "kg", "chunk"}:
+            raise ValueError("context_strategy must be raw, kg, or chunk")
         if self.context_strategy == "kg" and not self.session_id:
             raise ValueError("KG cells require a session_id")
 
