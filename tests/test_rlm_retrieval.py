@@ -139,7 +139,10 @@ class FakeCompletions:
         if self.events is not None:
             self.events.append("model")
         self.requests.append(kwargs)
-        return next(self.responses)
+        response = next(self.responses)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
 
 class FakeModelUsage(SimpleNamespace):
@@ -262,6 +265,8 @@ def test_native_tool_instructions_use_the_rlm_completion_protocol() -> None:
     assert 'answer["ready"] = True' in instructions
     assert "FINAL_ANSWER:" in instructions
     assert "do not answer in prose" in instructions
+    assert "before emitting any" in instructions
+    assert "call `search_knowledge_graph`" in instructions
 
 
 def test_cell6_instructions_require_reasoned_fallback_after_one_search() -> None:
@@ -781,8 +786,46 @@ def test_required_tool_choice_applies_only_until_the_first_search() -> None:
 
     session.complete(client, _messages())
 
-    assert client.completions.requests[0]["tool_choice"] == "required"
+    assert client.completions.requests[0]["tool_choice"] == {
+        "type": "function",
+        "function": {"name": "search_knowledge_graph"},
+    }
     assert client.completions.requests[1]["tool_choice"] == "auto"
+    assert session.tool_call_count == 1
+
+
+def test_required_tool_choice_retries_vllm_repl_parser_rejection_in_auto_mode() -> None:
+    parser_error = RuntimeError(
+        "Error code: 400 - {'error': {'message': \"Invalid JSON: expected value "
+        "[type=json_invalid, input_value='```repl\\nSHOW_VARS()\\n```']}}"
+    )
+    client = FakeRLMClient(
+        [
+            parser_error,
+            _response(
+                tool_calls=[
+                    _tool_call(
+                        "search",
+                        {"query": "Kalamang", "seed_entities": ["Kalamang"]},
+                    )
+                ]
+            ),
+            _response(content="Continue reasoning with f1."),
+        ]
+    )
+    session = _session(client, tool_choice="required")
+
+    session.complete(client, _messages())
+
+    assert client.completions.requests[0]["tool_choice"] == {
+        "type": "function",
+        "function": {"name": "search_knowledge_graph"},
+    }
+    assert client.completions.requests[1]["tool_choice"] == "auto"
+    assert any(
+        event["event"] == "required_tool_parser_fallback"
+        for event in session.trace["events"]
+    )
     assert session.tool_call_count == 1
 
 
@@ -1038,7 +1081,10 @@ answer["ready"] = True
         for event in session.trace["events"]
     )
     memory_request = client.completions.requests[2]
-    assert memory_request["tool_choice"] == "required"
+    assert memory_request["tool_choice"] == {
+        "type": "function",
+        "function": {"name": "update_working_memory"},
+    }
     assert [tool["function"]["name"] for tool in memory_request["tools"]] == [
         "update_working_memory"
     ]

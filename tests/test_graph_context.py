@@ -3,7 +3,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from neurosym.adapters.graph_source import GraphSource, format_facts_from_jsonl
+from neurosym.adapters.graph_source import (
+    GraphSource,
+    format_facts_from_jsonl,
+    select_context_rows,
+)
 from neurosym.domain.retrieval_config import RetrievalConfig
 
 
@@ -58,6 +62,46 @@ def test_graph_source_does_not_report_configured_mode_as_executed() -> None:
     assert summary["configured_mode"] == "hybrid"
     assert summary["effective_mode"] is None
     assert summary["branch_counts"] == {"sparse": 0, "dense": 0}
+
+
+def test_context_selection_gates_irrelevant_rows_and_prefers_option_discriminating_evidence() -> None:
+    rows = [
+        {
+            "fact_id": "irrelevant",
+            "subject": "Weather",
+            "predicate": "IS",
+            "object": "Rainy",
+            "support_text": "Rain fell yesterday.",
+            "_retrieval": {"score": 0.99},
+        },
+        {
+            "fact_id": "weak",
+            "subject": "Secret Alpha",
+            "predicate": "RELATES_TO",
+            "object": "Unknown",
+            "support_text": "Secret Alpha is documented.",
+            "_retrieval": {"score": 0.95},
+        },
+        {
+            "fact_id": "answer",
+            "subject": "Secret Alpha",
+            "predicate": "ANSWER_IS",
+            "object": "East Indonesia",
+            "support_text": "Secret Alpha is located in East Indonesia.",
+            "_retrieval": {"score": 0.5},
+        },
+    ]
+
+    selected = select_context_rows(
+        rows,
+        question="Where is Secret Alpha located?",
+        choices={"A": "East Indonesia", "B": "West Indonesia"},
+        fact_cap=1,
+        min_question_overlap=0.2,
+    )
+
+    assert [row["fact_id"] for row in selected] == ["answer"]
+    assert selected[0]["_context_selection"]["option_margin"] > 0
 
 
 def test_graph_source_session_scope_uses_fallback_across_examples() -> None:

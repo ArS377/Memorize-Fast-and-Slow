@@ -9,6 +9,7 @@ installed (e.g. by the aggregator).
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -20,6 +21,113 @@ from neurosym.domain.memory_artifacts import MemoryScope
 from neurosym.adapters import JsonlFactRepository, canonical_predicate
 from neurosym.application.retrieval import CallableRetrievalStrategy, RetrievalService
 from neurosym.domain import RetrievalRequest, Scope
+
+
+_RELEVANCE_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
+_RELEVANCE_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
+    "in", "is", "it", "of", "on", "or", "that", "the", "this", "to",
+    "was", "were", "which", "with", "what", "who", "when", "where",
+    "why", "how", "does", "do", "did", "can", "could", "would",
+}
+
+
+def _content_tokens(value: Any) -> set[str]:
+    return {
+        token.lower()
+        for token in _RELEVANCE_TOKEN_RE.findall(str(value or ""))
+        if len(token) > 1 and token.lower() not in _RELEVANCE_STOPWORDS
+    }
+
+
+def _fact_text(row: Dict[str, Any]) -> str:
+    return " ".join(
+        str(row.get(key, ""))
+        for key in ("subject", "predicate", "object", "support_text")
+    )
+
+
+def _token_overlap_score(query_tokens: set[str], text: str) -> float:
+    if not query_tokens:
+        return 0.0
+    return len(query_tokens.intersection(_content_tokens(text))) / len(query_tokens)
+
+
+@dataclass(frozen=True)
+class ContextRowScore:
+    question_overlap: float
+    option_margin: float
+    retrieval_score: float
+
+
+def select_context_rows(
+    rows: List[Dict[str, Any]],
+    *,
+    question: str,
+    choices: Optional[Dict[str, str]] = None,
+    fact_cap: Optional[int] = None,
+    min_question_overlap: float = 0.0,
+) -> List[Dict[str, Any]]:
+    """Gate and rank facts before they are shown as fixed RLM context.
+
+    Scallop validates whether a fact is internally safe to store.  This layer
+    answers the different retrieval question: whether a safe fact is useful for
+    *this* question.  In MCQ runs, facts that discriminate one option from the
+    others are preferred, but the gate itself is based only on the question so
+    that an option's wording cannot manufacture relevance.
+    """
+    if fact_cap is not None and fact_cap < 1:
+        raise ValueError("fact_cap must be positive when set")
+    if not 0.0 <= min_question_overlap <= 1.0:
+        raise ValueError("min_question_overlap must be between 0 and 1")
+
+    question_tokens = _content_tokens(question)
+    choice_tokens = {
+        label: _content_tokens(text)
+        for label, text in (choices or {}).items()
+        if str(text).strip()
+    }
+    scored: List[tuple[ContextRowScore, Dict[str, Any]]] = []
+    for row in rows:
+        value = dict(row)
+        text = _fact_text(value)
+        question_overlap = _token_overlap_score(question_tokens, text)
+        if question_overlap < min_question_overlap:
+            continue
+        option_scores = sorted(
+            (_token_overlap_score(tokens, text) for tokens in choice_tokens.values()),
+            reverse=True,
+        )
+        option_margin = (
+            option_scores[0] - option_scores[1]
+            if len(option_scores) > 1
+            else (option_scores[0] if option_scores else 0.0)
+        )
+        retrieval = value.get("_retrieval") or {}
+        score = ContextRowScore(
+            question_overlap=question_overlap,
+            option_margin=option_margin,
+            retrieval_score=float(retrieval.get("score", 0.0) or 0.0),
+        )
+        value["_context_selection"] = {
+            "question_overlap": round(question_overlap, 6),
+            "option_margin": round(option_margin, 6),
+        }
+        scored.append((score, value))
+
+    # Preserve the established rank when no new selection policy is requested.
+    if not choice_tokens and min_question_overlap == 0.0 and fact_cap is None:
+        return [row for _score, row in scored]
+    scored.sort(
+        key=lambda item: (
+            -item[0].question_overlap,
+            -item[0].option_margin,
+            -item[0].retrieval_score,
+            context_sort_key(item[1]),
+        )
+    )
+    selected = [row for _score, row in scored]
+    return selected[:fact_cap] if fact_cap is not None else selected
 
 
 def extract_seed_entities(ex: Dict[str, Any]) -> List[str]:
@@ -316,6 +424,9 @@ class GraphSource:
         hops: int = 2,
         limit_triples: int = 50,
         max_chars: int = 4000,
+        choices: Optional[Dict[str, str]] = None,
+        context_fact_cap: Optional[int] = None,
+        min_question_overlap: float = 0.0,
     ) -> Tuple[str, int]:
         """Return ``(formatted_context, n_triples)`` for one example."""
         example_id = str(ex.get("_id", ""))
@@ -329,7 +440,14 @@ class GraphSource:
             hops=hops,
             top_k=limit_triples,
         )
-        return format_fact_rows_for_llm(outcome.rows, max_chars=max_chars), len(outcome.rows)
+        rows = select_context_rows(
+            outcome.rows,
+            question=query,
+            choices=choices,
+            fact_cap=context_fact_cap,
+            min_question_overlap=min_question_overlap,
+        )
+        return format_fact_rows_for_llm(rows, max_chars=max_chars), len(rows)
 
     def rows_for(
         self,
