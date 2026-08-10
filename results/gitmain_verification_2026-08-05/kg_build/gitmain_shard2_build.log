@@ -1,0 +1,26 @@
+[build_kg_facts_file] session=gitmain_pilot50_shard2 validate=True examples=12 model=Qwen/Qwen3-4B
+[build_kg_facts_file] (1/12) extracting 66eb873c5a08c7b9b35dd849
+           extracted=31 supported=31 llm_rejected=0 validator_rejected=5 committed_total=26
+[build_kg_facts_file] (2/12) extracting 66ebc0c95a08c7b9b35de7f3
+           extracted=38 supported=30 llm_rejected=8 validator_rejected=8 committed_total=48
+[build_kg_facts_file] (3/12) extracting 66ebc95f5a08c7b9b35df497
+           extracted=69 supported=69 llm_rejected=0 validator_rejected=33 committed_total=84
+[build_kg_facts_file] (4/12) extracting 66ebce825a08c7b9b35dfc75
+           extracted=39 supported=20 llm_rejected=19 validator_rejected=0 committed_total=104
+[build_kg_facts_file] (5/12) extracting 66ebd2475a08c7b9b35e0155
+           extracted=32 supported=32 llm_rejected=0 validator_rejected=7 committed_total=129
+[build_kg_facts_file] (6/12) extracting 66ebd3ba5a08c7b9b35e0446
+           extracted=51 supported=49 llm_rejected=2 validator_rejected=2 committed_total=176
+[build_kg_facts_file] (7/12) extracting 66ebd5675a08c7b9b35e06bf
+           extracted=56 supported=56 llm_rejected=0 validator_rejected=0 committed_total=232
+[build_kg_facts_file] (8/12) extracting 66ebdadd5a08c7b9b35e0e5b
+           extracted=33 supported=14 llm_rejected=19 validator_rejected=3 committed_total=243
+[build_kg_facts_file] (9/12) extracting 66ebe0fb5a08c7b9b35e14f5
+           extracted=26 supported=26 llm_rejected=0 validator_rejected=8 committed_total=261
+[build_kg_facts_file] (10/12) extracting 66ebed525a08c7b9b35e1cb4
+           extracted=40 supported=30 llm_rejected=10 validator_rejected=0 committed_total=291
+[build_kg_facts_file] (11/12) extracting 66ec0874821e116aacb194a4
+           extracted=55 supported=55 llm_rejected=0 validator_rejected=4 committed_total=342
+[build_kg_facts_file] (12/12) extracting 66ec0d4b821e116aacb19af8
+           extracted=66 supported=66 llm_rejected=0 validator_rejected=25 committed_total=383
+[build_kg_facts_file] done. session=gitmain_pilot50_shard2 mirrored=383 -> results/kg_builds/gitmain_pilot50_shard2_facts.jsonl; rejections -> results/kg_builds/gitmain_pilot50_shard2_rejections.jsonl

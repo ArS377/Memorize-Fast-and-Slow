@@ -21,9 +21,9 @@ DUPLICATE_HELPERS = [
 DEFAULT_TARGET_FILES = [
     Path("experiments/common.py"),
     Path("experiments/graph_context.py"),
-    Path("rlm_baseline.py"),
-    Path("rlm_graph_baseline.py"),
-    Path("evaluate.py"),
+    Path("legacy/rlm_baseline.py"),
+    Path("legacy/rlm_graph_baseline.py"),
+    Path("legacy/evaluate.py"),
 ]
 
 

@@ -1,0 +1,104 @@
+Cell 6 (rlm_kg_scallop_longbench_mmr_hybrid): 50 examples; output -> results/longbench_cell6/mmr/hybrid/results.jsonl
+Connected to Neo4j at bolt://127.0.0.1:7688 (session=longbench_pilot50_allfixes_mmr)
+Loaded 5863 facts from results/kg_builds/longbench_pilot50_allfixes_mmr_facts.jsonl
+  [1/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0001_66ead7bd5a08c7b9b35dca7a.json termination=rlm_error
+  [1/50] x  66ead7bd5a08c7b9b35dca7a pred='' gold='D' (29.1s)
+  [2/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0002_66eae4de5a08c7b9b35dd12d.json termination=order_gap_evidence_insufficient
+  [2/50] x  66eae4de5a08c7b9b35dd12d pred='' gold='C' (27.1s)
+  [3/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0003_66eb873c5a08c7b9b35dd849.json termination=native_turn_budget_exhausted_after_rejection
+  [3/50] x  66eb873c5a08c7b9b35dd849 pred='C' gold='B' (31.1s)
+  [4/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0004_66ebb0e55a08c7b9b35ddd6a.json termination=aggregate_token_budget_guard_fallback
+  [4/50] OK 66ebb0e55a08c7b9b35ddd6a pred='D' gold='D' (75.6s)
+  [5/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0005_66ebbe4f5a08c7b9b35de533.json termination=order_gap_evidence_insufficient
+  [5/50] x  66ebbe4f5a08c7b9b35de533 pred='' gold='C' (30.6s)
+  [6/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0006_66ebc04a5a08c7b9b35de740.json termination=order_gap_evidence_insufficient_fallback
+  [6/50] x  66ebc04a5a08c7b9b35de740 pred='D' gold='B' (39.6s)
+  [7/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0007_66ebc0c95a08c7b9b35de7f3.json termination=native_turn_budget_exhausted_after_rejection
+  [7/50] x  66ebc0c95a08c7b9b35de7f3 pred='B' gold='C' (30.6s)
+  [8/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0008_66ebc3165a08c7b9b35deb38.json termination=aggregate_token_budget_guard_fallback
+  [8/50] x  66ebc3165a08c7b9b35deb38 pred='B' gold='A' (96.2s)
+  [9/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0009_66ebc4af5a08c7b9b35dede0.json termination=order_gap_evidence_insufficient_fallback
+  [9/50] x  66ebc4af5a08c7b9b35dede0 pred='B' gold='A' (34.6s)
+  [10/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0010_66ebc7445a08c7b9b35df155.json termination=native_turn_budget_exhausted_after_rejection
+  [10/50] OK 66ebc7445a08c7b9b35df155 pred='D' gold='D' (35.6s)
+  [11/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0011_66ebc95f5a08c7b9b35df497.json termination=aggregate_token_budget_guard_fallback
+  [11/50] OK 66ebc95f5a08c7b9b35df497 pred='B' gold='B' (55.6s)
+  [12/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0012_66ebca1e5a08c7b9b35df5e8.json termination=order_gap_evidence_insufficient_fallback
+  [12/50] x  66ebca1e5a08c7b9b35df5e8 pred='D' gold='A' (57.6s)
+  [13/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0013_66ebcc1e5a08c7b9b35df87d.json termination=order_gap_evidence_insufficient_fallback
+  [13/50] OK 66ebcc1e5a08c7b9b35df87d pred='C' gold='C' (49.1s)
+  [14/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0014_66ebcc335a08c7b9b35df8b6.json termination=order_gap_evidence_insufficient_fallback
+  [14/50] x  66ebcc335a08c7b9b35df8b6 pred='B' gold='D' (33.6s)
+  [15/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0015_66ebce825a08c7b9b35dfc75.json termination=native_turn_budget_exhausted_after_rejection
+  [15/50] x  66ebce825a08c7b9b35dfc75 pred='B' gold='C' (28.6s)
+  [16/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0016_66ebd0825a08c7b9b35dfe9d.json termination=order_gap_evidence_insufficient
+  [16/50] x  66ebd0825a08c7b9b35dfe9d pred='' gold='D' (38.1s)
+  [17/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0017_66ebd0ea5a08c7b9b35dff57.json termination=order_gap_evidence_insufficient_fallback
+  [17/50] x  66ebd0ea5a08c7b9b35dff57 pred='C' gold='D' (42.1s)
+  [18/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0018_66ebd22e5a08c7b9b35e0126.json termination=aggregate_token_budget_guard_fallback
+  [18/50] OK 66ebd22e5a08c7b9b35e0126 pred='B' gold='B' (54.1s)
+  [19/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0019_66ebd2475a08c7b9b35e0155.json termination=order_gap_supported_answer
+  [19/50] x  66ebd2475a08c7b9b35e0155 pred='A' gold='D' (52.1s)
+  [20/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0020_66ebd2975a08c7b9b35e01e3.json termination=order_gap_evidence_insufficient_fallback
+  [20/50] x  66ebd2975a08c7b9b35e01e3 pred='A' gold='C' (42.1s)
+  [21/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0021_66ebd3075a08c7b9b35e02bd.json termination=order_gap_evidence_insufficient
+  [21/50] x  66ebd3075a08c7b9b35e02bd pred='' gold='B' (30.1s)
+  [22/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0022_66ebd34d5a08c7b9b35e035d.json termination=order_gap_evidence_insufficient_fallback
+  [22/50] OK 66ebd34d5a08c7b9b35e035d pred='C' gold='C' (53.6s)
+  [23/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0023_66ebd3ba5a08c7b9b35e0446.json termination=order_gap_supported_answer
+  [23/50] x  66ebd3ba5a08c7b9b35e0446 pred='B' gold='A' (25.6s)
+  [24/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0024_66ebd49a5a08c7b9b35e0550.json termination=order_gap_evidence_insufficient
+  [24/50] x  66ebd49a5a08c7b9b35e0550 pred='' gold='B' (35.6s)
+  [25/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0025_66ebd5125a08c7b9b35e0616.json termination=order_gap_evidence_insufficient_fallback
+  [25/50] OK 66ebd5125a08c7b9b35e0616 pred='C' gold='C' (37.6s)
+  [26/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0026_66ebd55f5a08c7b9b35e0698.json termination=native_turn_budget_exhausted_after_rejection
+  [26/50] x  66ebd55f5a08c7b9b35e0698 pred='B' gold='A' (31.1s)
+  [27/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0027_66ebd5675a08c7b9b35e06bf.json termination=order_gap_supported_answer
+  [27/50] OK 66ebd5675a08c7b9b35e06bf pred='B' gold='B' (39.1s)
+  [28/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0028_66ebd92d5a08c7b9b35e0bf0.json termination=native_turn_budget_exhausted_after_rejection
+  [28/50] x  66ebd92d5a08c7b9b35e0bf0 pred='C' gold='B' (30.6s)
+  [29/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0029_66ebd9895a08c7b9b35e0c7c.json termination=native_turn_budget_exhausted_after_rejection
+  [29/50] x  66ebd9895a08c7b9b35e0c7c pred='A' gold='C' (35.1s)
+  [30/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0030_66ebda775a08c7b9b35e0dcb.json termination=native_turn_budget_exhausted_after_rejection
+  [30/50] x  66ebda775a08c7b9b35e0dcb pred='A' gold='C' (32.6s)
+  [31/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0031_66ebdadd5a08c7b9b35e0e5b.json termination=order_gap_evidence_insufficient
+  [31/50] x  66ebdadd5a08c7b9b35e0e5b pred='' gold='B' (31.1s)
+  [32/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0032_66ebdd1c5a08c7b9b35e113b.json termination=order_gap_evidence_insufficient
+  [32/50] x  66ebdd1c5a08c7b9b35e113b pred='' gold='D' (35.1s)
+  [33/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0033_66ebde0f5a08c7b9b35e1256.json termination=aggregate_token_budget_guard_fallback
+  [33/50] OK 66ebde0f5a08c7b9b35e1256 pred='D' gold='D' (97.2s)
+  [34/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0034_66ebdfb65a08c7b9b35e140a.json termination=order_gap_evidence_insufficient
+  [34/50] x  66ebdfb65a08c7b9b35e140a pred='' gold='C' (34.1s)
+  [35/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0035_66ebe0fb5a08c7b9b35e14f5.json termination=order_gap_evidence_insufficient
+  [35/50] x  66ebe0fb5a08c7b9b35e14f5 pred='' gold='C' (39.6s)
+  [36/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0036_66ebe30a5a08c7b9b35e1693.json termination=native_turn_budget_exhausted_after_rejection
+  [36/50] OK 66ebe30a5a08c7b9b35e1693 pred='C' gold='C' (36.1s)
+  [37/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0037_66ebe68d5a08c7b9b35e190b.json termination=aggregate_token_budget_guard_fallback
+  [37/50] OK 66ebe68d5a08c7b9b35e190b pred='C' gold='C' (58.1s)
+  [38/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0038_66ebeb5a5a08c7b9b35e1ba5.json termination=order_gap_evidence_insufficient
+  [38/50] x  66ebeb5a5a08c7b9b35e1ba5 pred='' gold='A' (28.1s)
+  [39/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0039_66ebed525a08c7b9b35e1cb4.json termination=native_turn_budget_exhausted_after_rejection
+  [39/50] x  66ebed525a08c7b9b35e1cb4 pred='D' gold='B' (29.1s)
+  [40/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0040_66ebee0a5a08c7b9b35e1d05.json termination=order_gap_evidence_insufficient_fallback
+  [40/50] x  66ebee0a5a08c7b9b35e1d05 pred='A' gold='D' (37.6s)
+  [41/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0041_66ebf9bf5a08c7b9b35e1f85.json termination=aggregate_token_budget_guard_fallback
+  [41/50] OK 66ebf9bf5a08c7b9b35e1f85 pred='D' gold='D' (56.1s)
+  [42/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0042_66ec052a5a08c7b9b35e29c7.json termination=native_turn_budget_exhausted_after_rejection
+  [42/50] x  66ec052a5a08c7b9b35e29c7 pred='B' gold='C' (26.6s)
+  [43/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0043_66ec0874821e116aacb194a4.json termination=native_turn_budget_exhausted_after_rejection
+  [43/50] x  66ec0874821e116aacb194a4 pred='A' gold='B' (26.6s)
+  [44/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0044_66ec088c821e116aacb194d9.json termination=native_turn_budget_exhausted_after_rejection
+  [44/50] x  66ec088c821e116aacb194d9 pred='B' gold='D' (23.6s)
+  [45/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0045_66ec09ec821e116aacb19620.json termination=aggregate_token_budget_guard_fallback
+  [45/50] x  66ec09ec821e116aacb19620 pred='D' gold='C' (76.1s)
+  [46/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0046_66ec0c4c821e116aacb1994a.json termination=order_gap_evidence_insufficient_fallback
+  [46/50] OK 66ec0c4c821e116aacb1994a pred='D' gold='D' (43.6s)
+  [47/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0047_66ec0d4b821e116aacb19af8.json termination=invalid_final_answer
+  [47/50] x  66ec0d4b821e116aacb19af8 pred='' gold='B' (64.6s)
+  [48/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0048_66ec0d51821e116aacb19b0f.json termination=native_turn_budget_exhausted_after_rejection
+  [48/50] OK 66ec0d51821e116aacb19b0f pred='D' gold='D' (28.6s)
+  [49/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0049_66ec0f3c821e116aacb19d70.json termination=order_gap_supported_answer
+  [49/50] OK 66ec0f3c821e116aacb19d70 pred='A' gold='A' (16.1s)
+  [50/50] tool_trace=results/longbench_cell6/mmr/hybrid/tool_traces/0050_66ec0f7f821e116aacb19dde.json termination=order_gap_evidence_insufficient
+  [50/50] x  66ec0f7f821e116aacb19dde pred='' gold='B' (39.1s)
+Cell 6 (rlm_kg_scallop_longbench_mmr_hybrid): 15/50 correct (30.0%) -> results/longbench_cell6/mmr/hybrid/results.jsonl

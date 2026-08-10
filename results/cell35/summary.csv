@@ -1,7 +1,0 @@
-cell_id,label,retrieval,validator,recursion,n_examples,n_answered,accuracy,mean_latency_s,mean_triples,n_errors
-1,flat_raw,raw,n/a,flat,0,0,,,,0
-2,flat_kg_noscallop,kg,none,flat,0,0,,,,0
-3,flat_kg_scallop,kg,scallop,flat,50,50,0.5000,37.6640,1.8800,0
-4,rlm_raw,raw,n/a,rlm,0,0,,,,0
-5,rlm_kg_noscallop,kg,none,rlm,50,50,0.3400,236.3340,2.0600,0
-6,rlm_kg_scallop,kg,scallop,rlm,0,0,,,,0

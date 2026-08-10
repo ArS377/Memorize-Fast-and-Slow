@@ -121,8 +121,16 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
 
     # Raw-context cells
     if retrieval == "raw":
-        p.add_argument("--raw-max-chars", type=int, default=32000,
-                       help="Truncate raw context to this many chars")
+        raw_default = None if cell_id == 4 else 32000
+        p.add_argument(
+            "--raw-max-chars",
+            type=_positive_int,
+            default=raw_default,
+            help=(
+                "Optional raw-context cap in characters. Cell 4 defaults to full "
+                "external context; Cell 1 defaults to 32000."
+            ),
+        )
 
     if kind == "flat":
         p.add_argument("--max-completion-tokens", type=int, default=2048,
@@ -195,6 +203,23 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--ppr-tolerance", type=_positive_float, default=1e-8)
         p.add_argument("--ppr-max-iterations", type=_positive_int, default=100)
 
+    # Flat chunk-RAG cells: BM25 / dense / hybrid retrieval directly over raw
+    # document chunks, no fact extraction, no graph. Baseline for isolating
+    # whether the KG's fact-extraction step (not just retrieval-over-facts)
+    # is what helps, independent of graph traversal.
+    if retrieval == "chunk":
+        p.add_argument(
+            "--chunk-retrieval-mode",
+            choices=["bm25", "dense", "hybrid"],
+            default="hybrid",
+        )
+        p.add_argument("--chunk-top-k", type=_positive_int, default=5)
+        p.add_argument("--chunk-max-chars", type=_positive_int, default=12000)
+        p.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
+        p.add_argument("--embedding-revision", default=None)
+        p.add_argument("--embedding-device", default="cpu")
+        p.add_argument("--embedding-batch-size", type=_positive_int, default=32)
+
     # RLM cells
     if kind == "rlm":
         # rlms 0.1.x: backend="vllm" tries to spawn vLLM via the python `vllm`
@@ -203,11 +228,17 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--backend", default="openai")
         p.add_argument("--max-depth", type=int, default=1)
         p.add_argument("--max-iterations", type=int, default=10)
+        from neurosym.adapters.rlm import FULL_CONTEXT_TOTAL_TOKEN_BUDGET
+
         # RLM total token budget (summed across all sub-LM calls per example).
         # 32000 was too tight for Qwen3 with <think> reasoning blocks: a
         # 6-iteration trajectory routinely overshoots ~33k tokens. Match
         # rlm_baseline.py default of 64000.
-        p.add_argument("--max-tokens", type=int, default=64000)
+        p.add_argument(
+            "--max-tokens",
+            type=int,
+            default=FULL_CONTEXT_TOTAL_TOKEN_BUDGET if cell_id == 4 else 64000,
+        )
         p.add_argument("--log-dir", type=Path, default=Path("rlm_logs_ablation"))
         p.add_argument("--verbose", action="store_true")
         if retrieval == "kg":
@@ -401,6 +432,19 @@ def run_cell(
     if kind == "rlm":
         rlm_log_dir = args.log_dir
 
+    chunk_embedder = None
+    if retrieval == "chunk" and args.chunk_retrieval_mode in ("dense", "hybrid"):
+        from neurosym.adapters.dense_index import SentenceTransformerEmbedder
+
+        chunk_embedder = SentenceTransformerEmbedder(
+            EmbeddingConfig(
+                model=args.embedding_model,
+                requested_revision=args.embedding_revision,
+                device=args.embedding_device,
+                batch_size=args.embedding_batch_size,
+            )
+        )
+
     graph_source = None
     validator_backend_label = "n/a"
     retrieval_config = None
@@ -482,6 +526,19 @@ def run_cell(
                 if retrieval == "raw":
                     context = truncate_context(ex.get("context", ""), args.raw_max_chars)
                     n_triples = 0
+                    n_context_chars = len(context)
+                elif retrieval == "chunk":
+                    from neurosym.adapters.flat_chunk_retrieval import select_flat_chunks
+
+                    chunk_result = select_flat_chunks(
+                        ex,
+                        mode=args.chunk_retrieval_mode,
+                        top_k=args.chunk_top_k,
+                        max_chunk_chars=args.chunk_max_chars,
+                        embedder=chunk_embedder,
+                    )
+                    context = chunk_result.context or "No relevant chunks."
+                    n_triples = chunk_result.n_chunks
                     n_context_chars = len(context)
                 elif qwen_tool_mode:
                     # The root RLM sees the question before native retrieval.
@@ -601,6 +658,7 @@ def run_cell(
                             max_tokens=args.max_tokens,
                             log_dir=rlm_log_dir,
                             verbose=args.verbose,
+                            full_context=(cell_id == 4 and args.raw_max_chars is None),
                         )
                         predicted, _raw, error = rlm_answer(rlm, context, question)
                 except Exception as e:

@@ -41,14 +41,17 @@ import os
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+import numpy as np
 from openai import OpenAI
 
 from neurosym.adapters.chunk_selection import (
     CHUNK_SELECTION_MODES,
+    ChunkEmbeddingProvider,
     ChunkSelector,
     SelectedChunk,
     chunk_selection_query,
@@ -98,12 +101,23 @@ class PipelineConfig:
     chunk_embedding_revision: Optional[str] = None
     chunk_embedding_device: str = "cpu"
     chunk_embedding_batch_size: int = 32
+    chunking_mode: str = "rigid"
+    chunk_semantic_min_chars: int = 800
+    chunk_semantic_similarity_threshold: float = 0.35
+    extraction_concurrency: int = 1
+    verify_concurrency: int = 1
+    chunk_selection_per_option_queries: bool = False
+    chunk_selection_relevance_floor: Optional[float] = None
+    chunk_selection_relevance_floor_min_count: int = 3
+    chunk_selection_mmr_lambda: Optional[float] = None
 
 
 class LongBenchKGPipeline:
     def __init__(self, config: PipelineConfig) -> None:
         self.config = config
-        self.client = OpenAI(base_url=config.vllm_base_url, api_key=config.api_key)
+        self.client = OpenAI(
+            base_url=config.vllm_base_url, api_key=config.api_key, timeout=1800.0
+        )
         self.graph: Optional[Neo4jGraph] = None
         self.run_id = config.run_id or make_run_id(config)
         self.chunk_selector = ChunkSelector(
@@ -119,7 +133,14 @@ class LongBenchKGPipeline:
                 device=config.chunk_embedding_device,
                 batch_size=config.chunk_embedding_batch_size,
             ),
+            per_option_queries=config.chunk_selection_per_option_queries,
+            relevance_floor=config.chunk_selection_relevance_floor,
+            relevance_floor_min_count=config.chunk_selection_relevance_floor_min_count,
+            mmr_lambda=config.chunk_selection_mmr_lambda,
         )
+
+        if config.chunking_mode not in ("rigid", "semantic"):
+            raise ValueError("chunking_mode must be 'rigid' or 'semantic'")
 
         if config.neo4j_uri:
             if not config.neo4j_user or not config.neo4j_password:
@@ -149,6 +170,19 @@ class LongBenchKGPipeline:
         if self.graph is not None:
             self.graph.close()
             self.graph = None
+
+    def chunk_records(
+        self, sentence_records: List[SentenceRecord]
+    ) -> List[List[SentenceRecord]]:
+        if self.config.chunking_mode == "semantic":
+            return chunk_sentence_records_semantic(
+                sentence_records,
+                self.chunk_selector._provider(),
+                max_chars=self.config.chunk_chars,
+                min_chars=self.config.chunk_semantic_min_chars,
+                similarity_threshold=self.config.chunk_semantic_similarity_threshold,
+            )
+        return chunk_sentence_records(sentence_records, self.config.chunk_chars)
 
     def select_chunks(
         self,
@@ -221,18 +255,10 @@ class LongBenchKGPipeline:
                 print(f"[{i}/{len(examples)}] Processing {example_id}", file=sys.stderr)
 
                 sentence_records = flatten_context_to_sentence_records(example)
-                chunks = chunk_sentence_records(sentence_records, self.config.chunk_chars)
+                chunks = self.chunk_records(sentence_records)
                 selected_chunks = self.select_chunks(example, chunks)
 
-                extracted: List[Fact] = []
-                for selected in selected_chunks:
-                    facts = self.extract_facts(
-                        example,
-                        selected.records,
-                        selected.chunk_index,
-                    )
-                    extracted.extend(facts)
-                    polite_sleep(self.config.sleep_seconds)
+                extracted = self.extract_facts_for_chunks(example, selected_chunks)
 
                 verified = self.verify_facts(example, extracted)
                 for fact in verified:
@@ -339,61 +365,114 @@ class LongBenchKGPipeline:
                 clean_facts.append(cleaned)
         return clean_facts
 
+    def extract_facts_for_chunks(
+        self,
+        example: Dict[str, Any],
+        selected_chunks: Sequence["SelectedChunk"],
+    ) -> List[Fact]:
+        """Extract facts for each selected chunk, fanning calls out across
+        `extraction_concurrency` worker threads. vLLM's continuous batching
+        means several in-flight requests to one server finish in roughly the
+        time of one, so this is a large real speedup, not just overlap of
+        idle network time."""
+        workers = max(1, self.config.extraction_concurrency)
+        if workers == 1 or len(selected_chunks) <= 1:
+            extracted: List[Fact] = []
+            for selected in selected_chunks:
+                extracted.extend(
+                    self.extract_facts(example, selected.records, selected.chunk_index)
+                )
+            return extracted
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            results = list(
+                pool.map(
+                    lambda selected: self.extract_facts(
+                        example, selected.records, selected.chunk_index
+                    ),
+                    selected_chunks,
+                )
+            )
+        extracted = []
+        for facts in results:
+            extracted.extend(facts)
+        return extracted
+
+    def _verify_batch(
+        self, example: Dict[str, Any], batch: List[Fact]
+    ) -> List[Fact]:
+        prompt = build_verification_prompt(example, batch)
+        data = self.chat_json(prompt)
+        judgments = data.get("verified_facts", [])
+
+        by_id = {f["verification_id"]: f for f in batch}
+        seen_ids = set()
+        verified: List[Fact] = []
+        if isinstance(judgments, list):
+            for judgment in judgments:
+                if not isinstance(judgment, dict):
+                    continue
+                vid = judgment.get("verification_id")
+                original = by_id.get(str(vid))
+                if not original:
+                    continue
+                seen_ids.add(str(vid))
+                merged = dict(original)
+                merged["status"] = normalize_status(judgment.get("status"))
+                merged["verification_reason"] = str(judgment.get("verification_reason", ""))
+                merged["verifier_model"] = self.config.model
+                merged["run_id"] = self.run_id
+                merged["revised_subject"] = judgment.get("subject", original.get("subject"))
+                merged["revised_predicate"] = judgment.get("predicate", original.get("predicate"))
+                merged["revised_object"] = judgment.get("object", original.get("object"))
+
+                # Use revised fields only if the model still marks the fact supported.
+                if merged["status"] == "supported":
+                    merged["subject"] = str(merged["revised_subject"]).strip()
+                    merged["predicate"] = sanitize_predicate(str(merged["revised_predicate"]))
+                    merged["object"] = str(merged["revised_object"]).strip()
+                verified.append(merged)
+
+        for vid, original in by_id.items():
+            if str(vid) in seen_ids:
+                continue
+            missing = dict(original)
+            missing["status"] = "rejected"
+            missing["verification_reason"] = "No verifier judgment returned."
+            missing["verifier_model"] = self.config.model
+            missing["run_id"] = self.run_id
+            verified.append(missing)
+
+        polite_sleep(self.config.sleep_seconds)
+        return verified
+
     def verify_facts(self, example: Dict[str, Any], facts: List[Fact]) -> List[Fact]:
         if not facts:
             return []
 
         # Verify in small batches to keep prompts manageable.
-        verified: List[Fact] = []
         batch_size = max(1, self.config.verify_batch_size)
+        batches: List[List[Fact]] = []
         for start in range(0, len(facts), batch_size):
             batch = facts[start : start + batch_size]
             for idx, fact in enumerate(batch):
                 fact["verification_id"] = f"f{start + idx}"
+            batches.append(batch)
 
-            prompt = build_verification_prompt(example, batch)
-            data = self.chat_json(prompt)
-            judgments = data.get("verified_facts", [])
+        workers = max(1, self.config.verify_concurrency)
+        if workers == 1 or len(batches) <= 1:
+            verified: List[Fact] = []
+            for batch in batches:
+                verified.extend(self._verify_batch(example, batch))
+            return verified
 
-            by_id = {f["verification_id"]: f for f in batch}
-            seen_ids = set()
-            if isinstance(judgments, list):
-                for judgment in judgments:
-                    if not isinstance(judgment, dict):
-                        continue
-                    vid = judgment.get("verification_id")
-                    original = by_id.get(str(vid))
-                    if not original:
-                        continue
-                    seen_ids.add(str(vid))
-                    merged = dict(original)
-                    merged["status"] = normalize_status(judgment.get("status"))
-                    merged["verification_reason"] = str(judgment.get("verification_reason", ""))
-                    merged["verifier_model"] = self.config.model
-                    merged["run_id"] = self.run_id
-                    merged["revised_subject"] = judgment.get("subject", original.get("subject"))
-                    merged["revised_predicate"] = judgment.get("predicate", original.get("predicate"))
-                    merged["revised_object"] = judgment.get("object", original.get("object"))
-
-                    # Use revised fields only if the model still marks the fact supported.
-                    if merged["status"] == "supported":
-                        merged["subject"] = str(merged["revised_subject"]).strip()
-                        merged["predicate"] = sanitize_predicate(str(merged["revised_predicate"]))
-                        merged["object"] = str(merged["revised_object"]).strip()
-                    verified.append(merged)
-
-            for vid, original in by_id.items():
-                if str(vid) in seen_ids:
-                    continue
-                missing = dict(original)
-                missing["status"] = "rejected"
-                missing["verification_reason"] = "No verifier judgment returned."
-                missing["verifier_model"] = self.config.model
-                missing["run_id"] = self.run_id
-                verified.append(missing)
-
-            polite_sleep(self.config.sleep_seconds)
-
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            results = list(
+                pool.map(lambda batch: self._verify_batch(example, batch), batches)
+            )
+        verified = []
+        for batch_result in results:
+            verified.extend(batch_result)
         return verified
 
     def chat_json(self, user_prompt: str) -> Dict[str, Any]:
@@ -573,6 +652,67 @@ def chunk_sentence_records(records: List[SentenceRecord], max_chars: int) -> Lis
             current_chars = 0
         current.append(record)
         current_chars += record_chars
+
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def chunk_sentence_records_semantic(
+    records: List[SentenceRecord],
+    embedder: ChunkEmbeddingProvider,
+    *,
+    max_chars: int,
+    min_chars: int = 800,
+    similarity_threshold: float = 0.35,
+) -> List[List[SentenceRecord]]:
+    """Group sentence records at topic-shift boundaries instead of a raw
+    char count. Embeds each sentence and cuts a new chunk where cosine
+    similarity to the previous sentence drops below `similarity_threshold`,
+    as long as the current chunk already holds `min_chars` (otherwise
+    keeps merging, so a run of short sentences doesn't fragment into
+    one-sentence chunks). `max_chars` remains a hard cap regardless of
+    similarity to bound extraction cost per chunk.
+    """
+    non_empty = [
+        (index, str(record.get("text", "")))
+        for index, record in enumerate(records)
+        if str(record.get("text", "")).strip()
+    ]
+    if not non_empty:
+        return []
+
+    embeddings = np.asarray(
+        embedder.encode_documents([text for _, text in non_empty]), dtype=float
+    )
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    norms[norms == 0] = 1.0
+    normalized = embeddings / norms
+
+    chunks: List[List[SentenceRecord]] = []
+    current: List[SentenceRecord] = []
+    current_chars = 0
+    prev_vector: Optional[np.ndarray] = None
+
+    for row, (index, text) in enumerate(non_empty):
+        record = records[index]
+        record_chars = len(text) + 80
+        vector = normalized[row]
+        should_cut = False
+        if current:
+            if current_chars + record_chars > max_chars:
+                should_cut = True
+            elif prev_vector is not None and current_chars >= min_chars:
+                similarity = float(np.dot(prev_vector, vector))
+                if similarity < similarity_threshold:
+                    should_cut = True
+        if should_cut:
+            chunks.append(current)
+            current = []
+            current_chars = 0
+        current.append(record)
+        current_chars += record_chars
+        prev_vector = vector
 
     if current:
         chunks.append(current)
