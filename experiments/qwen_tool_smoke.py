@@ -122,7 +122,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tool-choice", choices=["auto", "required"], default="auto")
     parser.add_argument("--tool-timeout", type=float, default=30.0)
     parser.add_argument("--tool-max-tokens", type=int, default=2048)
-    parser.add_argument("--max-depth", type=int, default=2)
+    parser.add_argument("--max-depth", type=int, default=1)
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)
     parser.add_argument("--log-dir", type=Path, default=None)

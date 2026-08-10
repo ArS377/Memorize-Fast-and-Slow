@@ -155,6 +155,18 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         p.add_argument("--limit-triples", type=int, default=50)
         p.add_argument("--context-max-chars", type=int, default=4000)
         p.add_argument(
+            "--context-fact-cap",
+            type=_positive_int,
+            default=None,
+            help="Maximum retrieved facts shown to a fixed-context RLM (default: all)",
+        )
+        p.add_argument(
+            "--context-min-question-overlap",
+            type=float,
+            default=0.0,
+            help="Minimum non-stopword question-token overlap for a fact to enter fixed context (0..1)",
+        )
+        p.add_argument(
             "--memory-scope",
             choices=["example", "session", "session_set"],
             default="example",
@@ -214,7 +226,7 @@ def build_arg_parser(*, cell_id: int, label: str, kind: str, retrieval: str) -> 
         # package (ignores base_url). To talk to an already-running vLLM HTTP
         # server use backend="openai" (vLLM is OpenAI-API compatible).
         p.add_argument("--backend", default="openai")
-        p.add_argument("--max-depth", type=int, default=2)
+        p.add_argument("--max-depth", type=int, default=1)
         p.add_argument("--max-iterations", type=int, default=10)
         from neurosym.adapters.rlm import FULL_CONTEXT_TOTAL_TOKEN_BUDGET
 
@@ -539,6 +551,12 @@ def run_cell(
                         hops=args.hops,
                         limit_triples=args.limit_triples,
                         max_chars=args.context_max_chars,
+                        choices={
+                            letter: str(ex.get(f"choice_{letter}") or "")
+                            for letter in "ABCD"
+                        } if answer_format == "mcq" else None,
+                        context_fact_cap=args.context_fact_cap,
+                        min_question_overlap=args.context_min_question_overlap,
                     )
                     # Preserve the pre-existing fixed-retrieval baseline only.
                     if not context:

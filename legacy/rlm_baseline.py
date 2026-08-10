@@ -46,7 +46,7 @@ def main():
     parser.add_argument("--model", default="qwen2.5:1.5b")
     parser.add_argument("--api-key", default="EMPTY")
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--max-depth", type=int, default=2,
+    parser.add_argument("--max-depth", type=int, default=1,
                         help="RLM recursion depth (1=no recursion, 2+=recursive)")
     parser.add_argument("--max-iterations", type=int, default=10)
     parser.add_argument("--max-tokens", type=int, default=64000)

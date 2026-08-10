@@ -46,6 +46,23 @@ SearchToolExecutor = Callable[
 ]
 
 
+def _is_required_tool_parser_rejection(error: Exception) -> bool:
+    """Recognize vLLM's rejection of ordinary RLM REPL text under required tools.
+
+    Qwen can correctly begin an RLM trajectory with a ``repl`` block.  Some
+    vLLM/Hermes combinations nevertheless attempt to validate that text as a
+    native function-call payload when ``tool_choice='required'`` and return a
+    400 instead of a normal assistant message.  Retrying in ``auto`` mode
+    preserves the registered tools while allowing the RLM protocol to proceed.
+    """
+    message = str(error).lower()
+    return (
+        "invalid json" in message
+        and "json_invalid" in message
+        and "repl" in message
+    )
+
+
 @dataclass(frozen=True)
 class QwenRLMToolOutcome:
     """Terminal result from one integrated Qwen/tool/RLM trajectory."""
@@ -310,6 +327,11 @@ The root model has native `{SEARCH_TOOL_NAME}` and `{UPDATE_TOOL_NAME}` function
 contains no pre-retrieved facts. Call the native function when graph evidence
 is needed; do not print or hand-parse a JSON retrieval action. Tool results are
 retained across RLM iterations.
+
+On the initial native-tool turn, call `{SEARCH_TOOL_NAME}` before emitting any
+`repl` block or using `llm_query` / `rlm_query`. This function call is outside
+the REPL: do not claim the function is undefined, and do not begin by solving
+the question in Python. The controller requires this first retrieval turn.
 
 Use precise seed entities so the configured retriever can use its entity branch.
 On the first search, omit `predicates`. Only use exact UPPER_SNAKE_CASE predicate
@@ -1090,6 +1112,25 @@ class NativeToolSession:
             return [self.update_tool_schema]
         return [self.tool_schema, self.update_tool_schema]
 
+    @staticmethod
+    def _wire_tool_choice(
+        request_tool_choice: str, tools: List[Dict[str, Any]]
+    ) -> Any:
+        """Use a named function when the controller requires the next tool.
+
+        Generic ``required`` only asks vLLM to validate a tool-shaped response;
+        it does not constrain Qwen's decoding.  A named choice activates the
+        server's function-call grammar and prevents an RLM ``repl`` block from
+        being parsed as malformed tool JSON.
+        """
+        if request_tool_choice != "required":
+            return request_tool_choice
+        function = tools[0].get("function") if tools else None
+        name = function.get("name") if isinstance(function, Mapping) else None
+        if not name:
+            raise RuntimeError("required native-tool request has no function name")
+        return {"type": "function", "function": {"name": str(name)}}
+
     def _grounded_fact_ids(self, predicted: str) -> List[str]:
         # MCQ mode: `predicted` is a choice letter, look up its text. Short
         # mode: `predicted` already *is* the free-text answer to ground.
@@ -1243,10 +1284,13 @@ class NativeToolSession:
                 "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
             }
             if request_tool_choice != "none":
+                request_tools = self._request_tools(request_tool_choice)
                 request.update(
                     {
-                        "tools": self._request_tools(request_tool_choice),
-                        "tool_choice": request_tool_choice,
+                        "tools": request_tools,
+                        "tool_choice": self._wire_tool_choice(
+                            request_tool_choice, request_tools
+                        ),
                     }
                 )
             budgeted_tokens, used_tokens, input_upper_bound = (
@@ -1281,15 +1325,50 @@ class NativeToolSession:
                 response = base_client.client.chat.completions.create(**request)
                 self._track_response(base_client, response)
             except Exception as exc:
-                self.trace["events"].append(
-                    {
-                        "event": "model_error",
-                        "rlm_completion": completion_index,
-                        "native_turn": native_turn,
-                        "error": str(exc),
-                    }
-                )
-                raise RuntimeError(f"Qwen native-tool completion failed: {exc}") from exc
+                if (
+                    request_tool_choice == "required"
+                    and _is_required_tool_parser_rejection(exc)
+                ):
+                    retry_request = dict(request)
+                    retry_request["tool_choice"] = "auto"
+                    self.trace["events"].append(
+                        {
+                            "event": "required_tool_parser_fallback",
+                            "rlm_completion": completion_index,
+                            "native_turn": native_turn,
+                            "from_tool_choice": "required",
+                            "to_tool_choice": "auto",
+                            "error": str(exc),
+                        }
+                    )
+                    try:
+                        response = base_client.client.chat.completions.create(
+                            **retry_request
+                        )
+                        self._track_response(base_client, response)
+                    except Exception as retry_exc:
+                        self.trace["events"].append(
+                            {
+                                "event": "model_error",
+                                "rlm_completion": completion_index,
+                                "native_turn": native_turn,
+                                "error": str(retry_exc),
+                            }
+                        )
+                        raise RuntimeError(
+                            "Qwen native-tool completion failed after "
+                            f"required-tool parser fallback: {retry_exc}"
+                        ) from retry_exc
+                else:
+                    self.trace["events"].append(
+                        {
+                            "event": "model_error",
+                            "rlm_completion": completion_index,
+                            "native_turn": native_turn,
+                            "error": str(exc),
+                        }
+                    )
+                    raise RuntimeError(f"Qwen native-tool completion failed: {exc}") from exc
 
             choices = _get(response, "choices", []) or []
             if not choices:

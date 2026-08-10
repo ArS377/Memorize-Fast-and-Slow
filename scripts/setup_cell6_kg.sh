@@ -110,7 +110,7 @@ python3 -m experiments.cells.cell6_rlm_kg_scallop \\
   --hops 2 \\
   --limit-triples 50 \\
   --context-max-chars 4000 \\
-  --max-depth 2 \\
+  --max-depth 1 \\
   --max-iterations 10 \\
   --max-tokens 64000 \\
   --verbose
