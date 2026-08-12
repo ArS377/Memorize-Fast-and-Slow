@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Live local NeuroSym experiment dashboard">
+  <title>NeuroSym Field Report</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="wordmark" href="#top" aria-label="NeuroSym dashboard home">
+      <span class="wordmark-mark">N/S</span>
+      <span>NeuroSym Field Report</span>
+    </a>
+    <div class="live-state">
+      <span class="pulse" aria-hidden="true"></span>
+      <span id="connection-label">Connecting</span>
+      <span class="divider">/</span>
+      <span id="updated-at">Waiting for data</span>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Experiment intelligence / live evidence</p>
+        <h1>The research state,<br><em>as it exists.</em></h1>
+        <p class="hero-intro">A continuously refreshed view of runs, metrics, implementation surfaces, and provenance. Unknowns stay visible. Partial evidence is never promoted to completion.</p>
+      </div>
+      <div class="hero-control">
+        <button id="refresh-button" type="button">Refresh evidence</button>
+        <p>Polling every 15 seconds</p>
+        <p class="root-label">Source: <code id="results-root">results</code></p>
+      </div>
+    </section>
+
+    <section class="kpi-grid" id="kpi-grid" aria-label="Overview metrics"></section>
+
+    <section class="section current-section" id="current-state">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">01 / Current state</p>
+          <h2>Evidence in motion</h2>
+        </div>
+        <p class="section-note">Completion requires all three canonical artifacts and a declared successful state.</p>
+      </div>
+      <div class="state-grid">
+        <article class="state-panel">
+          <div class="state-total">
+            <span id="completion-percentage">0%</span>
+            <p>complete evidence sets</p>
+          </div>
+          <div class="progress-track" aria-label="Evidence completion">
+            <span id="completion-bar"></span>
+          </div>
+          <div class="status-list" id="status-list"></div>
+        </article>
+        <article class="activity-panel">
+          <div class="panel-label">Open work and incomplete provenance</div>
+          <div id="active-runs" class="active-runs"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="comparison">
+      <div class="section-heading table-heading">
+        <div>
+          <p class="eyebrow">02 / Run comparison</p>
+          <h2>Comparable where warranted</h2>
+        </div>
+        <div class="filters">
+          <label>
+            <span>Find a run</span>
+            <input id="run-search" type="search" placeholder="Name or path">
+          </label>
+          <label>
+            <span>State</span>
+            <select id="status-filter">
+              <option value="all">All states</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="provenance-callout">
+        <span>Reading rule</span>
+        <p>The score column shows a traceable metric selected from each run's own schema. Different metric paths are not asserted to be equivalent.</p>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Run</th>
+              <th>State</th>
+              <th>Primary score</th>
+              <th>Cells</th>
+              <th>Evidence</th>
+              <th>Provenance</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="run-table-body"></tbody>
+        </table>
+      </div>
+      <p class="empty-state" id="table-empty" hidden>No runs match these filters.</p>
+    </section>
+
+    <section class="section model-section" id="model-comparison-section" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">03 / Model comparison</p>
+          <h2>Behavior, side by side</h2>
+        </div>
+        <p class="section-note">Values are read from each run's top-level <code>models</code> metrics object. Optional measurements appear only when reported.</p>
+      </div>
+      <div id="model-comparisons" class="model-comparisons"></div>
+    </section>
+
+    <section class="section context-section" id="context-benchmark-section" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">04 / Context benchmark</p>
+          <h2>Retrieval under context pressure</h2>
+        </div>
+        <p class="section-note">Methods, realized context construction, truncation windows, and dynamic tier or evidence-position slices are read directly from each benchmark's metrics.</p>
+      </div>
+      <div id="context-benchmarks" class="context-benchmarks"></div>
+    </section>
+
+    <section class="section architecture-section" id="architecture">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">05 / Architecture</p>
+          <h2>From execution to evidence</h2>
+        </div>
+        <a class="source-link" href="/architecture.svg" target="_blank" rel="noreferrer">Open SVG</a>
+      </div>
+      <div class="architecture-grid">
+        <div class="diagram-frame">
+          <img src="/architecture.svg" alt="NeuroSym experiment and dashboard process architecture">
+        </div>
+        <aside class="code-panel">
+          <div class="panel-label">Implementation references</div>
+          <div id="code-references" class="code-references"></div>
+          <p class="code-note">Links open the effective local checkout served by this dashboard.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="artifacts">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">06 / Provenance ledger</p>
+          <h2>Every discovered run</h2>
+        </div>
+        <p class="section-note">Artifact links are served directly from the configured results root.</p>
+      </div>
+      <div class="run-cards" id="run-cards"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Local-only research observatory</span>
+    <span>Dynamic endpoint: <code>/api/dashboard</code></span>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

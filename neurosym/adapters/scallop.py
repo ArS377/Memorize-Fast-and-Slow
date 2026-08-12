@@ -307,7 +307,13 @@ def validate_update_detailed(
     ctx.run()
 
     # --- Contradiction: confidence-based resolution ---
-    contradictions = list(ctx.relation("contradiction"))
+    contradictions = [
+        contradiction
+        for contradiction in ctx.relation("contradiction")
+        if contradiction[0] == subj
+        and contradiction[1] == pred
+        and obj in contradiction[2:]
+    ]
     if contradictions:
         s, p, o1, o2 = contradictions[0]
         # Find the existing fact that conflicts with the new one

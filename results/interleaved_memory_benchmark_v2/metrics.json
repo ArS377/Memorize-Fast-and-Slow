@@ -1,0 +1,994 @@
+{
+  "benchmark_version": "interleaved_continual_memory.v2",
+  "context_horizon_contract": {
+    "declared_context_limit": 1048576,
+    "realized_multiplier": 2.6119775772094727,
+    "required_multiplier": 2.0,
+    "stream_token_count": 2738857
+  },
+  "contradiction_ledger": {
+    "engine": "scallopy",
+    "history_count": 1024,
+    "pair_count": 1024,
+    "resolved_pair_count": 1024,
+    "scallopy_version": "0.2.4",
+    "unexpected_unresolved_pair_ids": []
+  },
+  "external_scheduler_library": null,
+  "generator": "custom deterministic Python",
+  "horizons": [
+    {
+      "horizon_accounts": 8,
+      "lifecycle_distribution": {
+        "backdated_correction": {
+          "by_stream_third": {
+            "final": 0,
+            "first": 4,
+            "middle": 4
+          },
+          "covers_all_stream_thirds": false,
+          "total": 8
+        },
+        "contradiction_opening": {
+          "by_stream_third": {
+            "final": 0,
+            "first": 8,
+            "middle": 8
+          },
+          "covers_all_stream_thirds": false,
+          "total": 16
+        },
+        "contradiction_rectification": {
+          "by_stream_third": {
+            "final": 8,
+            "first": 0,
+            "middle": 0
+          },
+          "covers_all_stream_thirds": false,
+          "total": 8
+        },
+        "non_overlap_transition": {
+          "by_stream_third": {
+            "final": 0,
+            "first": 16,
+            "middle": 0
+          },
+          "covers_all_stream_thirds": false,
+          "total": 16
+        },
+        "retraction": {
+          "by_stream_third": {
+            "final": 0,
+            "first": 12,
+            "middle": 4
+          },
+          "covers_all_stream_thirds": false,
+          "total": 16
+        },
+        "source_authority_conflict": {
+          "by_stream_third": {
+            "final": 0,
+            "first": 2,
+            "middle": 14
+          },
+          "covers_all_stream_thirds": false,
+          "total": 16
+        }
+      },
+      "schedule": {
+        "account_count": 8,
+        "adjacent_same_account_segments": 0,
+        "causal_order_violations": 0,
+        "maximum_intervening_accounts_per_resume": 7,
+        "minimum_intervening_accounts_per_resume": 7,
+        "resume_count": 35,
+        "segment_count": 43,
+        "turn_count": 208
+      },
+      "stream_token_count": 21712,
+      "suffix_contract_loss_by_relation": {
+        "authority_incongruity": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.0,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.0
+        },
+        "backdated_correction": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 1.0,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.0
+        },
+        "contradiction_rectification": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.875,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.0
+        },
+        "preference_change": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 1.0,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.0
+        }
+      },
+      "suffix_contract_loss_rate": {
+        "1048576": 0.0,
+        "131072": 0.0,
+        "16384": 0.71875,
+        "262144": 0.0,
+        "4096": 1.0,
+        "65536": 0.0
+      }
+    },
+    {
+      "horizon_accounts": 16,
+      "lifecycle_distribution": {
+        "backdated_correction": {
+          "by_stream_third": {
+            "final": 6,
+            "first": 8,
+            "middle": 2
+          },
+          "covers_all_stream_thirds": true,
+          "total": 16
+        },
+        "contradiction_opening": {
+          "by_stream_third": {
+            "final": 8,
+            "first": 15,
+            "middle": 9
+          },
+          "covers_all_stream_thirds": true,
+          "total": 32
+        },
+        "contradiction_rectification": {
+          "by_stream_third": {
+            "final": 7,
+            "first": 3,
+            "middle": 6
+          },
+          "covers_all_stream_thirds": true,
+          "total": 16
+        },
+        "non_overlap_transition": {
+          "by_stream_third": {
+            "final": 2,
+            "first": 16,
+            "middle": 14
+          },
+          "covers_all_stream_thirds": true,
+          "total": 32
+        },
+        "retraction": {
+          "by_stream_third": {
+            "final": 7,
+            "first": 16,
+            "middle": 9
+          },
+          "covers_all_stream_thirds": true,
+          "total": 32
+        },
+        "source_authority_conflict": {
+          "by_stream_third": {
+            "final": 12,
+            "first": 14,
+            "middle": 6
+          },
+          "covers_all_stream_thirds": true,
+          "total": 32
+        }
+      },
+      "schedule": {
+        "account_count": 16,
+        "adjacent_same_account_segments": 0,
+        "causal_order_violations": 0,
+        "maximum_intervening_accounts_per_resume": 11,
+        "minimum_intervening_accounts_per_resume": 1,
+        "resume_count": 68,
+        "segment_count": 84,
+        "turn_count": 416
+      },
+      "stream_token_count": 43396,
+      "suffix_contract_loss_by_relation": {
+        "authority_incongruity": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.5625,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.0
+        },
+        "backdated_correction": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.875,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.0
+        },
+        "contradiction_rectification": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.875,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.0
+        },
+        "preference_change": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.875,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.0
+        }
+      },
+      "suffix_contract_loss_rate": {
+        "1048576": 0.0,
+        "131072": 0.0,
+        "16384": 0.796875,
+        "262144": 0.0,
+        "4096": 1.0,
+        "65536": 0.0
+      }
+    },
+    {
+      "horizon_accounts": 32,
+      "lifecycle_distribution": {
+        "backdated_correction": {
+          "by_stream_third": {
+            "final": 9,
+            "first": 11,
+            "middle": 12
+          },
+          "covers_all_stream_thirds": true,
+          "total": 32
+        },
+        "contradiction_opening": {
+          "by_stream_third": {
+            "final": 18,
+            "first": 23,
+            "middle": 23
+          },
+          "covers_all_stream_thirds": true,
+          "total": 64
+        },
+        "contradiction_rectification": {
+          "by_stream_third": {
+            "final": 13,
+            "first": 10,
+            "middle": 9
+          },
+          "covers_all_stream_thirds": true,
+          "total": 32
+        },
+        "non_overlap_transition": {
+          "by_stream_third": {
+            "final": 15,
+            "first": 24,
+            "middle": 25
+          },
+          "covers_all_stream_thirds": true,
+          "total": 64
+        },
+        "retraction": {
+          "by_stream_third": {
+            "final": 18,
+            "first": 22,
+            "middle": 24
+          },
+          "covers_all_stream_thirds": true,
+          "total": 64
+        },
+        "source_authority_conflict": {
+          "by_stream_third": {
+            "final": 19,
+            "first": 22,
+            "middle": 23
+          },
+          "covers_all_stream_thirds": true,
+          "total": 64
+        }
+      },
+      "schedule": {
+        "account_count": 32,
+        "adjacent_same_account_segments": 0,
+        "causal_order_violations": 0,
+        "maximum_intervening_accounts_per_resume": 11,
+        "minimum_intervening_accounts_per_resume": 1,
+        "resume_count": 135,
+        "segment_count": 167,
+        "turn_count": 832
+      },
+      "stream_token_count": 86840,
+      "suffix_contract_loss_by_relation": {
+        "authority_incongruity": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.8125,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.3125
+        },
+        "backdated_correction": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.90625,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.34375
+        },
+        "contradiction_rectification": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.875,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.34375
+        },
+        "preference_change": {
+          "1048576": 0.0,
+          "131072": 0.0,
+          "16384": 0.90625,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.34375
+        }
+      },
+      "suffix_contract_loss_rate": {
+        "1048576": 0.0,
+        "131072": 0.0,
+        "16384": 0.875,
+        "262144": 0.0,
+        "4096": 1.0,
+        "65536": 0.3359375
+      }
+    },
+    {
+      "horizon_accounts": 64,
+      "lifecycle_distribution": {
+        "backdated_correction": {
+          "by_stream_third": {
+            "final": 21,
+            "first": 21,
+            "middle": 22
+          },
+          "covers_all_stream_thirds": true,
+          "total": 64
+        },
+        "contradiction_opening": {
+          "by_stream_third": {
+            "final": 40,
+            "first": 45,
+            "middle": 43
+          },
+          "covers_all_stream_thirds": true,
+          "total": 128
+        },
+        "contradiction_rectification": {
+          "by_stream_third": {
+            "final": 23,
+            "first": 21,
+            "middle": 20
+          },
+          "covers_all_stream_thirds": true,
+          "total": 64
+        },
+        "non_overlap_transition": {
+          "by_stream_third": {
+            "final": 34,
+            "first": 48,
+            "middle": 46
+          },
+          "covers_all_stream_thirds": true,
+          "total": 128
+        },
+        "retraction": {
+          "by_stream_third": {
+            "final": 38,
+            "first": 43,
+            "middle": 47
+          },
+          "covers_all_stream_thirds": true,
+          "total": 128
+        },
+        "source_authority_conflict": {
+          "by_stream_third": {
+            "final": 43,
+            "first": 42,
+            "middle": 43
+          },
+          "covers_all_stream_thirds": true,
+          "total": 128
+        }
+      },
+      "schedule": {
+        "account_count": 64,
+        "adjacent_same_account_segments": 0,
+        "causal_order_violations": 0,
+        "maximum_intervening_accounts_per_resume": 11,
+        "minimum_intervening_accounts_per_resume": 1,
+        "resume_count": 264,
+        "segment_count": 328,
+        "turn_count": 1664
+      },
+      "stream_token_count": 173873,
+      "suffix_contract_loss_by_relation": {
+        "authority_incongruity": {
+          "1048576": 0.0,
+          "131072": 0.25,
+          "16384": 0.9375,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.625
+        },
+        "backdated_correction": {
+          "1048576": 0.0,
+          "131072": 0.3125,
+          "16384": 0.953125,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.65625
+        },
+        "contradiction_rectification": {
+          "1048576": 0.0,
+          "131072": 0.3125,
+          "16384": 0.9375,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.65625
+        },
+        "preference_change": {
+          "1048576": 0.0,
+          "131072": 0.3125,
+          "16384": 0.953125,
+          "262144": 0.0,
+          "4096": 1.0,
+          "65536": 0.65625
+        }
+      },
+      "suffix_contract_loss_rate": {
+        "1048576": 0.0,
+        "131072": 0.296875,
+        "16384": 0.9453125,
+        "262144": 0.0,
+        "4096": 1.0,
+        "65536": 0.6484375
+      }
+    },
+    {
+      "horizon_accounts": 128,
+      "lifecycle_distribution": {
+        "backdated_correction": {
+          "by_stream_third": {
+            "final": 41,
+            "first": 45,
+            "middle": 42
+          },
+          "covers_all_stream_thirds": true,
+          "total": 128
+        },
+        "contradiction_opening": {
+          "by_stream_third": {
+            "final": 83,
+            "first": 87,
+            "middle": 86
+          },
+          "covers_all_stream_thirds": true,
+          "total": 256
+        },
+        "contradiction_rectification": {
+          "by_stream_third": {
+            "final": 45,
+            "first": 41,
+            "middle": 42
+          },
+          "covers_all_stream_thirds": true,
+          "total": 128
+        },
+        "non_overlap_transition": {
+          "by_stream_third": {
+            "final": 78,
+            "first": 90,
+            "middle": 88
+          },
+          "covers_all_stream_thirds": true,
+          "total": 256
+        },
+        "retraction": {
+          "by_stream_third": {
+            "final": 82,
+            "first": 90,
+            "middle": 84
+          },
+          "covers_all_stream_thirds": true,
+          "total": 256
+        },
+        "source_authority_conflict": {
+          "by_stream_third": {
+            "final": 86,
+            "first": 85,
+            "middle": 85
+          },
+          "covers_all_stream_thirds": true,
+          "total": 256
+        }
+      },
+      "schedule": {
+        "account_count": 128,
+        "adjacent_same_account_segments": 0,
+        "causal_order_violations": 0,
+        "maximum_intervening_accounts_per_resume": 12,
+        "minimum_intervening_accounts_per_resume": 1,
+        "resume_count": 527,
+        "segment_count": 655,
+        "turn_count": 3328
+      },
+      "stream_token_count": 349260,
+      "suffix_contract_loss_by_relation": {
+        "authority_incongruity": {
+          "1048576": 0.0,
+          "131072": 0.6328125,
+          "16384": 0.953125,
+          "262144": 0.2421875,
+          "4096": 1.0,
+          "65536": 0.8203125
+        },
+        "backdated_correction": {
+          "1048576": 0.0,
+          "131072": 0.6484375,
+          "16384": 0.9765625,
+          "262144": 0.28125,
+          "4096": 1.0,
+          "65536": 0.84375
+        },
+        "contradiction_rectification": {
+          "1048576": 0.0,
+          "131072": 0.6484375,
+          "16384": 0.9765625,
+          "262144": 0.2734375,
+          "4096": 1.0,
+          "65536": 0.84375
+        },
+        "preference_change": {
+          "1048576": 0.0,
+          "131072": 0.6484375,
+          "16384": 0.9765625,
+          "262144": 0.28125,
+          "4096": 1.0,
+          "65536": 0.84375
+        }
+      },
+      "suffix_contract_loss_rate": {
+        "1048576": 0.0,
+        "131072": 0.64453125,
+        "16384": 0.970703125,
+        "262144": 0.26953125,
+        "4096": 1.0,
+        "65536": 0.837890625
+      }
+    },
+    {
+      "horizon_accounts": 256,
+      "lifecycle_distribution": {
+        "backdated_correction": {
+          "by_stream_third": {
+            "final": 85,
+            "first": 86,
+            "middle": 85
+          },
+          "covers_all_stream_thirds": true,
+          "total": 256
+        },
+        "contradiction_opening": {
+          "by_stream_third": {
+            "final": 169,
+            "first": 174,
+            "middle": 169
+          },
+          "covers_all_stream_thirds": true,
+          "total": 512
+        },
+        "contradiction_rectification": {
+          "by_stream_third": {
+            "final": 86,
+            "first": 84,
+            "middle": 86
+          },
+          "covers_all_stream_thirds": true,
+          "total": 256
+        },
+        "non_overlap_transition": {
+          "by_stream_third": {
+            "final": 164,
+            "first": 178,
+            "middle": 170
+          },
+          "covers_all_stream_thirds": true,
+          "total": 512
+        },
+        "retraction": {
+          "by_stream_third": {
+            "final": 170,
+            "first": 174,
+            "middle": 168
+          },
+          "covers_all_stream_thirds": true,
+          "total": 512
+        },
+        "source_authority_conflict": {
+          "by_stream_third": {
+            "final": 170,
+            "first": 170,
+            "middle": 172
+          },
+          "covers_all_stream_thirds": true,
+          "total": 512
+        }
+      },
+      "schedule": {
+        "account_count": 256,
+        "adjacent_same_account_segments": 0,
+        "causal_order_violations": 0,
+        "maximum_intervening_accounts_per_resume": 12,
+        "minimum_intervening_accounts_per_resume": 1,
+        "resume_count": 1050,
+        "segment_count": 1306,
+        "turn_count": 6656
+      },
+      "stream_token_count": 694696,
+      "suffix_contract_loss_by_relation": {
+        "authority_incongruity": {
+          "1048576": 0.0,
+          "131072": 0.80859375,
+          "16384": 0.9765625,
+          "262144": 0.62109375,
+          "4096": 1.0,
+          "65536": 0.91015625
+        },
+        "backdated_correction": {
+          "1048576": 0.0,
+          "131072": 0.828125,
+          "16384": 0.98828125,
+          "262144": 0.6328125,
+          "4096": 1.0,
+          "65536": 0.91796875
+        },
+        "contradiction_rectification": {
+          "1048576": 0.0,
+          "131072": 0.828125,
+          "16384": 0.984375,
+          "262144": 0.6328125,
+          "4096": 1.0,
+          "65536": 0.91796875
+        },
+        "preference_change": {
+          "1048576": 0.0,
+          "131072": 0.828125,
+          "16384": 0.98828125,
+          "262144": 0.6328125,
+          "4096": 1.0,
+          "65536": 0.91796875
+        }
+      },
+      "suffix_contract_loss_rate": {
+        "1048576": 0.0,
+        "131072": 0.8232421875,
+        "16384": 0.984375,
+        "262144": 0.6298828125,
+        "4096": 1.0,
+        "65536": 0.916015625
+      }
+    },
+    {
+      "horizon_accounts": 512,
+      "lifecycle_distribution": {
+        "backdated_correction": {
+          "by_stream_third": {
+            "final": 170,
+            "first": 172,
+            "middle": 170
+          },
+          "covers_all_stream_thirds": true,
+          "total": 512
+        },
+        "contradiction_opening": {
+          "by_stream_third": {
+            "final": 339,
+            "first": 344,
+            "middle": 341
+          },
+          "covers_all_stream_thirds": true,
+          "total": 1024
+        },
+        "contradiction_rectification": {
+          "by_stream_third": {
+            "final": 171,
+            "first": 169,
+            "middle": 172
+          },
+          "covers_all_stream_thirds": true,
+          "total": 512
+        },
+        "non_overlap_transition": {
+          "by_stream_third": {
+            "final": 337,
+            "first": 346,
+            "middle": 341
+          },
+          "covers_all_stream_thirds": true,
+          "total": 1024
+        },
+        "retraction": {
+          "by_stream_third": {
+            "final": 340,
+            "first": 344,
+            "middle": 340
+          },
+          "covers_all_stream_thirds": true,
+          "total": 1024
+        },
+        "source_authority_conflict": {
+          "by_stream_third": {
+            "final": 340,
+            "first": 344,
+            "middle": 340
+          },
+          "covers_all_stream_thirds": true,
+          "total": 1024
+        }
+      },
+      "schedule": {
+        "account_count": 512,
+        "adjacent_same_account_segments": 0,
+        "causal_order_violations": 0,
+        "maximum_intervening_accounts_per_resume": 11,
+        "minimum_intervening_accounts_per_resume": 1,
+        "resume_count": 2099,
+        "segment_count": 2611,
+        "turn_count": 13312
+      },
+      "stream_token_count": 1376177,
+      "suffix_contract_loss_by_relation": {
+        "authority_incongruity": {
+          "1048576": 0.236328125,
+          "131072": 0.90625,
+          "16384": 0.990234375,
+          "262144": 0.8125,
+          "4096": 1.0,
+          "65536": 0.955078125
+        },
+        "backdated_correction": {
+          "1048576": 0.24609375,
+          "131072": 0.91015625,
+          "16384": 0.994140625,
+          "262144": 0.81640625,
+          "4096": 1.0,
+          "65536": 0.955078125
+        },
+        "contradiction_rectification": {
+          "1048576": 0.240234375,
+          "131072": 0.91015625,
+          "16384": 0.9921875,
+          "262144": 0.81640625,
+          "4096": 1.0,
+          "65536": 0.955078125
+        },
+        "preference_change": {
+          "1048576": 0.24609375,
+          "131072": 0.91015625,
+          "16384": 0.994140625,
+          "262144": 0.81640625,
+          "4096": 1.0,
+          "65536": 0.955078125
+        }
+      },
+      "suffix_contract_loss_rate": {
+        "1048576": 0.2421875,
+        "131072": 0.9091796875,
+        "16384": 0.99267578125,
+        "262144": 0.8154296875,
+        "4096": 1.0,
+        "65536": 0.955078125
+      }
+    },
+    {
+      "horizon_accounts": 1024,
+      "lifecycle_distribution": {
+        "backdated_correction": {
+          "by_stream_third": {
+            "final": 340,
+            "first": 343,
+            "middle": 341
+          },
+          "covers_all_stream_thirds": true,
+          "total": 1024
+        },
+        "contradiction_opening": {
+          "by_stream_third": {
+            "final": 680,
+            "first": 685,
+            "middle": 683
+          },
+          "covers_all_stream_thirds": true,
+          "total": 2048
+        },
+        "contradiction_rectification": {
+          "by_stream_third": {
+            "final": 341,
+            "first": 339,
+            "middle": 344
+          },
+          "covers_all_stream_thirds": true,
+          "total": 1024
+        },
+        "non_overlap_transition": {
+          "by_stream_third": {
+            "final": 680,
+            "first": 690,
+            "middle": 678
+          },
+          "covers_all_stream_thirds": true,
+          "total": 2048
+        },
+        "retraction": {
+          "by_stream_third": {
+            "final": 680,
+            "first": 688,
+            "middle": 680
+          },
+          "covers_all_stream_thirds": true,
+          "total": 2048
+        },
+        "source_authority_conflict": {
+          "by_stream_third": {
+            "final": 680,
+            "first": 682,
+            "middle": 686
+          },
+          "covers_all_stream_thirds": true,
+          "total": 2048
+        }
+      },
+      "schedule": {
+        "account_count": 1024,
+        "adjacent_same_account_segments": 0,
+        "causal_order_violations": 0,
+        "maximum_intervening_accounts_per_resume": 12,
+        "minimum_intervening_accounts_per_resume": 1,
+        "resume_count": 4222,
+        "segment_count": 5246,
+        "turn_count": 26624
+      },
+      "stream_token_count": 2738857,
+      "suffix_contract_loss_by_relation": {
+        "authority_incongruity": {
+          "1048576": 0.6171875,
+          "131072": 0.9521484375,
+          "16384": 0.994140625,
+          "262144": 0.9033203125,
+          "4096": 1.0,
+          "65536": 0.9765625
+        },
+        "backdated_correction": {
+          "1048576": 0.6201171875,
+          "131072": 0.955078125,
+          "16384": 0.9970703125,
+          "262144": 0.908203125,
+          "4096": 1.0,
+          "65536": 0.98046875
+        },
+        "contradiction_rectification": {
+          "1048576": 0.6181640625,
+          "131072": 0.955078125,
+          "16384": 0.9970703125,
+          "262144": 0.908203125,
+          "4096": 1.0,
+          "65536": 0.978515625
+        },
+        "preference_change": {
+          "1048576": 0.6201171875,
+          "131072": 0.955078125,
+          "16384": 0.9970703125,
+          "262144": 0.908203125,
+          "4096": 1.0,
+          "65536": 0.98046875
+        }
+      },
+      "suffix_contract_loss_rate": {
+        "1048576": 0.618896484375,
+        "131072": 0.954345703125,
+        "16384": 0.996337890625,
+        "262144": 0.906982421875,
+        "4096": 1.0,
+        "65536": 0.97900390625
+      }
+    }
+  ],
+  "interpretation": {
+    "limitation": "Text is deterministic synthetic dialogue, not human conversation or an LLM generation evaluation. Online answer scores use the same deterministic resolver as source gold and measure context availability, not independent reasoning.",
+    "summary": "All accounts are peer tasks in one causal conversation. Finite suffix loss is measured at final retention sweeps as the account horizon grows."
+  },
+  "online_checkpoint_evaluation": {
+    "answer_evaluator": "deterministic oracle resolver over selected structured events; not LLM generation accuracy",
+    "causal_timing": "immediately after each query trigger event",
+    "evaluation_horizon_accounts": 1024,
+    "methods": {
+      "full_structured_memory": {
+        "checkpoint_count": 4096,
+        "complete_provenance_rate": 1.0,
+        "evidence_recall": 1.0,
+        "grounded_answer_accuracy": 1.0,
+        "oracle_resolver_answer_accuracy": 1.0,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "sliding_context:1048576": {
+        "checkpoint_count": 4096,
+        "complete_provenance_rate": 1.0,
+        "evidence_recall": 1.0,
+        "grounded_answer_accuracy": 1.0,
+        "oracle_resolver_answer_accuracy": 1.0,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "sliding_context:131072": {
+        "checkpoint_count": 4096,
+        "complete_provenance_rate": 1.0,
+        "evidence_recall": 1.0,
+        "grounded_answer_accuracy": 1.0,
+        "oracle_resolver_answer_accuracy": 1.0,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "sliding_context:16384": {
+        "checkpoint_count": 4096,
+        "complete_provenance_rate": 0.81396484375,
+        "evidence_recall": 0.8499625069754464,
+        "grounded_answer_accuracy": 0.81396484375,
+        "oracle_resolver_answer_accuracy": 0.92626953125,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "sliding_context:262144": {
+        "checkpoint_count": 4096,
+        "complete_provenance_rate": 1.0,
+        "evidence_recall": 1.0,
+        "grounded_answer_accuracy": 1.0,
+        "oracle_resolver_answer_accuracy": 1.0,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "sliding_context:4096": {
+        "checkpoint_count": 4096,
+        "complete_provenance_rate": 0.131103515625,
+        "evidence_recall": 0.35568673270089285,
+        "grounded_answer_accuracy": 0.131103515625,
+        "oracle_resolver_answer_accuracy": 0.414306640625,
+        "stale_memory_intrusion_rate": 0.052734375
+      },
+      "sliding_context:65536": {
+        "checkpoint_count": 4096,
+        "complete_provenance_rate": 1.0,
+        "evidence_recall": 1.0,
+        "grounded_answer_accuracy": 1.0,
+        "oracle_resolver_answer_accuracy": 1.0,
+        "stale_memory_intrusion_rate": 0.0
+      }
+    },
+    "structured_memory_scope": "all observed events for the queried history"
+  },
+  "tokenizer": {
+    "add_special_tokens": false,
+    "implementation": "Qwen2TokenizerFast",
+    "local_files_only": true,
+    "requested_name": "Qwen/Qwen3-4B",
+    "requested_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "resolved_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "transformers_version": "4.57.6"
+  }
+}

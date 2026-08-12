@@ -90,8 +90,9 @@ def _provider_metadata(provider: EmbeddingProvider, config: EmbeddingConfig) -> 
 
 
 class SentenceTransformerEmbedder:
-    def __init__(self, config: EmbeddingConfig) -> None:
+    def __init__(self, config: EmbeddingConfig, *, local_files_only: bool = False) -> None:
         self.config = config
+        self.local_files_only = local_files_only
         self._model: Any = None
         self._metadata: Optional[Dict[str, Any]] = None
 
@@ -109,6 +110,7 @@ class SentenceTransformerEmbedder:
                     self.config.model,
                     revision=self.config.requested_revision,
                     device=self.config.device,
+                    local_files_only=self.local_files_only,
                 )
             except Exception as exc:
                 raise DenseRetrievalError("dense_backend_failure", "embedding model could not be loaded") from exc
@@ -133,6 +135,9 @@ class SentenceTransformerEmbedder:
 
     def encode_query(self, text: str) -> np.ndarray:
         return self._encode([text])[0]
+
+    def encode_queries(self, texts: Sequence[str]) -> np.ndarray:
+        return self._encode(texts)
 
     def document_windows(
         self,

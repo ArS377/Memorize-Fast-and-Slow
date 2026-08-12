@@ -1,0 +1,70 @@
+{
+  "benchmark_version": "continual_memory_without_online_learning.v3_stream",
+  "source_split": "test",
+  "source_profile": "anti_shortcut_stream_v2",
+  "history_limit": 30,
+  "retrieval_k": 5,
+  "seed": 23,
+  "tokenizer": {
+    "local_files_only": true,
+    "name": "Qwen/Qwen3-4B",
+    "revision": "1cfa9a7208912126459214e8b04321603b3df60c"
+  },
+  "interference_tiers": [
+    {
+      "name": "no_interference",
+      "distractor_turns_per_target_event": 0,
+      "distractor_turn_percentage": 0.0
+    },
+    {
+      "name": "light_interference",
+      "distractor_turns_per_target_event": 2,
+      "distractor_turn_percentage": 66.66666666666667
+    },
+    {
+      "name": "heavy_interference",
+      "distractor_turns_per_target_event": 8,
+      "distractor_turn_percentage": 88.88888888888889
+    },
+    {
+      "name": "extreme_interference",
+      "distractor_turns_per_target_event": 32,
+      "distractor_turn_percentage": 96.96969696969697
+    },
+    {
+      "name": "deep_context_rot",
+      "distractor_turns_per_target_event": 128,
+      "distractor_turn_percentage": 99.2248062015504
+    }
+  ],
+  "sliding_token_windows": [
+    {"name": "window_4k", "max_tokens": 4096},
+    {"name": "window_16k", "max_tokens": 16384},
+    {"name": "window_64k", "max_tokens": 65536},
+    {"name": "window_128k", "max_tokens": 131072}
+  ],
+  "model_parameter_tiers": [
+    {"name": "small_local", "min_billions": 1.0, "max_billions": 4.0},
+    {"name": "mid_local", "min_billions": 4.0, "max_billions": 14.0},
+    {"name": "large_open", "min_billions": 14.0, "max_billions": 72.0},
+    {"name": "frontier_scale", "min_billions": 72.0, "max_billions": null}
+  ],
+  "metric_bins": {
+    "turn_age_upper_bounds": [2, 8, 32, 128],
+    "token_age_upper_bounds": [256, 1024, 4096, 16384],
+    "stream_position_upper_bounds_percent": [25.0, 50.0, 75.0]
+  },
+  "dense_embedding": {
+    "enabled": true,
+    "model": "BAAI/bge-small-en-v1.5",
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "device": "cpu",
+    "batch_size": 32,
+    "local_files_only": true
+  },
+  "scallop_reasoner": {
+    "enabled": true,
+    "endpoint_env": "SCALLOP_VALIDATOR_URL",
+    "timeout_seconds": 10.0
+  }
+}

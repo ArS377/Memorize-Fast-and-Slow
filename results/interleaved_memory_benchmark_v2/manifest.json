@@ -1,0 +1,25 @@
+{
+  "artifact_sha256": {
+    "contradiction_ledger.jsonl": "73470544920ba277843aa0e1393d168317ff6e40f4bdbdf0779753107aee82df",
+    "metrics.json": "15078f3080312fed98571212b32725a4fd2773d9d0bfe6e98eea8fea715dbf0a",
+    "online_checkpoint_predictions.jsonl": "6983d00930a43c2e299164979557e0bbded7f8c6f68a22da9527483424d37724",
+    "report.md": "504ae0aea0407a9c79ae2f35cd46f5a33ad3b23de430b8b64141482ec793b238",
+    "schedule.jsonl": "1e6b65ce1cd09a4270591f3f9eca5bd8d2016b15c887bc01ae34e7c40611e7f6",
+    "suffix_loss_witnesses.jsonl": "b4aaf77126536261d34110a0aab786c2c59e697d45bdc9d631b0e3294cccb7ff"
+  },
+  "artifacts": [
+    "schedule.jsonl",
+    "contradiction_ledger.jsonl",
+    "suffix_loss_witnesses.jsonl",
+    "online_checkpoint_predictions.jsonl",
+    "metrics.json",
+    "report.md"
+  ],
+  "benchmark_version": "interleaved_continual_memory.v2",
+  "dataset": "results/synthetic_temporal_preferences_1200_v5_interleaved",
+  "dataset_sha256": {
+    "events.jsonl": "eabda37fa9f16daa761257351fba31ab18d3091e79943cd800d6d874c0603e17",
+    "queries.jsonl": "2fa1d96e6f501e925018ce6b2f2be5d923f93c50272d0c85656bf836be5cb16f"
+  },
+  "status": "completed"
+}

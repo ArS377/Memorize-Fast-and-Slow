@@ -1,0 +1,100 @@
+{"history_id": "history-1000", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1000-add"], ["history-1000-transition"]], "window": 4096}
+{"history_id": "history-1000", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1000-add"], ["history-1000-transition"]], "window": 16384}
+{"history_id": "history-1000", "horizon": 8, "relation": "authority_incongruity", "required_event_id_groups": [["history-1000-indirect-source"], ["history-1000-direct-correction"]], "window": 4096}
+{"history_id": "history-1000", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1000-conflict-left"], ["history-1000-conflict-right"], ["history-1000-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1000", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1000-conflict-left"], ["history-1000-conflict-right"], ["history-1000-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1000", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1000-add"], ["history-1000-backdated"]], "window": 4096}
+{"history_id": "history-1000", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1000-add"], ["history-1000-backdated"]], "window": 16384}
+{"history_id": "history-1001", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1001-add"], ["history-1001-transition"]], "window": 4096}
+{"history_id": "history-1001", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1001-add"], ["history-1001-transition"]], "window": 16384}
+{"history_id": "history-1001", "horizon": 8, "relation": "authority_incongruity", "required_event_id_groups": [["history-1001-indirect-source"], ["history-1001-direct-correction"]], "window": 4096}
+{"history_id": "history-1001", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1001-conflict-left"], ["history-1001-conflict-right"], ["history-1001-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1001", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1001-conflict-left"], ["history-1001-conflict-right"], ["history-1001-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1001", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1001-add"], ["history-1001-backdated"]], "window": 4096}
+{"history_id": "history-1001", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1001-add"], ["history-1001-backdated"]], "window": 16384}
+{"history_id": "history-1002", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1002-add"], ["history-1002-transition"]], "window": 4096}
+{"history_id": "history-1002", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1002-add"], ["history-1002-transition"]], "window": 16384}
+{"history_id": "history-1002", "horizon": 8, "relation": "authority_incongruity", "required_event_id_groups": [["history-1002-indirect-source"], ["history-1002-direct-correction"]], "window": 4096}
+{"history_id": "history-1002", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1002-conflict-left"], ["history-1002-conflict-right"], ["history-1002-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1002", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1002-add"], ["history-1002-backdated"]], "window": 4096}
+{"history_id": "history-1002", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1002-add"], ["history-1002-backdated"]], "window": 16384}
+{"history_id": "history-1003", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1003-add"], ["history-1003-transition"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1003-add"], ["history-1003-transition"]], "window": 16384}
+{"history_id": "history-1003", "horizon": 8, "relation": "authority_incongruity", "required_event_id_groups": [["history-1003-indirect-source"], ["history-1003-direct-correction"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1003-conflict-left"], ["history-1003-conflict-right"], ["history-1003-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1003-conflict-left"], ["history-1003-conflict-right"], ["history-1003-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1003", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1003-add"], ["history-1003-backdated"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1003-add"], ["history-1003-backdated"]], "window": 16384}
+{"history_id": "history-1004", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1004-add"], ["history-1004-transition"]], "window": 4096}
+{"history_id": "history-1004", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1004-add"], ["history-1004-transition"]], "window": 16384}
+{"history_id": "history-1004", "horizon": 8, "relation": "authority_incongruity", "required_event_id_groups": [["history-1004-indirect-source"], ["history-1004-direct-correction"]], "window": 4096}
+{"history_id": "history-1004", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1004-conflict-left"], ["history-1004-conflict-right"], ["history-1004-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1004", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1004-conflict-left"], ["history-1004-conflict-right"], ["history-1004-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1004", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1004-add"], ["history-1004-backdated"]], "window": 4096}
+{"history_id": "history-1004", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1004-add"], ["history-1004-backdated"]], "window": 16384}
+{"history_id": "history-1005", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1005-add"], ["history-1005-transition"]], "window": 4096}
+{"history_id": "history-1005", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1005-add"], ["history-1005-transition"]], "window": 16384}
+{"history_id": "history-1005", "horizon": 8, "relation": "authority_incongruity", "required_event_id_groups": [["history-1005-indirect-source"], ["history-1005-direct-correction"]], "window": 4096}
+{"history_id": "history-1005", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1005-conflict-left"], ["history-1005-conflict-right"], ["history-1005-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1005", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1005-conflict-left"], ["history-1005-conflict-right"], ["history-1005-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1005", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1005-add"], ["history-1005-backdated"]], "window": 4096}
+{"history_id": "history-1005", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1005-add"], ["history-1005-backdated"]], "window": 16384}
+{"history_id": "history-1006", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1006-add"], ["history-1006-transition"]], "window": 4096}
+{"history_id": "history-1006", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1006-add"], ["history-1006-transition"]], "window": 16384}
+{"history_id": "history-1006", "horizon": 8, "relation": "authority_incongruity", "required_event_id_groups": [["history-1006-indirect-source"], ["history-1006-direct-correction"]], "window": 4096}
+{"history_id": "history-1006", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1006-conflict-left"], ["history-1006-conflict-right"], ["history-1006-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1006", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1006-conflict-left"], ["history-1006-conflict-right"], ["history-1006-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1006", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1006-add"], ["history-1006-backdated"]], "window": 4096}
+{"history_id": "history-1006", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1006-add"], ["history-1006-backdated"]], "window": 16384}
+{"history_id": "history-1007", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1007-add"], ["history-1007-transition"]], "window": 4096}
+{"history_id": "history-1007", "horizon": 8, "relation": "preference_change", "required_event_id_groups": [["history-1007-add"], ["history-1007-transition"]], "window": 16384}
+{"history_id": "history-1007", "horizon": 8, "relation": "authority_incongruity", "required_event_id_groups": [["history-1007-indirect-source"], ["history-1007-direct-correction"]], "window": 4096}
+{"history_id": "history-1007", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1007-conflict-left"], ["history-1007-conflict-right"], ["history-1007-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1007", "horizon": 8, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1007-conflict-left"], ["history-1007-conflict-right"], ["history-1007-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1007", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1007-add"], ["history-1007-backdated"]], "window": 4096}
+{"history_id": "history-1007", "horizon": 8, "relation": "backdated_correction", "required_event_id_groups": [["history-1007-add"], ["history-1007-backdated"]], "window": 16384}
+{"history_id": "history-1000", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1000-add"], ["history-1000-transition"]], "window": 4096}
+{"history_id": "history-1000", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1000-add"], ["history-1000-transition"]], "window": 16384}
+{"history_id": "history-1000", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1000-indirect-source"], ["history-1000-direct-correction"]], "window": 4096}
+{"history_id": "history-1000", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1000-indirect-source"], ["history-1000-direct-correction"]], "window": 16384}
+{"history_id": "history-1000", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1000-conflict-left"], ["history-1000-conflict-right"], ["history-1000-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1000", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1000-conflict-left"], ["history-1000-conflict-right"], ["history-1000-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1000", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1000-add"], ["history-1000-backdated"]], "window": 4096}
+{"history_id": "history-1000", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1000-add"], ["history-1000-backdated"]], "window": 16384}
+{"history_id": "history-1001", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1001-add"], ["history-1001-transition"]], "window": 4096}
+{"history_id": "history-1001", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1001-add"], ["history-1001-transition"]], "window": 16384}
+{"history_id": "history-1001", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1001-indirect-source"], ["history-1001-direct-correction"]], "window": 4096}
+{"history_id": "history-1001", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1001-indirect-source"], ["history-1001-direct-correction"]], "window": 16384}
+{"history_id": "history-1001", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1001-conflict-left"], ["history-1001-conflict-right"], ["history-1001-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1001", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1001-conflict-left"], ["history-1001-conflict-right"], ["history-1001-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1001", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1001-add"], ["history-1001-backdated"]], "window": 4096}
+{"history_id": "history-1001", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1001-add"], ["history-1001-backdated"]], "window": 16384}
+{"history_id": "history-1002", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1002-add"], ["history-1002-transition"]], "window": 4096}
+{"history_id": "history-1002", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1002-indirect-source"], ["history-1002-direct-correction"]], "window": 4096}
+{"history_id": "history-1002", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1002-conflict-left"], ["history-1002-conflict-right"], ["history-1002-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1002", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1002-add"], ["history-1002-backdated"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1003-add"], ["history-1003-transition"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1003-add"], ["history-1003-transition"]], "window": 16384}
+{"history_id": "history-1003", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1003-indirect-source"], ["history-1003-direct-correction"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1003-indirect-source"], ["history-1003-direct-correction"]], "window": 16384}
+{"history_id": "history-1003", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1003-conflict-left"], ["history-1003-conflict-right"], ["history-1003-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1003-conflict-left"], ["history-1003-conflict-right"], ["history-1003-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1003", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1003-add"], ["history-1003-backdated"]], "window": 4096}
+{"history_id": "history-1003", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1003-add"], ["history-1003-backdated"]], "window": 16384}
+{"history_id": "history-1004", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1004-add"], ["history-1004-transition"]], "window": 4096}
+{"history_id": "history-1004", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1004-add"], ["history-1004-transition"]], "window": 16384}
+{"history_id": "history-1004", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1004-indirect-source"], ["history-1004-direct-correction"]], "window": 4096}
+{"history_id": "history-1004", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1004-indirect-source"], ["history-1004-direct-correction"]], "window": 16384}
+{"history_id": "history-1004", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1004-conflict-left"], ["history-1004-conflict-right"], ["history-1004-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1004", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1004-conflict-left"], ["history-1004-conflict-right"], ["history-1004-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1004", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1004-add"], ["history-1004-backdated"]], "window": 4096}
+{"history_id": "history-1004", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1004-add"], ["history-1004-backdated"]], "window": 16384}
+{"history_id": "history-1005", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1005-add"], ["history-1005-transition"]], "window": 4096}
+{"history_id": "history-1005", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1005-add"], ["history-1005-transition"]], "window": 16384}
+{"history_id": "history-1005", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1005-indirect-source"], ["history-1005-direct-correction"]], "window": 4096}
+{"history_id": "history-1005", "horizon": 16, "relation": "authority_incongruity", "required_event_id_groups": [["history-1005-indirect-source"], ["history-1005-direct-correction"]], "window": 16384}
+{"history_id": "history-1005", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1005-conflict-left"], ["history-1005-conflict-right"], ["history-1005-conflict-resolution"]], "window": 4096}
+{"history_id": "history-1005", "horizon": 16, "relation": "contradiction_rectification", "required_event_id_groups": [["history-1005-conflict-left"], ["history-1005-conflict-right"], ["history-1005-conflict-resolution"]], "window": 16384}
+{"history_id": "history-1005", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1005-add"], ["history-1005-backdated"]], "window": 4096}
+{"history_id": "history-1005", "horizon": 16, "relation": "backdated_correction", "required_event_id_groups": [["history-1005-add"], ["history-1005-backdated"]], "window": 16384}
+{"history_id": "history-1006", "horizon": 16, "relation": "preference_change", "required_event_id_groups": [["history-1006-add"], ["history-1006-transition"]], "window": 4096}
