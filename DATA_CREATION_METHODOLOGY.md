@@ -2,8 +2,8 @@
 
 ## Objective and Scope
 
-This document describes the current synthetic data pipeline and the regenerated `interleaved_continual_memory.v2` benchmark artifacts in NeuroSym.
-It is grounded in the current generator, scheduler, evaluator, tests, and artifacts under `results/synthetic_temporal_preferences_1200_v5_interleaved/` and `results/interleaved_memory_benchmark_v2/`.
+This document describes the current synthetic data pipeline and the final `interleaved_continual_memory.v2` and `interleaved_delayed_retrieval.v3` benchmark artifacts in NeuroSym.
+It is grounded in the current generator, scheduler, evaluators, tests, and artifacts under `results/synthetic_temporal_preferences_1200_v5_interleaved/`, `results/interleaved_memory_benchmark_v2/`, and `results/interleaved_memory_benchmark_v3/`.
 The source dataset identifies itself as `synthetic_temporal_preferences.v2`, uses the `anti_shortcut_interleaved_v3` hardness profile, and contains 1,200 independent account histories.
 The regenerated dataset uses the generator's default `lexical` rendering condition.
 The benchmark consumes only the 1,024 test histories and schedules them as peer tasks in one causal conversation.
@@ -16,6 +16,8 @@ The online scorer is the same disclosed deterministic resolver used to derive so
 Crucially, v2 uses all peer turns as positional token pressure when it selects a suffix, then filters the retained suffix by hidden history identity before deterministic resolution.
 It therefore measures positional retention under the generated stream, not whether semantic distractors are harder than length-matched random filler and not whether a retriever can distinguish lexical negatives or traverse alias bridges.
 Same-entity lexical negatives and alias bridges are generated data features and provenance-contract requirements whose intended retrieval challenge remains unmeasured in v2.
+V3 evaluates two delayed preference-query families after additional peer-task activity and compares matched raw suffixes with bounded global BM25 top-1 capsule retrieval.
+Its structured method improves grounded context availability at both tested budgets, but it also causes substantial stale-memory intrusion, so the v3 result is not a positive-only retrieval claim.
 
 The current source of truth is the code and regenerated artifacts, not older numeric summaries in prose.
 All counts and results below were recomputed from the current files after alias regeneration.
@@ -29,6 +31,7 @@ The primary source and test pointers are:
 | Dataset generator and semantic resolver | `experiments/synthetic_temporal_preferences.py` |
 | Interleaving scheduler and suffix accounting | `experiments/interleaved_conversation.py` |
 | v2 evaluation and artifact manifest | `experiments/interleaved_memory_benchmark.py` |
+| v3 delayed sweeps, capsule construction, compaction, retrieval, and scoring | `experiments/interleaved_memory_benchmark_v3.py` |
 | Tokenizer and serialization contracts | `experiments/_continual_memory_config.py` and `experiments/_continual_memory_episodes.py` |
 | Contradiction lifecycle rules | `experiments/contradiction_ledger.py` |
 | Duplicate-lineage gold resolver | `experiments/private_lineage_reasoning.py` |
@@ -36,6 +39,7 @@ The primary source and test pointers are:
 | Dataset determinism, split isolation, aliases, compositions, candidate labels, and gold | `tests/test_synthetic_temporal_preferences.py` |
 | Segment bounds, causal order, resumptions, lifecycle distribution, and suffix boundaries | `tests/test_interleaved_conversation.py` |
 | Matched causal views, evidence contracts, scoring separation, and horizon checks | `tests/test_interleaved_memory_benchmark.py` |
+| v3 delayed scheduling, visible-query-only ranking, bounded compaction, and matched-budget checks | `tests/test_interleaved_memory_benchmark_v3.py` |
 | Temporal overlap, scope separation, authority guards, and Python and Scallop agreement | `tests/test_contradiction_ledger.py` |
 
 The generated dataset directory contains five complementary artifacts.
@@ -48,6 +52,7 @@ The generated dataset directory contains five complementary artifacts.
 
 The v2 output directory contains `schedule.jsonl`, `online_checkpoint_predictions.jsonl`, `contradiction_ledger.jsonl`, `suffix_loss_witnesses.jsonl`, `metrics.json`, `report.md`, and `manifest.json`.
 The manifest hashes the two dataset inputs directly consumed by the benchmark and every benchmark output written before the manifest itself.
+The v3 output directory contains `memory_candidates.jsonl`, `retained_capsules.jsonl`, `predictions.jsonl`, `metrics.json`, `report.md`, and `manifest.json`.
 
 ## Exact Dataset Inventory and Splits
 
@@ -625,6 +630,8 @@ The perfect online 64K result does not demonstrate saturation of a 64K context w
 It shows only that every required evidence group at these immediate-trigger checkpoints falls within that budget under the current schedule.
 The same limitation applies more strongly to 128K, 256K, and 1M online windows.
 Using those 100% scores as evidence of useful behavior near their nominal capacity would be misleading.
+For long-age online comparison, this v2 immediate-trigger saturation is superseded by the final v3 delayed evaluation, whose evidence ages extend to 293,733 tokens.
+This supersession changes the appropriate comparison, not the historical v2 measurements.
 
 The final global suffix sweep does expose substantial loss from 64K through 1M because it evaluates old relations at the end of the complete stream.
 That sweep is a transcript-only retention-availability test without a query prompt, not an online query-answering result.
@@ -727,25 +734,170 @@ It also contains no latency, throughput, storage-cost, or energy comparison.
 The benchmark does not measure user satisfaction, privacy compliance, real deletion guarantees, policy safety, or harm from stale personalization.
 Synthetic private values and constraints are semantic test cases rather than a privacy or safety evaluation.
 
-## Future Work: Planned v3
+## Final V3 Delayed Unaugmented-Query Evaluation
 
-The following items are planned future work and are not current v2 results or capabilities.
+### Process and Eligibility
 
-Planned v3 will add delayed global query sweeps after substantial additional peer-task activity so required online evidence ages deliberately cross 64K, 128K, and larger thresholds.
-Queries will be issued after their underlying transition, conflict, retraction, or rectification has aged in the global stream rather than immediately after a nearby probe.
-The evaluation should report realized age distributions and fail loudly when a claimed window has no checkpoint whose required evidence exceeds that capacity.
+V3 uses the same final 1,024-history test stream and its 26,624 turns and 2,738,857 tokens, but evaluates only the delayed preference-change and delayed preference-incongruity query families.
+Each family contributes one eligible query per history, for 2,048 eligible queries.
+For each query, evaluation occurs at the first periodic 262,144-token global sweep strictly after its trigger, or at a terminal sweep on the final real turn when the next periodic threshold lies beyond the stream.
+The terminal sweep does not append a synthetic turn.
+The final-turn trigger for `history-599-preference-incongruity-delayed` has no later real turn and is excluded by the strict causal-delay rule.
+The final evaluation therefore contains 2,047 delayed checkpoints, comprising 1,024 preference-change checkpoints and 1,023 preference-incongruity checkpoints.
+The explicit query accounting is 2,048 eligible, 2,047 evaluated, and one excluded query, whose ID is `history-599-preference-incongruity-delayed`.
+Of those checkpoints, 1,950 use periodic sweeps and 97 use the terminal real-turn sweep.
 
-Planned v3 will also add imperfect query-blind structured retrieval.
-Ingestion and stored representations will be created without access to the future query or hidden evidence contract.
-At query time, retrieval may use only visible query text and previously materialized structured memory, with bounded capacity and explicit misses.
-Full structured memory should remain only as the oracle upper control, while imperfect retrieval becomes the realistic structured method.
-Random-filler and length-matched semantic-distractor conditions should isolate positional token pressure from semantic retrieval difficulty.
-Those retrieval evaluations should separately test same-entity lexical negatives and alias-bridge traversal instead of inferring capability from provenance contracts.
+The required-evidence token age ranges from 5,245 to 293,733 tokens, with a median of 137,011 tokens.
+Exactly 78.9447972642892% of checkpoints have evidence older than 65,536 tokens, and 52.2227650219834% have evidence older than 131,072 tokens.
+This realized distribution makes both tested windows binding for substantial portions of the evaluation.
+V3 therefore supersedes the v2 immediate-trigger 64K saturation result for long-age comparison, but it does not retroactively alter any v2 score or disclosure.
 
-Delayed global sweeps and imperfect query-blind retrieval address different limitations.
-Delayed sweeps make large windows binding.
-Imperfect retrieval tests whether a practical structured system can locate account-local evidence without oracle storage selection.
-Neither capability exists in the current interleaved v2 result, and neither is implied by its forced-perfect control.
+### Candidate Construction, Admission, and Capacity
+
+The candidate pool contains 5,120 causal memory candidates.
+It consists of 2,048 Scallop-derived valid relation capsules, with one preference-change capsule and one preference-incongruity capsule for each test history, plus 3,072 same-entity hard-negative notes from the source stream.
+Each valid capsule contains a natural relation description followed by the three natural source statements selected by the Scallop-derived relation, including the alias statement.
+The capsule's machine fields retain relation kind, history ID, release turn, and source event IDs for admission, causal availability, assembly, and diagnostics, but those fields are not ranking inputs.
+
+The corrected artifact metadata records `validity_admission_uses_scallop_relation_kind=true`.
+Validity admission uses the Scallop-derived relation kind and admits only `preference_change` and `preference_incongruity` capsules.
+All `hard_negative` candidates are excluded before capacity compaction and BM25 ranking.
+At every causal sweep, the evaluator considers only candidates released by that turn and applies a fixed global capacity of 1,024 admitted capsules.
+When more than 1,024 admitted capsules are available, it retains those with the lowest stable SHA-256 content hashes.
+This compaction is query-blind, history-blind, and relation-blind within the already admitted valid capsules.
+It is not validity-blind because Scallop relation kind determines admission before compaction.
+The final retained-capacity artifact contains 505 preference-change capsules and 519 preference-incongruity capsules.
+
+### Unaugmented Query Ranking and Matched Contexts
+
+For every checkpoint, global BM25 selects top-1 from the currently available admitted and capacity-retained capsules.
+The BM25 query is exactly the original dataset `query_text` visible to a model, with no relation hint or other augmentation.
+The selector does not use machine relation kind, history ID, gold, checkpoint evidence fields, source event IDs, or any hidden target-history filter.
+The indexed capsule text does expose its natural relation description and natural source statements, including natural account aliases and object values.
+Content text therefore provides lexical identity and relation cues even though the machine metadata fields do not.
+
+Sliding and structured methods are matched at 65,536-token and 131,072-token prompt-inclusive exact budgets.
+Both receive the same causal checkpoint, original visible query text, pinned tokenizer, prompt template, and complete-turn boundary accounting.
+The sliding method receives the largest raw global transcript suffix that fits the budget.
+The structured method injects the selected capsule's deduplicated source turns when they fall before the raw suffix, then fills the remaining budget with the most recent global suffix.
+No method receives future turns.
+
+After selection, deterministic oracle scoring filters retained or injected turns to the hidden target history and replays them in original global causal order.
+This hidden target-history filtering remains an evaluation convenience and is not part of BM25 ranking.
+The same deterministic resolver used for source gold scores answer sufficiency, declared provenance, grounded accuracy, evidence recall, and stale-memory intrusion.
+Consequently, v3 measures context availability under the benchmark's declared semantics rather than LLM generation, extraction, entity resolution, or independent reasoning accuracy.
+
+### Exact Aggregate Results
+
+The structured method has higher aggregate grounded context availability, but that difference coexists with stale intrusion.
+
+| Method | Checkpoints | Oracle answer sufficiency | Complete provenance | Grounded answer | Mean evidence recall | Stale intrusion |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Sliding 64K | 2,047 | 22.5696% | 20.8598% | 20.8598% | 21.3972% | 0.0000% |
+| Structured capacity top-1 64K | 2,047 | 58.7689% | 58.1827% | 58.1827% | 58.3903% | 29.0669% |
+| Sliding 128K | 2,047 | 48.8031% | 47.7772% | 47.7772% | 48.0581% | 0.0000% |
+| Structured capacity top-1 128K | 2,047 | 72.8383% | 72.3498% | 72.3498% | 72.5085% | 19.3454% |
+
+At 64K, grounded checkpoints increase from 427 to 1,191, a gain of 764 checkpoints or 37.3229 percentage points, while 595 structured checkpoints produce stale intrusions.
+At 128K, grounded checkpoints increase from 978 to 1,481, a gain of 503 checkpoints or 24.5725 percentage points, while 396 structured checkpoints produce stale intrusions.
+The stale rates are availability outcomes from deterministic resolution of the selected context, not LLM hallucination or LLM accuracy errors.
+
+### Paired History-Clustered Grounded Comparison
+
+The paired comparison gives each of the 1,024 history clusters equal weight and matches all 2,047 evaluated checkpoints within each tested window.
+At 64K, the exact structured-minus-sliding grounded delta is 0.373046875, or 37.3046875 percentage points, with a 95% interval of [0.359375, 0.3876953125], or [35.9375, 38.76953125] percentage points.
+At 128K, the exact structured-minus-sliding grounded delta is 0.24560546875, or 24.560546875 percentage points, with a 95% interval of [0.23095703125, 0.2607421875], or [23.095703125, 26.07421875] percentage points.
+Each interval uses 2,000 deterministic bootstrap samples over 1,024 history clusters with seed 47.
+These equal-history paired deltas differ slightly from the checkpoint-weighted aggregate percentage-point differences because the one excluded query leaves one history with a single evaluated family.
+
+### Family-Stratified Grounded Results and Stale Risk
+
+| Query family | Checkpoints | Sliding 64K grounded | Structured 64K grounded | Sliding 128K grounded | Structured 128K grounded | Structured stale 64K | Structured stale 128K |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Delayed preference change | 1,024 | 19.3359% | 80.2734% | 46.2891% | 87.2070% | 0.0000% | 0.0000% |
+| Delayed preference incongruity | 1,023 | 22.3851% | 36.0704% | 49.2669% | 57.4780% | 58.1623% | 38.7097% |
+
+The change family accounts for 822 structured grounded checkpoints at 64K and 893 at 128K, with no stale intrusions.
+The incongruity family accounts for 369 structured grounded checkpoints at 64K and 588 at 128K, but also all 595 and 396 stale intrusions respectively.
+The family split is therefore materially less favorable than the aggregate alone suggests.
+
+### Selector Diagnostics
+
+The selected capsule is independent of the context budget, so selector identity and family diagnostics are the same at 64K and 128K.
+Across 2,047 checkpoints, BM25 selects a capsule from the target history 1,886 times, or 92.1348%.
+It selects the expected relation family 1,023 times, or 49.9756%, and selects both the target history and expected family 943 times, or 46.0674%.
+For delayed preference change, target history is correct in 943 of 1,024 selections, expected family is correct in 777, and both are correct in 763.
+For delayed preference incongruity, target history is correct in 943 of 1,023 selections, expected family is correct in 246, and both are correct in only 180.
+At 64K, all 595 stale intrusions occur when an incongruity query selects the target history's preference-change capsule.
+At 64K, 595 of 856 structured grounded-answer errors are stale intrusions, giving the exact conditional stale rate 0.6950934579439252, or 69.50934579439252%.
+At 128K, 396 of 566 structured grounded-answer errors are stale intrusions, giving the exact conditional stale rate 0.6996466431095406, or 69.96466431095406%.
+The selector matches the target account more often than it matches the expected relation family in this synthetic corpus, and wrong-family selections create stale-selection risk.
+
+### V3 Non-Claims
+
+V3 does not evaluate an LLM and does not report language-model answer accuracy.
+It does not demonstrate natural-language extraction, learned ingestion, independent reasoning, end-to-end entity resolution, production deletion behavior, privacy, safety, latency, throughput, storage cost, or superiority to another memory system.
+It does not test hard-negative rejection at ranking time because relation-kind admission excludes all hard-negative notes before BM25.
+It does not isolate semantic distractor difficulty from positional pressure with random-filler or length-matched ablations.
+The deterministic stable-hash capacity policy is an auditable bounded selector, not a learned or utility-optimized compactor.
+The original visible query and capsule text contain synthetic lexical regularities, aliases, dates, and opaque values that can make account matching easier than natural conversations.
+The benchmark uses one tokenizer revision, one stream schedule, one capacity, and one sweep interval, and the paired bootstrap intervals do not estimate variation across alternate datasets or schedule seeds.
+The result supports only a structured-improvement claim about grounded context availability under this delayed synthetic protocol, paired with the disclosed selector failures and stale-intrusion risk.
+
+## Local Qwen3.5-0.8B Sliding-Context Pilot
+
+This pilot is separate from the complete v3 deterministic evaluation.
+It uses direct local `transformers` inference with the cached `Qwen/Qwen3.5-0.8B` revision `2fc06364715b967f1860aea9cf38778875588b17`, `transformers==5.15.0`, and `torch==2.6.0+cu124` on one NVIDIA A100-SXM4-40GB.
+Generation is greedy, batch size one, BF16, SDPA, and non-thinking through the Qwen chat template.
+The published manifest hashes the model config, tokenizer, chat template, safetensors index, and weight shard rather than relying on the machine-specific cache path.
+
+The pilot selects 32 complete histories by stable SHA-256 rank with seed 47.
+It evaluates both delayed query families at both 65,536-token and 131,072-token prompt-input caps, for 128 generations total.
+The sample is deterministic but not composition-stratified and covers only 32 of the 1,024 test histories.
+Its history-clustered bootstrap intervals are descriptive intervals over this selected pilot and do not estimate variation across alternate datasets or schedules.
+
+Each prompt contains the maximal complete-turn raw suffix that fits under the model's own tokenizer and chat template, followed by the original gold-free query.
+The nominal window caps prompt input only; up to 64 generated tokens are additional.
+The evaluator authenticates the source v3 metrics and predictions, records a digest of the ordered event IDs and rendered turn text, hashes every exact model prompt, and validates each preserved suffix and resume row before scoring.
+
+The model was not instructed to emit only the opaque synthetic label, so strict whole-completion equality would undercount semantically correct verbose responses.
+The final scorer instead extracts a label only when the completion contains exactly one unique token matching the benchmark form `value-N-x`; absent or ambiguous labels receive no credit.
+Immutable raw completions remain in `generations.jsonl` with their own generation-phase manifest; extracted labels and scores are derived separately in `predictions.jsonl`.
+At 64K, a unique label is extractable from 61 of 64 completions, and 2 of 64 extracted labels equal gold, for 3.1250% accuracy with a descriptive history-clustered 95% interval of [0.0000%, 7.8125%].
+At 128K, a unique label is extractable from 63 of 64 completions, and 1 of 64 extracted labels equals gold, for 1.5625% accuracy with an interval of [0.0000%, 4.6875%].
+
+The deterministic resolver independently finds the gold answer in 12 of 64 selected 64K contexts, or 18.7500%, and 32 of 64 selected 128K contexts, or 50.0000%.
+This is resolver answer sufficiency, not complete provenance and not model accuracy.
+The gap shows that answer availability alone is insufficient for this small model under the pilot protocol, but it does not isolate extraction, entity resolution, reasoning, or output-format causes.
+
+The 64-token generation cap remains a material limitation: all 64 of 64 64K generations and 63 of 64 128K generations reached the cap.
+The unique labels generally appear before truncation, but the pilot does not establish uncensored completion behavior.
+It evaluates no structured-context generation, so it cannot confirm or refute the deterministic structured-minus-sliding v3 advantage.
+
+`Qwen/Qwen3.5-4B` remains unmeasured, so this pilot supports no claim about its answer capability or its behavior under a memory-efficient serving engine.
+
+Create the isolated evaluator environment with a host-compatible CUDA PyTorch installation and the pinned evaluator requirements, then run or rescore the pilot:
+
+```bash
+python -m pip install -r requirements-qwen35-eval.txt
+
+CUDA_VISIBLE_DEVICES=6 \
+HF_HUB_OFFLINE=1 \
+TRANSFORMERS_OFFLINE=1 \
+python -m experiments.interleaved_memory_qwen35_eval \
+    --dataset results/synthetic_temporal_preferences_1200_v5_interleaved \
+    --v3-results results/interleaved_memory_benchmark_v3 \
+    --output-dir results/interleaved_memory_qwen35_0_8b \
+    --model "$QWEN35_08B_SNAPSHOT" \
+    --model-id Qwen/Qwen3.5-0.8B \
+    --history-limit 32 \
+    --max-new-tokens 64 \
+    --bootstrap-samples 2000 \
+    --no-use-kernels
+```
+
+Add `--rescore-existing` to authenticate and rescore preserved raw completions without loading the model.
+`QWEN35_08B_SNAPSHOT` must point to the locally cached revision recorded above; no hosted API, RLM agent, or external model service is used.
 
 ## Interpretation
 
@@ -757,3 +909,6 @@ Because suffix selection uses peer turns as positional pressure and hidden-histo
 At immediate-trigger checkpoints, 4K and 16K suffixes lose evidence, while 64K and larger windows are non-binding because the oldest required evidence is only 41,255 tokens old.
 Full structured memory is a forced-perfect oracle storage control, and Scallop's current v2 role is rule execution and parity checking on generator-labeled three-event contradiction fixtures rather than contradiction discovery or online answer generation.
 These boundaries are part of the result.
+The final v3 result adds a separate delayed and bounded-retrieval conclusion.
+At matched 64K and 128K prompt-inclusive budgets, stable-hash-compacted global BM25 top-1 capsules increase aggregate grounded context availability over raw transcript suffixes, especially for preference changes.
+The same method performs weak relation-family discrimination for incongruity queries and introduces substantial stale context, so the improvement cannot be described as uniformly safe or as LLM accuracy.
