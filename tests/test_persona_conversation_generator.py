@@ -114,15 +114,19 @@ def test_generation_reuses_latent_artifacts_and_adds_natural_surfaces(tmp_path: 
         "examples.jsonl",
         "facts.jsonl",
         "queries.jsonl",
+        "source_documents.jsonl",
         "raw_responses.jsonl",
     }
+    assert manifest["artifact_roles"]["events.jsonl"] == "model_input"
+    assert manifest["artifact_roles"]["queries.jsonl"] == "supervision_only"
+    assert manifest["hashing"]["algorithm"] == "sha256"
     events = _jsonl(output / "events.jsonl")
     queries = _jsonl(output / "queries.jsonl")
     assert all("User:" in event["model_text"] for event in events)
     assert all("value-" not in event["model_text"] for event in events)
     assert all("surface_query_text" in query and "surface_gold" in query for query in queries)
     assert all("value-" not in str(query["surface_gold"]) for query in queries)
-    assert all("account holder" in query["surface_query_text"].lower() for query in queries)
+    assert all("subject-" not in query["surface_query_text"] for query in queries)
     assert all("AsterArc" not in query["surface_query_text"] for query in queries)
 
 
@@ -342,7 +346,19 @@ def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> 
         "window desk",
     ]
     assert "resolve" in resolution["semantic_markers"]
+    prompts_by_id = {event["event_id"]: event for event in prompt_events}
+    transition = prompts_by_id["history-001-transition"]
+    assert "through 2025-09-30" in transition["semantic_instruction"]
+    assert "going forward" in transition["forbidden_surface_phrases"]
+    duplicate = prompts_by_id["history-001-duplicate"]
+    assert "do not invent delivery timing" in duplicate["semantic_instruction"]
+    assert "deduplicat" in duplicate["forbidden_surface_phrases"]
     assert all(" 001" not in event["model_text"] for event in _jsonl(output / "events.jsonl"))
+    assert prompt_events[0]["surface_text"].startswith("AsterArc ")
+    assert all(
+        "AsterArc" in query["surface_query_text"]
+        for query in _jsonl(output / "queries.jsonl")
+    )
 
 
 def test_personas_are_matched_without_encoding_preferences() -> None:

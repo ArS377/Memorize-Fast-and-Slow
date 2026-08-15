@@ -152,9 +152,9 @@ def _fact(
             "source_authority": source_authority,
         },
         "provenance": [{
-            "title": example_id,
-            "document_id": example_id,
-            "sentence_id": f"{example_id}:0",
+            "title": fact_id,
+            "document_id": fact_id,
+            "sentence_id": f"{fact_id}:0",
             "sent_id": 0,
             "source_span_start": 0,
             "source_span_end": len(support_text),
@@ -492,18 +492,24 @@ def generate_dataset(
             fact_id=f"{history_id}-constraint", example_id=scope_example, subject=subject,
             object_=forbidden_value, valid_from="2025-01-01", valid_to=None,
             scope="hard_constraint",
+            predicate="AVOIDS",
+            domain="hard_constraint",
             support_text=support_texts["constraint"],
         )
         ambiguity = _fact(
             fact_id=f"{history_id}-ambiguity", example_id=scope_example, subject=subject,
             object_=ambiguous_value, valid_from="2025-09-01", valid_to=None,
             scope=f"ambiguity-scope-{index:03d}",
+            predicate="AMBIGUOUS_PREFERENCE",
+            domain="preference_ambiguity",
             support_text=support_texts["ambiguity"],
         )
         private = _fact(
             fact_id=f"{history_id}-private", example_id=scope_example, subject=subject,
             object_=private_value, valid_from="2025-01-01", valid_to=None, scope="private",
             support_text=support_texts["private"],
+            predicate="PRIVATE_NOTE",
+            domain="private_memory",
         )
         stale = _fact(
             fact_id=f"{history_id}-stale", example_id=transition_example, subject=subject,
@@ -590,6 +596,8 @@ def generate_dataset(
             valid_from="2026-01-01",
             valid_to=None,
             scope="private",
+            predicate="PRIVATE_NOTE",
+            domain="private_memory",
             support_text=f'{event_alias} asked that "{lineage_value}" be retained as a private note.',
         )
         lineage_copy_one = _fact(
@@ -600,6 +608,8 @@ def generate_dataset(
             valid_from="2026-01-01",
             valid_to=None,
             scope="private",
+            predicate="PRIVATE_NOTE",
+            domain="private_memory",
             support_text=f'The private note for {query_alias} was delivered again as "{lineage_value}".',
         )
         lineage_copy_two = _fact(
@@ -610,6 +620,8 @@ def generate_dataset(
             valid_from="2026-01-01",
             valid_to=None,
             scope="private",
+            predicate="PRIVATE_NOTE",
+            domain="private_memory",
             support_text=f'A later delivery repeated {event_alias}\'s private note, "{lineage_value}".',
         )
         for fact in [
@@ -851,6 +863,8 @@ def generate_dataset(
         for event in history_events:
             event["split"] = split_by_history[history_id]
             event["hardness_profile"] = hardness_profile
+            if hardness_profile in ANTI_SHORTCUT_PROFILES:
+                event["surface_subject"] = event_alias
         facts.extend([initial, current, scoped, backdated, replaceable, indirect, direct, leakage])
         if hardness_profile in ANTI_SHORTCUT_PROFILES:
             facts.extend([
@@ -1006,18 +1020,41 @@ def generate_dataset(
             candidate["hardness_profile"] = hardness_profile
             candidate["candidate_features"] = derive_candidate_features(history_events, candidate)
         candidates.extend(history_candidates)
+    source_documents_by_id: dict[str, dict[str, str]] = {}
+    source_facts = [
+        *facts,
+        *[event["fact"] for event in events],
+        *[candidate["fact"] for candidate in candidates],
+    ]
+    for fact in source_facts:
+        document_id = str(fact["provenance"][0]["document_id"])
+        document = {
+            "document_id": document_id,
+            "history_id": str(fact["history_id"]),
+            "split": str(fact["split"]),
+            "text": str(fact["support_text"]),
+        }
+        prior = source_documents_by_id.get(document_id)
+        if prior is not None and prior != document:
+            raise ValueError(f"conflicting source documents for {document_id}")
+        source_documents_by_id[document_id] = document
     paths = {
         "examples": output_dir / "examples.jsonl",
         "facts": output_dir / "facts.jsonl",
         "candidates": output_dir / "candidate_updates.jsonl",
         "events": output_dir / "events.jsonl",
         "queries": output_dir / "queries.jsonl",
+        "source_documents": output_dir / "source_documents.jsonl",
     }
     _write_jsonl(paths["examples"], examples)
     _write_jsonl(paths["facts"], facts)
     _write_jsonl(paths["candidates"], candidates)
     _write_jsonl(paths["events"], events)
     _write_jsonl(paths["queries"], queries)
+    _write_jsonl(
+        paths["source_documents"],
+        [source_documents_by_id[key] for key in sorted(source_documents_by_id)],
+    )
     return paths
 
 

@@ -176,6 +176,10 @@ def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
     )
     events = _rows(paths["events"])
     candidates = _rows(paths["candidates"])
+    source_documents = {
+        document["document_id"]: document["text"]
+        for document in _rows(paths["source_documents"])
+    }
     by_suffix = {
         event["event_id"].removeprefix("history-001-"): event for event in events
     }
@@ -190,6 +194,10 @@ def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
         for event in events
         if event["event_family"] in context_families
     )
+    assert by_suffix["constraint"]["fact"]["predicate"] == "AVOIDS"
+    assert by_suffix["ambiguity"]["fact"]["predicate"] == "AMBIGUOUS_PREFERENCE"
+    assert by_suffix["private-add"]["fact"]["predicate"] == "PRIVATE_NOTE"
+    assert all(event["surface_subject"] == "AsterArc" for event in events)
     assert set(by_suffix["direct-correction"]["resolves"]) == {
         "history-001-indirect-source",
     }
@@ -224,6 +232,16 @@ def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
         if candidate["candidate_id"] == "history-001-hard-constraint-violation"
     )
     assert "requested" in constraint_violation["fact"]["support_text"]
+    all_facts = [
+        *[event["fact"] for event in events],
+        *[candidate["fact"] for candidate in candidates],
+    ]
+    for fact in all_facts:
+        source = fact["provenance"][0]
+        text = source_documents[source["document_id"]]
+        assert text[source["source_span_start"] : source["source_span_end"]] == (
+            fact["support_text"]
+        )
 
 
 def test_aliases_remain_disjoint_at_full_interleaved_scale() -> None:

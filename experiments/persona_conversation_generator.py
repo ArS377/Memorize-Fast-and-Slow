@@ -22,6 +22,7 @@ SOURCE_ARTIFACTS = (
     "examples.jsonl",
     "facts.jsonl",
     "queries.jsonl",
+    "source_documents.jsonl",
 )
 _LATENT_LABEL = re.compile(
     r"\b(?:history|subject|value|scope|example|candidate|replacement)-\d+(?:-[a-z][\w-]*)?\b"
@@ -416,9 +417,18 @@ def _surface_maps(events: Sequence[Mapping[str, Any]]) -> tuple[dict[str, str], 
         value_map[raw_object] = (
             "quiet private studio" if natural == "quiet studio" else natural
         )
-    subject_map = {}
+    subject_map = {
+        str(event["fact"]["subject"]): str(event["surface_subject"])
+        for event in events
+        if isinstance(event.get("fact"), Mapping)
+        and isinstance(event["fact"].get("subject"), str)
+        and isinstance(event.get("surface_subject"), str)
+        and str(event["surface_subject"]).strip()
+    }
     namespace_size = len(_GIVEN_NAMES) * len(_FAMILY_NAMES)
     for index, subject in enumerate(subjects):
+        if subject in subject_map:
+            continue
         cycle = index // namespace_size
         given = _GIVEN_NAMES[index % len(_GIVEN_NAMES)]
         family = _FAMILY_NAMES[(index // len(_GIVEN_NAMES)) % len(_FAMILY_NAMES)]
@@ -442,41 +452,42 @@ def _surface_query(
     """Return model-visible natural query and answer while preserving latent gold fields."""
     kind = str(query.get("kind"))
     query_id = str(query.get("query_id"))
+    subject = replacements.get(str(query.get("subject")), "the account holder")
     if kind == "preference":
         scope = str(query.get("scope", "default"))
         surface_scope = replacements.get(scope, scope.replace("_", " "))
         date = str(query.get("date", "the requested date"))
         if query_id.endswith("preference-change-delayed"):
             text = (
-                "After the long record, what standing preference applied to the account holder "
+                f"After the long record, what standing preference applied to {subject} "
                 f"on {date}?"
             )
         elif query_id.endswith("preference-incongruity-delayed"):
             text = (
-                "Considering the complete record, what standing preference applied to the "
-                f"account holder on {date}?"
+                f"Considering the complete record, what standing preference applied to {subject} "
+                f"on {date}?"
             )
         else:
             text = (
-                f"What did the account holder prefer in the {surface_scope} on {date}?"
+                f"What did {subject} prefer in the {surface_scope} on {date}?"
             )
     elif kind == "recommendation":
         candidate = value_map.get(str(query.get("candidate")), str(query.get("candidate")))
         text = (
-            f"Is {candidate} feasible under the account holder's stated constraints? "
+            f"Is {candidate} feasible under {subject}'s stated constraints? "
             "Answer FEASIBLE or INFEASIBLE."
         )
     elif kind == "private_recall":
-        text = "What private preference, if any, can still be recalled for the account holder?"
+        text = f"What private preference, if any, can still be recalled for {subject}?"
     elif kind == "ambiguity":
         text = (
-            "What settled preference was established after the account holder's conflicting "
+            f"What settled preference was established after {subject}'s conflicting "
             "statements? Answer the exact preference or UNKNOWN."
         )
     elif kind == "private_lineage":
         prefix = "After the withdrawal, " if query_id.endswith("private-lineage") else ""
         text = (
-            f"{prefix}what private value, if any, can still be recalled for the account holder?"
+            f"{prefix}what private value, if any, can still be recalled for {subject}?"
         )
     else:
         raise ValueError(f"unsupported surface query kind {kind!r} for {query_id}")
@@ -518,9 +529,14 @@ def _semantic_instruction(
         prior_values = list(required_values[:-1])
         old_value, new_value = prior_values[0], required_values[-1]
         if operation == "supersede":
+            fact = event.get("fact")
+            temporal = fact.get("temporal", {}) if isinstance(fact, Mapping) else {}
+            valid_from = temporal.get("valid_from")
+            valid_to = temporal.get("valid_to")
             return (
                 f"State that {old_value} remains historical before the transition and "
-                f"{new_value} becomes active afterward; do not erase the old history."
+                f"{new_value} is active only from {valid_from} through {valid_to}; do not "
+                "describe it as open-ended or erase the old history."
             )
         if operation == "backdated_correction":
             return (
@@ -533,6 +549,8 @@ def _semantic_instruction(
         )
     if "retract" in operation:
         return "Mark the value unavailable for future recall without claiming its audit history was destroyed."
+    if "duplicate" in operation:
+        return "State only that the same fact was delivered again; do not invent delivery timing, merging, or deduplication outcomes."
     if event_family == "contradiction_opening" and len(required_values) == 1:
         return "State only the supplied choice; do not invent an alternative or call it a conflict yet."
     if event_family == "contradiction_opening":
@@ -546,11 +564,34 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
     """Return high-risk unsupported claims that invalidate generated dialogue."""
     operation = str(event.get("operation", "")).casefold()
     event_family = str(event.get("event_family", "")).casefold()
-    phrases = ["no other", "nothing else changed", "complete picture"]
+    phrases = [
+        "no other",
+        "nothing else changed",
+        "complete picture",
+        "supplied event",
+        "benchmark",
+        "the prompt",
+        "provided text",
+        "how should i phrase",
+        "supportable statement",
+        "write the entry",
+        "do not add",
+    ]
     if event_family == "delayed_preference_probe":
         phrases.extend(("no conflict", "no conflicting", "everything matches", "still the same"))
     if operation == "supersede":
-        phrases.extend(("fully replacing", "delete the old", "erase the old"))
+        phrases.extend(
+            (
+                "fully replacing",
+                "delete the old",
+                "erase the old",
+                "going forward",
+                "from now on",
+                "indefinitely",
+            )
+        )
+    if "duplicate" in operation:
+        phrases.extend(("last cycle", "deduplicat", "merged", "single canonical"))
     if (event.get("supersedes") or event.get("corrects")) and operation != "supersede":
         phrases.extend(("stays exactly as it is", "remains unchanged", "keep it unchanged"))
     if "retract" in operation:
@@ -762,6 +803,21 @@ def generate_persona_conversations(
             "split_counts": list(config.split_counts),
         },
         "controls": {"full_structured_memory": "oracle control"},
+        "artifact_roles": {
+            "events.jsonl": "model_input",
+            "source_documents.jsonl": "source_evidence",
+            "facts.jsonl": "structured_oracle",
+            "queries.jsonl": "supervision_only",
+            "examples.jsonl": "supervision_only",
+            "candidate_updates.jsonl": "supervision_only",
+            "requests.jsonl": "generation_provenance",
+            "raw_responses.jsonl": "generation_provenance",
+        },
+        "hashing": {
+            "algorithm": "sha256",
+            "prompt_preimage": "json.dumps(messages, ensure_ascii=True, sort_keys=True).encode('utf-8')",
+            "artifact_preimage": "raw_file_bytes",
+        },
     }
     _write_json(manifest_path, manifest)
     raw_rows: list[dict[str, Any]] = []
@@ -822,7 +878,9 @@ def generate_persona_conversations(
                     {
                         "role": "system",
                         "content": (
-                            "Render each supplied event as concise, realistic user-assistant dialogue. "
+                            "Render each supplied event as an ordinary, realistic memory interaction. "
+                            "The user should discuss their situation directly, never ask how to word, "
+                            "annotate, summarize, or record a benchmark statement. "
                             "Keep the supplied event order and meaning exactly. Return strict JSON only. "
                             "Return exactly one top-level key named events. Each events item must contain "
                             "exactly the supplied event_id and a turns array of alternating role/content "
@@ -831,7 +889,8 @@ def generate_persona_conversations(
                             f"{config.minimum_words_per_turn} words per turn. Mention every supplied "
                             "required_surface_value naturally and preserve conflict, correction, and "
                             "resolution relationships explicitly. Follow each semantic_instruction "
-                            "and do not use any forbidden_surface_phrases. Preserve event_id only "
+                            "and do not use any forbidden_surface_phrases. Never mention prompts, "
+                            "supplied events, benchmarks, generation, or source instructions. Preserve event_id only "
                             "as metadata; do not expose IDs or benchmark labels inside dialogue content. "
                             "Required shape: {\"events\":[{\"event_id\":\"the supplied ID\","
                             "\"turns\":[{\"role\":\"user\",\"content\":\"...\"},"
