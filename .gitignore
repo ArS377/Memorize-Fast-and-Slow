@@ -6,6 +6,8 @@ data_small.jsonl
 *.jsonl
 !requirements.txt
 !tests/fixtures/*.jsonl
+!results/persona_conversations_v1/*.jsonl
+!results/persona_recall_v1/*.jsonl
 
 # Python
 __pycache__/
