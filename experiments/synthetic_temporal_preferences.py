@@ -620,6 +620,7 @@ def generate_dataset(
             scope="private",
             predicate="PRIVATE_NOTE",
             domain="private_memory",
+            source_authority="direct_user",
             support_text=f'The private note for {query_alias} was delivered again as "{lineage_value}".',
         )
         lineage_copy_two = _fact(
@@ -632,6 +633,7 @@ def generate_dataset(
             scope="private",
             predicate="PRIVATE_NOTE",
             domain="private_memory",
+            source_authority="direct_user",
             support_text=f'A later delivery repeated {event_alias}\'s private note, "{lineage_value}".',
         )
         for fact in [
@@ -695,6 +697,7 @@ def generate_dataset(
                 scope="identity",
                 predicate="SAME_ACCOUNT",
                 domain="identity_resolution",
+                source_authority="direct_user",
                 support_text=(
                     f"{event_alias} and the {query_alias} refer to the same account. "
                     f"The standing preference history belongs to the {query_alias}."

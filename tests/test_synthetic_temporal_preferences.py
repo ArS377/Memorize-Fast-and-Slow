@@ -225,6 +225,10 @@ def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
         "history-001-conflict-left"
     )
     assert by_suffix["lineage-retract"]["retracts_lineage"] is True
+    for suffix in ("lineage-alias", "lineage-copy-1", "lineage-copy-2"):
+        assert by_suffix[suffix]["fact"]["qualifiers"]["source_authority"] == (
+            "direct_user"
+        )
     assert set(by_suffix["conflict-resolution"]["resolves"]) == {
         "history-001-conflict-left",
         "history-001-conflict-right",
