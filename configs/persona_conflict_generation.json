@@ -11,8 +11,8 @@
     "hardness_profile": "anti_shortcut_interleaved_v3",
     "split_counts": [2, 2, 12],
     "prompt_schema_version": "persona-conversation.v3",
-    "turn_pairs_per_event": 2,
-    "minimum_words_per_turn": 20,
+    "turn_pairs_per_event": 1,
+    "minimum_words_per_turn": 12,
     "events_per_request": 4,
     "enable_thinking": false
   }

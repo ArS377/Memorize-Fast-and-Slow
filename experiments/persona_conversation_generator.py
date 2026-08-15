@@ -563,6 +563,8 @@ def _semantic_instruction(
         )
     if "retract" in operation:
         return "Mark the value unavailable for future recall without claiming its audit history was destroyed."
+    if event_family == "private_lineage":
+        return "Discuss only a private note and its repetition; never call it a preference, favorite, dish, or recommendation signal."
     if "duplicate" in operation:
         return "Have the user naturally repeat a previously stated preference; do not discuss delivery timing, storage, merging, or deduplication."
     if event_family == "contradiction_opening" and len(required_values) == 1:
@@ -621,6 +623,9 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
         )
     if "duplicate" in operation:
         phrases.extend(("last cycle", "deduplicat", "merged", "single canonical"))
+        phrases.extend(("on your profile", "already saved", "in storage"))
+    if event_family == "private_lineage":
+        phrases.extend(("favorite", "preference", "recommend", "dish"))
     if (
         event.get("supersedes")
         or event.get("corrects")
@@ -632,6 +637,25 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
     if "retract" in operation:
         phrases.extend(("nothing remains to be recovered", "permanently deleted", "completely erased"))
     return tuple(phrases)
+
+
+def _speaker_contract(event: Mapping[str, Any], dialogue_subject: str) -> tuple[str, list[str]]:
+    """Return a speaker instruction and lexical evidence for source authority."""
+    fact = event.get("fact")
+    qualifiers = fact.get("qualifiers", {}) if isinstance(fact, Mapping) else {}
+    authority = str(qualifiers.get("source_authority", "inferred"))
+    if authority == "direct_user":
+        return (
+            f"The user is {dialogue_subject} and states their own information naturally in first person.",
+            [],
+        )
+    if authority == "inferred":
+        return (
+            f"The user asks about third-party evidence concerning {dialogue_subject}; the assistant "
+            "must label it tentative or inferred, and the user must not personally confirm it.",
+            ["inferred", "tentative", "appears", "reported"],
+        )
+    raise ValueError(f"unsupported source authority {authority!r}")
 
 
 def validate_generation_response(
@@ -706,6 +730,13 @@ def validate_generation_response(
                     f"generated event {event['event_id']} asserted forbidden phrase "
                     f"{forbidden_phrase!r}"
                 )
+        authority_markers = expected_events[index].get("authority_markers", ())
+        if authority_markers and not any(
+            str(marker).casefold() in visible_text for marker in authority_markers
+        ):
+            raise ValueError(
+                f"generated event {event['event_id']} omitted its inferred-authority marker"
+            )
         semantic_markers = expected_events[index].get("semantic_markers", ())
         recordkeeping_count = len(_RECORDKEEPING_LANGUAGE.findall(visible_text))
         if recordkeeping_count > 3:
@@ -927,10 +958,15 @@ def generate_persona_conversations(
                 dialogue_subject = replacements.get(
                     str(event["fact"].get("subject")), "the account owner"
                 )
+                speaker_instruction, authority_markers = _speaker_contract(
+                    event, dialogue_subject
+                )
                 expected.append(
                     {
                         "event_id": event["event_id"],
                         "dialogue_subject": dialogue_subject,
+                        "speaker_instruction": speaker_instruction,
+                        "authority_markers": authority_markers,
                         "surface_text": surface_text,
                         "required_surface_values": required_values,
                         "semantic_markers": list(_semantic_markers(event)),
@@ -954,8 +990,8 @@ def generate_persona_conversations(
                             "Render each supplied event as an ordinary, realistic memory interaction. "
                             "The user should discuss their situation directly, never ask how to word, "
                             "annotate, summarize, or record a benchmark statement. "
-                            "The user is the supplied dialogue_subject and should speak naturally in "
-                            "first person rather than act as an unidentified operator. "
+                            "Follow each speaker_instruction exactly so direct statements and inferred "
+                            "third-party evidence remain distinct. "
                             "Use extra turns for practical context or tradeoffs, not repetitive "
                             "paraphrase or recordkeeping; use at most three recordkeeping terms per event. "
                             "Keep the supplied event order and meaning exactly. Return strict JSON only. "

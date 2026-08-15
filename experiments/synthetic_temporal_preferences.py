@@ -562,6 +562,7 @@ def generate_dataset(
             fact_id=f"{history_id}-scope-leakage", example_id=scope_example, subject=subject,
             object_=leakage_value, valid_from="2025-08-10", valid_to="2025-08-14",
             scope=f"leakage-scope-{index:03d}", support_text=support_texts["leakage"],
+            source_authority="direct_user",
         )
         equal_evidence = _fact(
             fact_id=f"{history_id}-equal-evidence-conflict", example_id=transition_example,
@@ -713,6 +714,7 @@ def generate_dataset(
                 scope="context",
                 predicate="CONTEXT_NOTE",
                 domain="conversation_context",
+                source_authority="direct_user",
                 support_text=(
                     f"Much later, {query_alias} reviewed unrelated calendar and account settings."
                 ),
@@ -727,6 +729,7 @@ def generate_dataset(
                 scope="context",
                 predicate="CONTEXT_NOTE",
                 domain="conversation_context",
+                source_authority="direct_user",
                 support_text=(
                     f"During a later account review, {event_alias} revisited the long-running record."
                 ),

@@ -58,6 +58,12 @@ class SurfaceFakeClient:
                                         event["semantic_markers"][0]
                                         if event["semantic_markers"]
                                         else ""
+                                    )
+                                    + " "
+                                    + (
+                                        event["authority_markers"][0]
+                                        if event["authority_markers"]
+                                        else ""
                                     ),
                                 },
                             ],

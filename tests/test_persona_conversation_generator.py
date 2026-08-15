@@ -49,6 +49,7 @@ class SurfaceFakeClient:
         """Build exact-length dialogue while preserving every required concept."""
         required = " ".join(event["required_surface_values"])
         marker = event["semantic_markers"][0] if event["semantic_markers"] else "record"
+        authority = event["authority_markers"][0] if event["authority_markers"] else ""
         turns = []
         for pair_index in range(turn_pairs):
             turns.extend(
@@ -63,6 +64,7 @@ class SurfaceFakeClient:
                         "role": "assistant",
                         "content": (
                             f"I will {marker} the stated choice and preserve its task-specific context accurately."
+                            f" {authority}"
                         ),
                     },
                 ]
@@ -364,6 +366,7 @@ def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> 
     assert "resolve" in resolution["semantic_markers"]
     prompts_by_id = {event["event_id"]: event for event in prompt_events}
     assert prompts_by_id["history-001-add"]["dialogue_subject"] == "AsterArc"
+    assert prompts_by_id["history-001-add"]["authority_markers"] == []
     assert prompts_by_id["history-001-replaceable"]["dialogue_subject"] != "AsterArc"
     transition = prompts_by_id["history-001-transition"]
     assert "through 2025-09-30" in transition["semantic_instruction"]
@@ -373,6 +376,7 @@ def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> 
     assert "deduplicat" in duplicate["forbidden_surface_phrases"]
     negative = prompts_by_id["history-001-lineage-negative-1"]
     assert "unrelated mention only" in negative["semantic_instruction"]
+    assert "inferred" in negative["authority_markers"]
     ambiguity_query = next(
         query
         for query in _jsonl(output / "queries.jsonl")
