@@ -1,0 +1,803 @@
+"""Generate auditable natural conversations over deterministic latent preference traces."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Mapping, Protocol, Sequence
+
+from experiments.synthetic_temporal_preferences import generate_dataset
+
+
+PROMPT_SCHEMA_VERSION = "persona-conversation.v2"
+SOURCE_ARTIFACTS = (
+    "candidate_updates.jsonl",
+    "events.jsonl",
+    "examples.jsonl",
+    "facts.jsonl",
+    "queries.jsonl",
+)
+_LATENT_LABEL = re.compile(
+    r"\b(?:history|subject|value|scope|example|candidate|replacement)-\d{3}(?:-[a-z][\w-]*)?\b"
+    r"|\b(?:event_id|fact_id|query_id|operation|gold)\s*="
+)
+_PREFERENCE_SURFACES = (
+    "cedar tea",
+    "mint tea",
+    "window seating",
+    "aisle seating",
+    "vegetable ramen",
+    "mushroom risotto",
+    "morning delivery",
+    "evening delivery",
+    "quiet workspace",
+    "shared workspace",
+    "paper receipts",
+    "digital receipts",
+    "weekly summaries",
+    "monthly summaries",
+)
+_GIVEN_NAMES = (
+    "Morgan", "Riley", "Jordan", "Casey", "Taylor", "Avery", "Cameron", "Drew", "Parker", "Quinn",
+)
+_FAMILY_NAMES = (
+    "Lee", "Chen", "Patel", "Rivera", "Okafor", "Kim", "Nguyen", "Garcia", "Brown", "Singh",
+)
+
+
+def _nonempty(value: Any, name: str) -> str:
+    """Validate and return one non-empty string boundary value."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} must be a non-empty string")
+    return value
+
+
+def _positive_int(value: Any, name: str) -> int:
+    """Validate and return one positive integer without accepting booleans."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(f"{name} must be a positive integer")
+    return value
+
+
+def _positive_number(value: Any, name: str) -> float:
+    """Validate and return one positive finite number."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or float(value) <= 0:
+        raise ValueError(f"{name} must be a positive number")
+    return float(value)
+
+
+@dataclass(frozen=True)
+class Persona:
+    """Identity-only persona metadata kept separate from benchmark task semantics."""
+
+    persona_id: str
+    name: str
+    age: int | None
+    ethnicity: str | None
+    education: str | None
+    gender_identity: str | None
+    disability: str | None
+    religion: str | None
+    socioeconomic_background: str | None
+    locale: str | None
+    occupation: str | None
+    languages: tuple[str, ...]
+    interests: tuple[str, ...]
+    biography: str
+    pair_id: str | None
+    counterfactual_axis: str | None
+
+    def __post_init__(self) -> None:
+        """Reject incomplete personas and invalid counterfactual declarations."""
+        _nonempty(self.persona_id, "persona_id")
+        if self.persona_id == "no-persona":
+            if any(
+                value is not None
+                for value in (
+                    self.age,
+                    self.ethnicity,
+                    self.education,
+                    self.gender_identity,
+                    self.disability,
+                    self.religion,
+                    self.socioeconomic_background,
+                    self.locale,
+                    self.occupation,
+                    self.pair_id,
+                    self.counterfactual_axis,
+                )
+            ) or self.name or self.languages or self.interests or self.biography:
+                raise ValueError("no-persona must contain no identity attributes or biography")
+            return
+        _nonempty(self.name, "persona.name")
+        if isinstance(self.age, bool) or not isinstance(self.age, int) or self.age < 18:
+            raise ValueError("persona.age must be an adult integer")
+        _nonempty(self.ethnicity, "persona.ethnicity")
+        _nonempty(self.education, "persona.education")
+        _nonempty(self.gender_identity, "persona.gender_identity")
+        _nonempty(self.disability, "persona.disability")
+        _nonempty(self.religion, "persona.religion")
+        _nonempty(self.socioeconomic_background, "persona.socioeconomic_background")
+        _nonempty(self.locale, "persona.locale")
+        _nonempty(self.occupation, "persona.occupation")
+        if not self.languages or any(not isinstance(value, str) or not value.strip() for value in self.languages):
+            raise ValueError("persona.languages must contain non-empty strings")
+        if not self.interests or any(not isinstance(value, str) or not value.strip() for value in self.interests):
+            raise ValueError("persona.interests must contain non-empty strings")
+        _nonempty(self.biography, "persona.biography")
+        _nonempty(self.pair_id, "persona.pair_id")
+        if self.counterfactual_axis not in {"ethnicity", "education"}:
+            raise ValueError("persona.counterfactual_axis must be ethnicity or education")
+
+
+@dataclass(frozen=True)
+class GenerationConfig:
+    """Validated Kimi generation and deterministic dataset configuration."""
+
+    endpoint: str
+    api_key: str
+    model: str
+    timeout_seconds: float
+    seed: int
+    max_tokens: int
+    history_count: int
+    condition: str
+    hardness_profile: str
+    split_counts: tuple[int, int, int]
+    prompt_schema_version: str
+
+    def __post_init__(self) -> None:
+        """Validate all provider and source-generation boundaries."""
+        _nonempty(self.endpoint, "generation.endpoint")
+        _nonempty(self.api_key, "generation.api_key")
+        _nonempty(self.model, "generation.model")
+        if "kimi" not in self.model.casefold():
+            raise ValueError("generation.model must identify Kimi")
+        _positive_number(self.timeout_seconds, "generation.timeout_seconds")
+        if isinstance(self.seed, bool) or not isinstance(self.seed, int):
+            raise ValueError("generation.seed must be an integer")
+        _positive_int(self.max_tokens, "generation.max_tokens")
+        _positive_int(self.history_count, "generation.history_count")
+        if self.condition not in {"lexical", "paraphrase"}:
+            raise ValueError(f"unsupported generation condition: {self.condition}")
+        if self.hardness_profile not in {
+            "base",
+            "anti_shortcut_stream_v2",
+            "anti_shortcut_interleaved_v3",
+        }:
+            raise ValueError(f"unsupported hardness profile: {self.hardness_profile}")
+        if (
+            len(self.split_counts) != 3
+            or any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in self.split_counts)
+            or sum(self.split_counts) != self.history_count
+        ):
+            raise ValueError("generation.split_counts must be three non-negative integers summing to history_count")
+        _nonempty(self.prompt_schema_version, "generation.prompt_schema_version")
+
+
+@dataclass(frozen=True)
+class LLMResponse:
+    """Provider-neutral completion result used by generation and evaluation clients."""
+
+    content: str
+    finish_reason: str
+    model: str
+    usage: Mapping[str, Any]
+
+
+class CompletionClient(Protocol):
+    """Injectable OpenAI-compatible completion boundary."""
+
+    def complete(
+        self,
+        *,
+        messages: Sequence[Mapping[str, str]],
+        model: str,
+        timeout: float,
+        seed: int,
+        max_tokens: int,
+    ) -> LLMResponse:
+        """Return one chat completion without exposing provider credentials."""
+
+
+class OpenAICompletionClient:
+    """Minimal adapter around the installed OpenAI-compatible SDK."""
+
+    def __init__(
+        self,
+        endpoint: str,
+        api_key: str,
+        timeout_seconds: float,
+        *,
+        json_mode: bool = False,
+        enable_thinking: bool | None = None,
+    ) -> None:
+        from openai import OpenAI
+
+        self._client = OpenAI(
+            base_url=endpoint,
+            api_key=api_key,
+            timeout=timeout_seconds,
+            max_retries=0,
+        )
+        self._json_mode = json_mode
+        self._enable_thinking = enable_thinking
+
+    def complete(
+        self,
+        *,
+        messages: Sequence[Mapping[str, str]],
+        model: str,
+        timeout: float,
+        seed: int,
+        max_tokens: int,
+    ) -> LLMResponse:
+        """Call the configured endpoint and normalize the first completion choice."""
+        optional: dict[str, Any] = {}
+        if self._json_mode:
+            optional["response_format"] = {"type": "json_object"}
+        if self._enable_thinking is not None:
+            optional["extra_body"] = {
+                "chat_template_kwargs": {"enable_thinking": self._enable_thinking}
+            }
+        response = self._client.chat.completions.create(
+            model=model,
+            messages=list(messages),
+            timeout=timeout,
+            seed=seed,
+            max_tokens=max_tokens,
+            temperature=0,
+            **optional,
+        )
+        if not response.choices:
+            raise ValueError("provider returned no completion choices")
+        choice = response.choices[0]
+        usage = response.usage.model_dump() if response.usage is not None else {}
+        return LLMResponse(
+            content=choice.message.content or "",
+            finish_reason=choice.finish_reason or "",
+            model=response.model or model,
+            usage=usage,
+        )
+
+
+def default_personas() -> tuple[Persona, ...]:
+    """Return matched ethnicity/education counterfactuals plus a no-persona control."""
+    shared = {
+        "name": "Alex Morgan",
+        "age": 34,
+        "gender_identity": "nonbinary",
+        "disability": "no disclosed disability",
+        "religion": "not religious",
+        "socioeconomic_background": "middle-income household",
+        "locale": "Columbus, Ohio",
+        "occupation": "municipal project coordinator",
+        "languages": ("English",),
+        "interests": ("community gardening", "mystery novels"),
+    }
+    common = "Alex Morgan is 34 and works as a municipal project coordinator in Columbus, Ohio."
+    return (
+        Persona(
+            persona_id="no-persona", name="", age=None, ethnicity=None, education=None,
+            gender_identity=None, disability=None, religion=None,
+            socioeconomic_background=None, locale=None, occupation=None, languages=(),
+            interests=(), biography="", pair_id=None, counterfactual_axis=None,
+        ),
+        Persona(
+            persona_id="ethnicity-a", ethnicity="Korean American",
+            education="bachelor's degree", biography=(
+                f"{common} Alex is Korean American, holds a bachelor's degree, and enjoys "
+                "community gardening and mystery novels."
+            ), pair_id="ethnicity-pair", counterfactual_axis="ethnicity", **shared,
+        ),
+        Persona(
+            persona_id="ethnicity-b", ethnicity="Mexican American",
+            education="bachelor's degree", biography=(
+                f"{common} Alex is Mexican American, holds a bachelor's degree, and enjoys "
+                "community gardening and mystery novels."
+            ), pair_id="ethnicity-pair", counterfactual_axis="ethnicity", **shared,
+        ),
+        Persona(
+            persona_id="education-a", ethnicity="Korean American",
+            education="high school diploma", biography=(
+                f"{common} Alex is Korean American, holds a high school diploma, and enjoys "
+                "community gardening and mystery novels."
+            ), pair_id="education-pair", counterfactual_axis="education", **shared,
+        ),
+        Persona(
+            persona_id="education-b", ethnicity="Korean American",
+            education="master's degree", biography=(
+                f"{common} Alex is Korean American, holds a master's degree, and enjoys "
+                "community gardening and mystery novels."
+            ), pair_id="education-pair", counterfactual_axis="education", **shared,
+        ),
+    )
+
+
+def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Read object-valued JSONL with line-specific malformed-input failures."""
+    rows = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise ValueError(f"invalid JSON in {path}:{line_number}: {error}") from error
+        if not isinstance(value, dict):
+            raise ValueError(f"expected JSON object in {path}:{line_number}")
+        rows.append(value)
+    return rows
+
+
+def _write_json(path: Path, value: Any) -> None:
+    """Write stable formatted JSON."""
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _write_jsonl(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
+    """Write stable JSONL records in supplied order."""
+    path.write_text(
+        "".join(json.dumps(row, ensure_ascii=True, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+
+def _sha256(path: Path) -> str:
+    """Return one artifact's SHA-256 digest."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _surface_maps(events: Sequence[Mapping[str, Any]]) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+    """Build deterministic natural names for latent values, subjects, and scopes."""
+    values = sorted(
+        {
+            str(event["fact"]["object"])
+            for event in events
+            if isinstance(event.get("fact"), Mapping)
+            and isinstance(event["fact"].get("object"), str)
+            and str(event["fact"]["object"]).startswith("value-")
+        }
+        | {
+            match
+            for event in events
+            if isinstance(event.get("fact"), Mapping)
+            for match in re.findall(
+                r"\bvalue-\d{3}-[a-z]\b", str(event["fact"].get("support_text", ""))
+            )
+        }
+    )
+    subjects = sorted(
+        {
+            str(event["fact"]["subject"])
+            for event in events
+            if isinstance(event.get("fact"), Mapping)
+            and isinstance(event["fact"].get("subject"), str)
+        }
+    )
+    scopes = sorted(
+        {
+            str(event["fact"].get("qualifiers", {}).get("scope"))
+            for event in events
+            if isinstance(event.get("fact"), Mapping)
+            and str(event["fact"].get("qualifiers", {}).get("scope", "")).startswith(
+                ("scope-", "leakage-scope-", "ambiguity-scope-")
+            )
+        }
+    )
+    value_map = {
+        value: _PREFERENCE_SURFACES[index % len(_PREFERENCE_SURFACES)]
+        for index, value in enumerate(values)
+    }
+    subject_map = {}
+    namespace_size = len(_GIVEN_NAMES) * len(_FAMILY_NAMES)
+    for index, subject in enumerate(subjects):
+        cycle = index // namespace_size
+        given = _GIVEN_NAMES[index % len(_GIVEN_NAMES)]
+        family = _FAMILY_NAMES[(index // len(_GIVEN_NAMES)) % len(_FAMILY_NAMES)]
+        middle = f" {chr(ord('A') + cycle - 1)}." if cycle else ""
+        subject_map[subject] = f"{given}{middle} {family}"
+    scope_map = {scope: f"{('shared', 'travel', 'work', 'home')[index % 4]} setting" for index, scope in enumerate(scopes)}
+    return value_map, subject_map, scope_map
+
+
+def _replace_latent(text: str, replacements: Mapping[str, str]) -> str:
+    """Replace longest latent labels first to avoid overlapping substitutions."""
+    result = text
+    for latent, surface in sorted(replacements.items(), key=lambda item: -len(item[0])):
+        result = result.replace(latent, surface)
+    return result
+
+
+def _surface_query(
+    query: Mapping[str, Any], replacements: Mapping[str, str], value_map: Mapping[str, str]
+) -> tuple[str, str]:
+    """Return model-visible natural query and answer while preserving latent gold fields."""
+    kind = str(query.get("kind"))
+    query_id = str(query.get("query_id"))
+    if kind == "preference":
+        scope = str(query.get("scope", "default"))
+        surface_scope = replacements.get(scope, scope.replace("_", " "))
+        date = str(query.get("date", "the requested date"))
+        if query_id.endswith("preference-change-delayed"):
+            text = (
+                "After the long record, what standing preference applied to the account holder "
+                f"on {date}?"
+            )
+        elif query_id.endswith("preference-incongruity-delayed"):
+            text = (
+                "Considering the complete record, what standing preference applied to the "
+                f"account holder on {date}?"
+            )
+        else:
+            text = (
+                f"What did the account holder prefer in the {surface_scope} on {date}?"
+            )
+    elif kind == "recommendation":
+        candidate = value_map.get(str(query.get("candidate")), str(query.get("candidate")))
+        text = (
+            f"Is {candidate} feasible under the account holder's stated constraints? "
+            "Answer FEASIBLE or INFEASIBLE."
+        )
+    elif kind == "private_recall":
+        text = "What private preference, if any, can still be recalled for the account holder?"
+    elif kind == "ambiguity":
+        text = (
+            "What settled preference was established after the account holder's conflicting "
+            "statements? Answer the exact preference or UNKNOWN."
+        )
+    elif kind == "private_lineage":
+        prefix = "After the withdrawal, " if query_id.endswith("private-lineage") else ""
+        text = (
+            f"{prefix}what private value, if any, can still be recalled for the account holder?"
+        )
+    else:
+        raise ValueError(f"unsupported surface query kind {kind!r} for {query_id}")
+    gold = query.get("gold")
+    surface_gold = value_map.get(str(gold), str(gold))
+    return text, surface_gold
+
+
+def _semantic_markers(event: Mapping[str, Any]) -> tuple[str, ...]:
+    """Return lexical invariants that preserve operation semantics in generated dialogue."""
+    operation = str(event.get("operation", "")).casefold()
+    if "retract" in operation:
+        return ("retract", "remove", "withdraw", "no longer")
+    if "hard_constraint" in operation:
+        return ("avoid", "must not", "cannot", "off the table")
+    if "ambig" in operation or "conflict" in operation:
+        return ("conflict", "contradict", "not settled", "clarify")
+    if "duplicate" in operation:
+        return ("again", "already", "repeat", "same")
+    if "supersede" in operation or "correction" in operation or "replace" in operation:
+        return ("correct", "update", "switch", "override", "replace")
+    return ()
+
+
+def validate_generation_response(
+    content: str, expected_events: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Validate one history batch for schema, order, completeness, and latent-label leakage."""
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("provider returned empty content")
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"provider returned malformed JSON: {error}") from error
+    if not isinstance(payload, dict) or set(payload) != {"events"} or not isinstance(payload["events"], list):
+        raise ValueError("generation response must be an object containing only an events array")
+    expected_ids = [str(event["event_id"]) for event in expected_events]
+    actual_ids = [event.get("event_id") for event in payload["events"] if isinstance(event, dict)]
+    if len(actual_ids) != len(set(actual_ids)):
+        raise ValueError("generation response contains duplicate event IDs")
+    missing = sorted(set(expected_ids) - set(actual_ids))
+    extra = sorted(set(actual_ids) - set(expected_ids))
+    if missing:
+        raise ValueError(f"generation response has missing event IDs: {missing}")
+    if extra:
+        raise ValueError(f"generation response has extra event IDs: {extra}")
+    if actual_ids != expected_ids:
+        raise ValueError("generation response changed event order")
+    for index, event in enumerate(payload["events"]):
+        if not isinstance(event, dict) or set(event) != {"event_id", "turns"}:
+            raise ValueError(f"generated event at index {index} has malformed fields")
+        turns = event["turns"]
+        if not isinstance(turns, list) or len(turns) < 2:
+            raise ValueError(f"generated event {event['event_id']} is missing a complete turn")
+        roles = []
+        visible_parts = []
+        for turn_index, turn in enumerate(turns):
+            if not isinstance(turn, dict) or set(turn) != {"role", "content"}:
+                raise ValueError(f"generated event {event['event_id']} turn {turn_index} is malformed")
+            role = turn["role"]
+            if role not in {"user", "assistant"}:
+                raise ValueError(f"generated event {event['event_id']} has unsupported role {role!r}")
+            text = _nonempty(turn["content"], f"generated event {event['event_id']} content")
+            if _LATENT_LABEL.search(text) or any(identifier in text for identifier in expected_ids):
+                raise ValueError(f"generated event {event['event_id']} leaked a latent benchmark label")
+            roles.append(role)
+            visible_parts.append(text)
+        if roles[0] != "user" or roles[-1] != "assistant" or any(left == right for left, right in zip(roles, roles[1:])):
+            raise ValueError(f"generated event {event['event_id']} is not alternating user/assistant dialogue")
+        required_value = expected_events[index].get("required_surface_value")
+        if required_value and str(required_value).casefold() not in " ".join(visible_parts).casefold():
+            raise ValueError(f"generated event {event['event_id']} omitted its authoritative surface value")
+        semantic_markers = expected_events[index].get("semantic_markers", ())
+        visible_text = " ".join(visible_parts).casefold()
+        positive_marker = False
+        for marker in semantic_markers:
+            for match in re.finditer(re.escape(str(marker).casefold()), visible_text):
+                prefix = visible_text[max(0, match.start() - 24) : match.start()]
+                if not re.search(r"(?:do not|don't|never|not)\s+(?:\w+\s+){0,2}$", prefix):
+                    positive_marker = True
+                    break
+            if positive_marker:
+                break
+        if semantic_markers and not positive_marker:
+            raise ValueError(
+                f"generated event {event['event_id']} inverted or omitted its operation semantics"
+            )
+    return payload
+
+
+def _render_dialogue(turns: Sequence[Mapping[str, str]]) -> str:
+    """Serialize generated roles into the existing event model_text seam."""
+    return "\n".join(f"{turn['role'].title()}: {turn['content']}" for turn in turns)
+
+
+def _request_parameters(config: GenerationConfig) -> dict[str, Any]:
+    """Return auditable non-secret generation parameters."""
+    return {
+        "model": config.model,
+        "timeout_seconds": config.timeout_seconds,
+        "seed": config.seed,
+        "max_tokens": config.max_tokens,
+        "temperature": 0,
+    }
+
+
+def generate_persona_conversations(
+    output_dir: Path,
+    config: GenerationConfig,
+    client: CompletionClient,
+) -> dict[str, Any]:
+    """Generate five compatible artifacts with Kimi-authored model-visible event dialogue."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = output_dir / "generation_manifest.json"
+    raw_path = output_dir / "raw_responses.jsonl"
+    requests_path = output_dir / "requests.jsonl"
+    manifest: dict[str, Any] = {
+        "status": "running",
+        "completion_status": "running",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "generator_role": "Kimi K3 generation-only surface realization",
+        "prompt_schema_version": config.prompt_schema_version,
+        "request_parameters": _request_parameters(config),
+        "provider_identity_assurance": "endpoint-self-reported; artifact hashes are cryptographic",
+        "source_generation": {
+            "history_count": config.history_count,
+            "condition": config.condition,
+            "hardness_profile": config.hardness_profile,
+            "split_counts": list(config.split_counts),
+        },
+        "controls": {"full_structured_memory": "oracle control"},
+    }
+    _write_json(manifest_path, manifest)
+    raw_rows: list[dict[str, Any]] = []
+    request_rows: list[dict[str, Any]] = []
+    try:
+        generate_dataset(
+            output_dir,
+            history_count=config.history_count,
+            condition=config.condition,
+            split_counts=config.split_counts,
+            hardness_profile=config.hardness_profile,
+        )
+        events = _read_jsonl(output_dir / "events.jsonl")
+        queries = _read_jsonl(output_dir / "queries.jsonl")
+        value_map, subject_map, scope_map = _surface_maps(events)
+        replacements = {**value_map, **subject_map, **scope_map}
+        by_history: dict[str, list[dict[str, Any]]] = {}
+        for event in events:
+            by_history.setdefault(str(event["history_id"]), []).append(event)
+        response_hashes = []
+        model_identities = set()
+        for history_id, history_events in sorted(by_history.items()):
+            expected = []
+            for event in history_events:
+                latent_object = str(event["fact"].get("object", ""))
+                support_text = str(event["fact"]["support_text"])
+                if latent_object in value_map:
+                    support_text = re.sub(r"\bvalue-\d{3}-[a-z]\b", latent_object, support_text)
+                surface_text = _replace_latent(support_text, replacements)
+                surface_value = value_map.get(latent_object)
+                expected.append(
+                    {
+                        "event_id": event["event_id"],
+                        "surface_text": surface_text,
+                        "required_surface_value": surface_value,
+                        "semantic_markers": list(_semantic_markers(event)),
+                    }
+                )
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "Render each supplied event as concise, realistic user-assistant dialogue. "
+                        "Keep the supplied event order and meaning exactly. Return strict JSON only. "
+                        "Return exactly one top-level key named events. Each events item must contain "
+                        "exactly the supplied event_id and a turns array of alternating role/content "
+                        "objects beginning with user and ending with assistant. Preserve event_id only "
+                        "as metadata; do not expose IDs or benchmark labels inside dialogue content. "
+                        "Required shape: {\"events\":[{\"event_id\":\"the supplied ID\","
+                        "\"turns\":[{\"role\":\"user\",\"content\":\"...\"},"
+                        "{\"role\":\"assistant\",\"content\":\"...\"}]}]}."
+                    ),
+                },
+                {"role": "user", "content": json.dumps({"schema_version": config.prompt_schema_version, "events": expected}, sort_keys=True)},
+            ]
+            prompt_sha256 = hashlib.sha256(
+                json.dumps(messages, ensure_ascii=True, sort_keys=True).encode("utf-8")
+            ).hexdigest()
+            request_rows.append(
+                {
+                    "history_id": history_id,
+                    "prompt_sha256": prompt_sha256,
+                    "messages": messages,
+                }
+            )
+            _write_jsonl(requests_path, request_rows)
+            response = client.complete(
+                messages=messages,
+                model=config.model,
+                timeout=config.timeout_seconds,
+                seed=config.seed,
+                max_tokens=config.max_tokens,
+            )
+            response_hash = hashlib.sha256(response.content.encode("utf-8")).hexdigest()
+            raw_rows.append(
+                {
+                    "history_id": history_id,
+                    "model": response.model,
+                    "finish_reason": response.finish_reason,
+                    "usage": dict(response.usage),
+                    "response_sha256": response_hash,
+                    "content": response.content,
+                }
+            )
+            _write_jsonl(raw_path, raw_rows)
+            if response.finish_reason != "stop":
+                raise ValueError(
+                    f"generation for {history_id} ended with non-stop finish reason {response.finish_reason!r}"
+                )
+            parsed = validate_generation_response(response.content, expected)
+            for event, generated in zip(history_events, parsed["events"]):
+                event["model_text"] = _render_dialogue(generated["turns"])
+                event["surface_object"] = value_map.get(
+                    str(event["fact"].get("object")), str(event["fact"].get("object", ""))
+                )
+            response_hashes.append(response_hash)
+            model_identities.add(response.model)
+        for query in queries:
+            query["surface_query_text"], query["surface_gold"] = _surface_query(
+                query, replacements, value_map
+            )
+        _write_jsonl(output_dir / "events.jsonl", events)
+        _write_jsonl(output_dir / "queries.jsonl", queries)
+        artifact_names = (*SOURCE_ARTIFACTS, raw_path.name, requests_path.name)
+        manifest.update(
+            {
+                "status": "completed",
+                "completion_status": "completed",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "model_identity": sorted(model_identities)[0] if len(model_identities) == 1 else sorted(model_identities),
+                "response_sha256": response_hashes,
+                "prompt_sha256": [row["prompt_sha256"] for row in request_rows],
+                "artifact_sha256": {
+                    name: _sha256(output_dir / name) for name in artifact_names
+                },
+            }
+        )
+        _write_json(manifest_path, manifest)
+        return manifest
+    except Exception as error:
+        if not raw_path.exists():
+            _write_jsonl(raw_path, raw_rows)
+        if not requests_path.exists():
+            _write_jsonl(requests_path, request_rows)
+        manifest.update(
+            {
+                "status": "failed",
+                "completion_status": "failed",
+                "failed_at": datetime.now(timezone.utc).isoformat(),
+                "error": {"type": type(error).__name__, "message": str(error)},
+                "artifact_sha256": {
+                    name: _sha256(output_dir / name)
+                    for name in (*SOURCE_ARTIFACTS, raw_path.name, requests_path.name)
+                    if (output_dir / name).exists()
+                },
+            }
+        )
+        _write_json(manifest_path, manifest)
+        raise
+
+
+def _strict_object(value: Any, expected: set[str], name: str) -> Mapping[str, Any]:
+    """Require an object with exactly the expected keys."""
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{name} must be an object")
+    missing = sorted(expected - value.keys())
+    unknown = sorted(value.keys() - expected)
+    if missing or unknown:
+        raise ValueError(f"{name} keys mismatch: missing={missing}, unknown={unknown}")
+    return value
+
+
+def load_generation_config(path: Path) -> GenerationConfig:
+    """Load strict generation config and resolve provider identity from named env vars."""
+    try:
+        root = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot load generation config {path}: {error}") from error
+    if not isinstance(root, Mapping) or "generation" not in root:
+        raise ValueError("config must contain a generation object")
+    raw = _strict_object(
+        root["generation"],
+        {
+            "endpoint_env", "api_key_env", "model_env", "timeout_seconds", "seed",
+            "max_tokens", "history_count", "condition", "hardness_profile",
+            "split_counts", "prompt_schema_version",
+        },
+        "generation",
+    )
+    endpoint_env = _nonempty(raw["endpoint_env"], "generation.endpoint_env")
+    api_key_env = _nonempty(raw["api_key_env"], "generation.api_key_env")
+    model_env = _nonempty(raw["model_env"], "generation.model_env")
+    missing_env = [name for name in (endpoint_env, api_key_env, model_env) if not os.environ.get(name)]
+    if missing_env:
+        raise ValueError(f"required generation environment variables are unset: {missing_env}")
+    split_counts = raw["split_counts"]
+    if not isinstance(split_counts, list):
+        raise ValueError("generation.split_counts must be an array")
+    return GenerationConfig(
+        endpoint=os.environ[endpoint_env],
+        api_key=os.environ[api_key_env],
+        model=os.environ[model_env],
+        timeout_seconds=_positive_number(raw["timeout_seconds"], "generation.timeout_seconds"),
+        seed=raw["seed"],
+        max_tokens=raw["max_tokens"],
+        history_count=raw["history_count"],
+        condition=raw["condition"],
+        hardness_profile=raw["hardness_profile"],
+        split_counts=tuple(split_counts),
+        prompt_schema_version=raw["prompt_schema_version"],
+    )
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run configured Kimi-only conversation surface generation."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    args = parser.parse_args(argv)
+    config = load_generation_config(args.config)
+    generate_persona_conversations(
+        args.output_dir,
+        config,
+        OpenAICompletionClient(
+            config.endpoint,
+            config.api_key,
+            config.timeout_seconds,
+            json_mode=True,
+        ),
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

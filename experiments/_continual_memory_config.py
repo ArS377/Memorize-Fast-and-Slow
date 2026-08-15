@@ -147,6 +147,15 @@ class HuggingFaceTokenizer:
         """Tokenize text without model-added special tokens."""
         return self._tokenizer.encode(text, add_special_tokens=False)
 
+    def encode_chat(self, messages: Sequence[Mapping[str, str]]) -> list[int]:
+        """Tokenize the exact non-thinking chat template submitted to Qwen."""
+        return self._tokenizer.apply_chat_template(
+            list(messages),
+            tokenize=True,
+            add_generation_prompt=True,
+            enable_thinking=False,
+        )
+
     def metadata(self) -> dict[str, Any]:
         """Return pinned tokenizer provenance."""
         return dict(self._metadata)
