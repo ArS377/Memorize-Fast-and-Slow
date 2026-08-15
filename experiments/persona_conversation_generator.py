@@ -32,22 +32,22 @@ _RECORDKEEPING_LANGUAGE = re.compile(
     r"\b(?:record(?:ed|ing|s)?|entr(?:y|ies)|files?|noted|audit trail|canonical)\b",
     re.IGNORECASE,
 )
-_PREFERENCE_SURFACES = (
-    "cedar tea",
-    "mint tea",
-    "window seating",
-    "aisle seating",
-    "vegetable ramen",
-    "mushroom risotto",
-    "morning delivery",
-    "evening delivery",
-    "quiet workspace",
-    "shared workspace",
-    "paper receipts",
-    "digital receipts",
-    "weekly summaries",
-    "monthly summaries",
-)
+_PREFERENCE_SURFACES = {
+    "a": "cedar tea",
+    "b": "mint tea",
+    "c": "window seating",
+    "d": "aisle seating",
+    "e": "vegetable ramen",
+    "f": "mushroom risotto",
+    "g": "paper receipts",
+    "h": "oolong tea",
+    "i": "evening delivery",
+    "j": "morning delivery",
+    "k": "weekend delivery",
+    "l": "digital receipts",
+    "m": "weekday delivery",
+    "n": "tofu noodles",
+}
 _GIVEN_NAMES = (
     "Morgan", "Riley", "Jordan", "Casey", "Taylor", "Avery", "Cameron", "Drew", "Parker", "Quinn",
 )
@@ -403,10 +403,12 @@ def _surface_maps(events: Sequence[Mapping[str, Any]]) -> tuple[dict[str, str], 
             )
         }
     )
-    value_map = {
-        value: _PREFERENCE_SURFACES[index % len(_PREFERENCE_SURFACES)]
-        for index, value in enumerate(values)
-    }
+    value_map = {}
+    for value in values:
+        suffix = value.rsplit("-", 1)[-1]
+        if suffix not in _PREFERENCE_SURFACES:
+            raise ValueError(f"unsupported latent preference suffix {suffix!r} in {value!r}")
+        value_map[value] = _PREFERENCE_SURFACES[suffix]
     numbered_objects = sorted(
         {
             str(event["fact"]["object"])
@@ -561,9 +563,11 @@ def _semantic_instruction(
             f"State unambiguously that {new_value} supersedes all prior active choices "
             f"({', '.join(prior_values)}); do not say any prior choice stays active or unchanged."
         )
+    fact = event.get("fact")
+    predicate = str(fact.get("predicate", "")) if isinstance(fact, Mapping) else ""
     if "retract" in operation:
         return "Mark the value unavailable for future recall without claiming its audit history was destroyed."
-    if event_family == "private_lineage":
+    if predicate == "PRIVATE_NOTE":
         return "Discuss only a private note and its repetition; never call it a preference, favorite, dish, or recommendation signal."
     if "duplicate" in operation:
         return "Have the user naturally repeat a previously stated preference; do not discuss delivery timing, storage, merging, or deduplication."
@@ -580,6 +584,8 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
     """Return high-risk unsupported claims that invalidate generated dialogue."""
     operation = str(event.get("operation", "")).casefold()
     event_family = str(event.get("event_family", "")).casefold()
+    fact = event.get("fact")
+    predicate = str(fact.get("predicate", "")) if isinstance(fact, Mapping) else ""
     phrases = [
         "no other",
         "nothing else changed",
@@ -624,7 +630,7 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
     if "duplicate" in operation:
         phrases.extend(("last cycle", "deduplicat", "merged", "single canonical"))
         phrases.extend(("on your profile", "already saved", "in storage"))
-    if event_family == "private_lineage":
+    if predicate == "PRIVATE_NOTE":
         phrases.extend(("favorite", "preference", "recommend", "dish"))
     if (
         event.get("supersedes")
@@ -639,18 +645,22 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
     return tuple(phrases)
 
 
-def _speaker_contract(event: Mapping[str, Any], dialogue_subject: str) -> tuple[str, list[str]]:
+def _speaker_contract(
+    event: Mapping[str, Any], dialogue_subject: str
+) -> tuple[str, str, list[str]]:
     """Return a speaker instruction and lexical evidence for source authority."""
     fact = event.get("fact")
     qualifiers = fact.get("qualifiers", {}) if isinstance(fact, Mapping) else {}
     authority = str(qualifiers.get("source_authority", "inferred"))
     if authority == "direct_user":
         return (
+            dialogue_subject,
             f"The user is {dialogue_subject} and states their own information naturally in first person.",
             [],
         )
     if authority == "inferred":
         return (
+            "observer",
             f"The user asks about third-party evidence concerning {dialogue_subject}; the assistant "
             "must label it tentative or inferred, and the user must not personally confirm it.",
             ["inferred", "tentative", "appears", "reported"],
@@ -958,13 +968,14 @@ def generate_persona_conversations(
                 dialogue_subject = replacements.get(
                     str(event["fact"].get("subject")), "the account owner"
                 )
-                speaker_instruction, authority_markers = _speaker_contract(
+                dialogue_speaker, speaker_instruction, authority_markers = _speaker_contract(
                     event, dialogue_subject
                 )
                 expected.append(
                     {
                         "event_id": event["event_id"],
                         "dialogue_subject": dialogue_subject,
+                        "dialogue_speaker": dialogue_speaker,
                         "speaker_instruction": speaker_instruction,
                         "authority_markers": authority_markers,
                         "surface_text": surface_text,
@@ -1072,6 +1083,11 @@ def generate_persona_conversations(
                     event["dialogue_subject"] = replacements.get(
                         str(event["fact"].get("subject")), "the account owner"
                     )
+                    event["dialogue_speaker"] = next(
+                        str(expected_event["dialogue_speaker"])
+                        for expected_event in batch_expected
+                        if expected_event["event_id"] == event["event_id"]
+                    )
                     event["surface_object"] = value_map.get(
                         str(event["fact"].get("object")),
                         str(event["fact"].get("object", "")),
@@ -1098,7 +1114,8 @@ def generate_persona_conversations(
                 {
                     "conversation_id": conversation_ids[history_id],
                     "event_index": event_index,
-                    "speaker": event["dialogue_subject"],
+                    "speaker": event["dialogue_speaker"],
+                    "subject": event["dialogue_subject"],
                     "text": event["model_text"],
                 }
             )

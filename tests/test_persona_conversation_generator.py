@@ -129,7 +129,13 @@ def test_generation_reuses_latent_artifacts_and_adds_natural_surfaces(tmp_path: 
     dialogue = _jsonl(output / "dialogue.jsonl")
     queries = _jsonl(output / "queries.jsonl")
     assert all("User:" in event["model_text"] for event in events)
-    assert set(dialogue[0]) == {"conversation_id", "event_index", "speaker", "text"}
+    assert set(dialogue[0]) == {
+        "conversation_id",
+        "event_index",
+        "speaker",
+        "subject",
+        "text",
+    }
     assert all("fact" not in row and "operation" not in row for row in dialogue)
     assert all("value-" not in event["model_text"] for event in events)
     assert all("surface_query_text" in query and "surface_gold" in query for query in queries)
@@ -366,17 +372,27 @@ def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> 
     assert "resolve" in resolution["semantic_markers"]
     prompts_by_id = {event["event_id"]: event for event in prompt_events}
     assert prompts_by_id["history-001-add"]["dialogue_subject"] == "AsterArc"
+    assert prompts_by_id["history-001-add"]["dialogue_speaker"] == "AsterArc"
     assert prompts_by_id["history-001-add"]["authority_markers"] == []
     assert prompts_by_id["history-001-replaceable"]["dialogue_subject"] != "AsterArc"
     transition = prompts_by_id["history-001-transition"]
     assert "through 2025-09-30" in transition["semantic_instruction"]
     assert "going forward" in transition["forbidden_surface_phrases"]
+    assert prompts_by_id["history-001-backdated"]["required_surface_values"] == [
+        "cedar tea",
+        "oolong tea",
+    ]
+    assert prompts_by_id["history-001-direct-correction"]["required_surface_values"] == [
+        "evening delivery",
+        "weekend delivery",
+    ]
     duplicate = prompts_by_id["history-001-duplicate"]
     assert "do not discuss delivery timing" in duplicate["semantic_instruction"]
     assert "deduplicat" in duplicate["forbidden_surface_phrases"]
     negative = prompts_by_id["history-001-lineage-negative-1"]
     assert "unrelated mention only" in negative["semantic_instruction"]
     assert "inferred" in negative["authority_markers"]
+    assert negative["dialogue_speaker"] == "observer"
     ambiguity_query = next(
         query
         for query in _jsonl(output / "queries.jsonl")
