@@ -759,6 +759,15 @@ def validate_generation_response(
             raise ValueError(
                 f"generated event {event['event_id']} omitted its inferred-authority marker"
             )
+        if "-lineage-negative-" in str(event["event_id"]) and re.search(
+            r"\b(?:earlier|existing|previous|the)\s+(?:private\s+)?note\s+"
+            r"(?:exists|stays|remains|is\s+(?:stored|separate|unchanged))\b",
+            visible_text,
+        ):
+            raise ValueError(
+                f"generated event {event['event_id']} inferred existence of a private note "
+                "from a hard-negative mention"
+            )
         semantic_markers = expected_events[index].get("semantic_markers", ())
         pronoun_match = _UNSUPPORTED_GENDERED_PRONOUN.search(visible_text)
         if pronoun_match:

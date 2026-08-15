@@ -360,6 +360,26 @@ def test_generation_enforces_dialogue_length_and_conflict_values() -> None:
             json.dumps(gendered), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
         )
 
+    hard_negative_expected = [
+        {
+            **expected[0],
+            "event_id": "history-001-lineage-negative-1",
+            "authority_markers": ["inferred"],
+        }
+    ]
+    hard_negative = json.loads(json.dumps(valid))
+    hard_negative["events"][0]["event_id"] = hard_negative_expected[0]["event_id"]
+    hard_negative["events"][0]["turns"][2]["content"] += (
+        " The inferred evidence suggests the earlier note stays separate and unchanged."
+    )
+    with pytest.raises(ValueError, match="inferred existence of a private note"):
+        validate_generation_response(
+            json.dumps(hard_negative),
+            hard_negative_expected,
+            turn_pairs_per_event=2,
+            minimum_words_per_turn=8,
+        )
+
 
 def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> None:
     config = GenerationConfig(
