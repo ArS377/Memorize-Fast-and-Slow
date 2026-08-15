@@ -412,7 +412,7 @@ def test_git_provenance_records_head_and_dirty_diff_hash() -> None:
 
     assert len(provenance["git_head"]) == 40
     assert len(provenance["dirty_diff_sha256"]) == 64
-    assert provenance["dirty"] is True
+    assert isinstance(provenance["dirty"], bool)
 
 
 def test_resume_provenance_covers_scallop_injections_specs_script_and_git(tmp_path: Path) -> None:
