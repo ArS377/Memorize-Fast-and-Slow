@@ -13,7 +13,7 @@
     "prompt_schema_version": "persona-conversation.v3",
     "turn_pairs_per_event": 1,
     "minimum_words_per_turn": 12,
-    "events_per_request": 4,
+    "events_per_request": 2,
     "enable_thinking": false
   }
 }
