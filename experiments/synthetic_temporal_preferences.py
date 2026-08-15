@@ -1025,6 +1025,16 @@ def generate_dataset(
             candidate["hardness_profile"] = hardness_profile
             candidate["candidate_features"] = derive_candidate_features(history_events, candidate)
         candidates.extend(history_candidates)
+    for sequence_index, event in enumerate(events):
+        event["sequence_index"] = sequence_index
+    canonical_facts_by_id: dict[str, dict[str, Any]] = {}
+    for fact in [*facts, *[event["fact"] for event in events]]:
+        fact_id = str(fact["fact_id"])
+        prior = canonical_facts_by_id.get(fact_id)
+        if prior is not None and prior != fact:
+            raise ValueError(f"conflicting canonical facts for {fact_id}")
+        canonical_facts_by_id[fact_id] = fact
+    facts = [canonical_facts_by_id[key] for key in sorted(canonical_facts_by_id)]
     source_documents_by_id: dict[str, dict[str, str]] = {}
     source_facts = [
         *facts,

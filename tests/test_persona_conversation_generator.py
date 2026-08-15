@@ -122,6 +122,7 @@ def test_generation_reuses_latent_artifacts_and_adds_natural_surfaces(tmp_path: 
     assert manifest["artifact_roles"]["events.jsonl"] == "latent_structure"
     assert manifest["artifact_roles"]["queries.jsonl"] == "supervision_only"
     assert manifest["hashing"]["algorithm"] == "sha256"
+    assert manifest["reference_contract"]["replay_order"] == "events.sequence_index"
     events = _jsonl(output / "events.jsonl")
     dialogue = _jsonl(output / "dialogue.jsonl")
     queries = _jsonl(output / "queries.jsonl")
@@ -130,6 +131,7 @@ def test_generation_reuses_latent_artifacts_and_adds_natural_surfaces(tmp_path: 
     assert all("fact" not in row and "operation" not in row for row in dialogue)
     assert all("value-" not in event["model_text"] for event in events)
     assert all("surface_query_text" in query and "surface_gold" in query for query in queries)
+    assert all(query["query_text"] == query["surface_query_text"] for query in queries)
     assert all("value-" not in str(query["surface_gold"]) for query in queries)
     assert all("subject-" not in query["surface_query_text"] for query in queries)
     assert all("AsterArc" not in query["surface_query_text"] for query in queries)
@@ -302,6 +304,15 @@ def test_generation_enforces_dialogue_length_and_conflict_values() -> None:
     with pytest.raises(ValueError, match="forbidden phrase"):
         validate_generation_response(
             json.dumps(forbidden), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
+        )
+
+    repetitive = json.loads(json.dumps(valid))
+    repetitive["events"][0]["turns"][2]["content"] += (
+        " Record this entry in the file and mark it noted."
+    )
+    with pytest.raises(ValueError, match="recordkeeping terms"):
+        validate_generation_response(
+            json.dumps(repetitive), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
         )
 
 

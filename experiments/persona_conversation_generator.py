@@ -28,6 +28,10 @@ _LATENT_LABEL = re.compile(
     r"\b(?:history|subject|value|scope|example|candidate|replacement)-\d+(?:-[a-z][\w-]*)?\b"
     r"|\b(?:event_id|fact_id|query_id|operation|gold)\s*="
 )
+_RECORDKEEPING_LANGUAGE = re.compile(
+    r"\b(?:record(?:ed|ing|s)?|entr(?:y|ies)|files?|noted|audit trail|canonical)\b",
+    re.IGNORECASE,
+)
 _PREFERENCE_SURFACES = (
     "cedar tea",
     "mint tea",
@@ -539,9 +543,12 @@ def _semantic_instruction(
                 "describe it as open-ended or erase the old history."
             )
         if operation == "backdated_correction":
+            fact = event.get("fact")
+            temporal = fact.get("temporal", {}) if isinstance(fact, Mapping) else {}
             return (
-                f"State that {new_value} corrects {old_value} only for the supplied overlapping "
-                "past interval; preserve the audit history outside that correction."
+                f"State that {old_value} applies only before {temporal.get('valid_from')} and "
+                f"{new_value} applies from {temporal.get('valid_from')} through "
+                f"{temporal.get('valid_to')}; do not claim {old_value} applies afterward."
             )
         return (
             f"State unambiguously that {new_value} supersedes all prior active choices "
@@ -599,6 +606,8 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
         phrases.extend(("last cycle", "deduplicat", "merged", "single canonical"))
     if (event.get("supersedes") or event.get("corrects")) and operation != "supersede":
         phrases.extend(("stays exactly as it is", "remains unchanged", "keep it unchanged"))
+    if operation == "backdated_correction":
+        phrases.extend(("after spring", "later entries", "later records"))
     if "retract" in operation:
         phrases.extend(("nothing remains to be recovered", "permanently deleted", "completely erased"))
     return tuple(phrases)
@@ -677,6 +686,12 @@ def validate_generation_response(
                     f"{forbidden_phrase!r}"
                 )
         semantic_markers = expected_events[index].get("semantic_markers", ())
+        recordkeeping_count = len(_RECORDKEEPING_LANGUAGE.findall(visible_text))
+        if recordkeeping_count > 3:
+            raise ValueError(
+                f"generated event {event['event_id']} used {recordkeeping_count} recordkeeping "
+                "terms; at most 3 are allowed"
+            )
         positive_marker = False
         for marker in semantic_markers:
             for match in re.finditer(re.escape(str(marker).casefold()), visible_text):
@@ -824,6 +839,17 @@ def generate_persona_conversations(
             "prompt_preimage": "json.dumps(messages, ensure_ascii=True, sort_keys=True).encode('utf-8')",
             "artifact_preimage": "raw_file_bytes",
         },
+        "reference_contract": {
+            "event_id": "event_identifier",
+            "fact.fact_id": "fact_identifier",
+            "supersedes": "fact_identifier",
+            "corrects": "fact_identifier",
+            "resolves": "fact_identifier_array",
+            "retracts": "fact_identifier",
+            "duplicate_of": "fact_identifier",
+            "conflicts_with": "fact_identifier",
+            "replay_order": "events.sequence_index",
+        },
     }
     _write_json(manifest_path, manifest)
     raw_rows: list[dict[str, Any]] = []
@@ -893,6 +919,8 @@ def generate_persona_conversations(
                             "annotate, summarize, or record a benchmark statement. "
                             "The user is the supplied dialogue_subject and should speak naturally in "
                             "first person rather than act as an unidentified operator. "
+                            "Use extra turns for practical context or tradeoffs, not repetitive "
+                            "paraphrase or recordkeeping; use at most three recordkeeping terms per event. "
                             "Keep the supplied event order and meaning exactly. Return strict JSON only. "
                             "Return exactly one top-level key named events. Each events item must contain "
                             "exactly the supplied event_id and a turns array of alternating role/content "
@@ -981,6 +1009,7 @@ def generate_persona_conversations(
             query["surface_query_text"], query["surface_gold"] = _surface_query(
                 query, replacements, value_map
             )
+            query["query_text"] = query["surface_query_text"]
         _write_jsonl(output_dir / "events.jsonl", events)
         _write_jsonl(output_dir / "queries.jsonl", queries)
         conversation_ids = {

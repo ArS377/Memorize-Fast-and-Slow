@@ -92,13 +92,19 @@ def test_generator_is_deterministic_and_emits_existing_fact_shape(tmp_path: Path
     assert all(
         fact["fact_id"]
         and fact["subject"]
-        and fact["predicate"] == "PREFERS"
+        and fact["predicate"]
         and fact["object"]
         and fact["support_text"]
         and fact["provenance"]
         and fact["temporal"]["valid_from"]
         for fact in facts
     )
+    assert {fact["predicate"] for fact in facts} >= {
+        "PREFERS",
+        "AVOIDS",
+        "AMBIGUOUS_PREFERENCE",
+        "PRIVATE_NOTE",
+    }
     assert {fact["subject"] for fact in facts} >= {
         "subject-001", "subject-002", "subject-003"
     }
@@ -176,10 +182,14 @@ def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
     )
     events = _rows(paths["events"])
     candidates = _rows(paths["candidates"])
+    facts = _rows(paths["facts"])
     source_documents = {
         document["document_id"]: document["text"]
         for document in _rows(paths["source_documents"])
     }
+    assert [event["sequence_index"] for event in events] == list(range(len(events)))
+    event_fact_ids = {event["fact"]["fact_id"] for event in events}
+    assert event_fact_ids <= {fact["fact_id"] for fact in facts}
     by_suffix = {
         event["event_id"].removeprefix("history-001-"): event for event in events
     }
