@@ -1,0 +1,21 @@
+{
+  "schedule": {
+    "source_split": "test",
+    "source_profile": "anti_shortcut_interleaved_v3",
+    "source_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+    "seed": 73,
+    "concurrent_accounts": 8,
+    "min_segment_events": 4,
+    "max_segment_events": 8,
+    "query_suffixes": [
+      "-preference-change-delayed",
+      "-preference-incongruity-delayed"
+    ],
+    "token_distance_thresholds": [4096, 8192]
+  },
+  "tokenizer": {
+    "name": "Qwen/Qwen3-4B",
+    "revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "local_files_only": true
+  }
+}
