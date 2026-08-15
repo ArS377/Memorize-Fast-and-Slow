@@ -197,7 +197,11 @@ def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
     assert by_suffix["constraint"]["fact"]["predicate"] == "AVOIDS"
     assert by_suffix["ambiguity"]["fact"]["predicate"] == "AMBIGUOUS_PREFERENCE"
     assert by_suffix["private-add"]["fact"]["predicate"] == "PRIVATE_NOTE"
-    assert all(event["surface_subject"] == "AsterArc" for event in events)
+    assert all(
+        event.get("surface_subject") == "AsterArc"
+        for event in events
+        if event["fact"]["subject"] == "subject-001"
+    )
     assert set(by_suffix["direct-correction"]["resolves"]) == {
         "history-001-indirect-source",
     }
@@ -232,6 +236,18 @@ def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
         if candidate["candidate_id"] == "history-001-hard-constraint-violation"
     )
     assert "requested" in constraint_violation["fact"]["support_text"]
+    resurrection = next(
+        candidate
+        for candidate in candidates
+        if candidate["candidate_id"] == "history-001-retraction-resurrection"
+    )
+    assert resurrection["fact"]["predicate"] == "PRIVATE_NOTE"
+    direct_conflict = next(
+        candidate
+        for candidate in candidates
+        if candidate["candidate_id"] == "history-001-direct-conflict-no-supersession"
+    )
+    assert direct_conflict["candidate_features"]["active_conflict_count"] == 1
     all_facts = [
         *[event["fact"] for event in events],
         *[candidate["fact"] for candidate in candidates],

@@ -570,6 +570,8 @@ def generate_dataset(
             fact_id=private["fact_id"], example_id=scope_example, subject=subject,
             object_=private_value, valid_from="2025-01-01", valid_to=None, scope="private",
             support_text=support_texts["private"],
+            predicate="PRIVATE_NOTE",
+            domain="private_memory",
         )
         direct_conflict = _fact(
             fact_id=f"{history_id}-direct-conflict-no-supersession", example_id=transition_example,
@@ -863,7 +865,10 @@ def generate_dataset(
         for event in history_events:
             event["split"] = split_by_history[history_id]
             event["hardness_profile"] = hardness_profile
-            if hardness_profile in ANTI_SHORTCUT_PROFILES:
+            if (
+                hardness_profile in ANTI_SHORTCUT_PROFILES
+                and event["fact"]["subject"] == subject
+            ):
                 event["surface_subject"] = event_alias
         facts.extend([initial, current, scoped, backdated, replaceable, indirect, direct, leakage])
         if hardness_profile in ANTI_SHORTCUT_PROFILES:

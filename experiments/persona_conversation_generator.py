@@ -550,7 +550,7 @@ def _semantic_instruction(
     if "retract" in operation:
         return "Mark the value unavailable for future recall without claiming its audit history was destroyed."
     if "duplicate" in operation:
-        return "State only that the same fact was delivered again; do not invent delivery timing, merging, or deduplication outcomes."
+        return "Have the user naturally repeat a previously stated preference; do not discuss delivery timing, storage, merging, or deduplication."
     if event_family == "contradiction_opening" and len(required_values) == 1:
         return "State only the supplied choice; do not invent an alternative or call it a conflict yet."
     if event_family == "contradiction_opening":
@@ -576,6 +576,11 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
         "supportable statement",
         "write the entry",
         "do not add",
+        "same fact delivered",
+        "new evidence",
+        "audit trail",
+        "only thing on file",
+        "canonical record",
     ]
     if event_family == "delayed_preference_probe":
         phrases.extend(("no conflict", "no conflicting", "everything matches", "still the same"))
@@ -804,7 +809,8 @@ def generate_persona_conversations(
         },
         "controls": {"full_structured_memory": "oracle control"},
         "artifact_roles": {
-            "events.jsonl": "model_input",
+            "dialogue.jsonl": "model_input",
+            "events.jsonl": "latent_structure",
             "source_documents.jsonl": "source_evidence",
             "facts.jsonl": "structured_oracle",
             "queries.jsonl": "supervision_only",
@@ -855,9 +861,13 @@ def generate_persona_conversations(
                 required_values = _required_surface_values(
                     event, facts_by_id, value_map
                 )
+                dialogue_subject = replacements.get(
+                    str(event["fact"].get("subject")), "the account owner"
+                )
                 expected.append(
                     {
                         "event_id": event["event_id"],
+                        "dialogue_subject": dialogue_subject,
                         "surface_text": surface_text,
                         "required_surface_values": required_values,
                         "semantic_markers": list(_semantic_markers(event)),
@@ -881,6 +891,8 @@ def generate_persona_conversations(
                             "Render each supplied event as an ordinary, realistic memory interaction. "
                             "The user should discuss their situation directly, never ask how to word, "
                             "annotate, summarize, or record a benchmark statement. "
+                            "The user is the supplied dialogue_subject and should speak naturally in "
+                            "first person rather than act as an unidentified operator. "
                             "Keep the supplied event order and meaning exactly. Return strict JSON only. "
                             "Return exactly one top-level key named events. Each events item must contain "
                             "exactly the supplied event_id and a turns array of alternating role/content "
@@ -956,6 +968,9 @@ def generate_persona_conversations(
                 )
                 for event, generated in zip(batch_events, parsed["events"]):
                     event["model_text"] = _render_dialogue(generated["turns"])
+                    event["dialogue_subject"] = replacements.get(
+                        str(event["fact"].get("subject")), "the account owner"
+                    )
                     event["surface_object"] = value_map.get(
                         str(event["fact"].get("object")),
                         str(event["fact"].get("object", "")),
@@ -968,7 +983,32 @@ def generate_persona_conversations(
             )
         _write_jsonl(output_dir / "events.jsonl", events)
         _write_jsonl(output_dir / "queries.jsonl", queries)
-        artifact_names = (*SOURCE_ARTIFACTS, raw_path.name, requests_path.name)
+        conversation_ids = {
+            history_id: f"conversation-{index:06d}"
+            for index, history_id in enumerate(sorted(by_history), start=1)
+        }
+        event_indices: dict[str, int] = {}
+        dialogue_rows = []
+        for event in events:
+            history_id = str(event["history_id"])
+            event_index = event_indices.get(history_id, 0)
+            dialogue_rows.append(
+                {
+                    "conversation_id": conversation_ids[history_id],
+                    "event_index": event_index,
+                    "speaker": event["dialogue_subject"],
+                    "text": event["model_text"],
+                }
+            )
+            event_indices[history_id] = event_index + 1
+        dialogue_path = output_dir / "dialogue.jsonl"
+        _write_jsonl(dialogue_path, dialogue_rows)
+        artifact_names = (
+            *SOURCE_ARTIFACTS,
+            dialogue_path.name,
+            raw_path.name,
+            requests_path.name,
+        )
         manifest.update(
             {
                 "status": "completed",
