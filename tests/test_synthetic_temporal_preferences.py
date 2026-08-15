@@ -216,9 +216,15 @@ def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
         "history-001-indirect-source",
     }
     assert by_suffix["transition"]["fact"]["temporal"]["valid_to"] == "2025-09-30"
+    assert by_suffix["transition"]["transitions_from"] == "history-001-initial"
+    assert "supersedes" not in by_suffix["transition"]
+    assert by_suffix["transition"]["fact"]["qualifiers"]["source_authority"] == (
+        "direct_user"
+    )
     assert by_suffix["conflict-right"]["conflicts_with"] == (
         "history-001-conflict-left"
     )
+    assert by_suffix["lineage-retract"]["retracts_lineage"] is True
     assert set(by_suffix["conflict-resolution"]["resolves"]) == {
         "history-001-conflict-left",
         "history-001-conflict-right",

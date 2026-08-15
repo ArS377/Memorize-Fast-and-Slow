@@ -476,17 +476,20 @@ def generate_dataset(
             fact_id=f"{history_id}-initial", example_id=transition_example, subject=subject,
             object_=initial_value, valid_from="2025-01-01", valid_to="2025-06-30",
             support_text=support_texts["initial"],
+            source_authority="direct_user",
         )
         current = _fact(
             fact_id=f"{history_id}-current", example_id=transition_example, subject=subject,
             object_=current_value, valid_from="2025-07-01", valid_to="2025-09-30",
             support_text=support_texts["current"],
+            source_authority="direct_user",
         )
         scoped = _fact(
             fact_id=f"{history_id}-scoped", example_id=scope_example, subject=subject,
             object_=scoped_value, valid_from="2025-08-01", valid_to="2025-08-14",
             scope=f"scope-{index:03d}",
             support_text=support_texts["scoped"],
+            source_authority="direct_user",
         )
         constraint = _fact(
             fact_id=f"{history_id}-constraint", example_id=scope_example, subject=subject,
@@ -495,6 +498,7 @@ def generate_dataset(
             predicate="AVOIDS",
             domain="hard_constraint",
             support_text=support_texts["constraint"],
+            source_authority="direct_user",
         )
         ambiguity = _fact(
             fact_id=f"{history_id}-ambiguity", example_id=scope_example, subject=subject,
@@ -503,6 +507,7 @@ def generate_dataset(
             predicate="AMBIGUOUS_PREFERENCE",
             domain="preference_ambiguity",
             support_text=support_texts["ambiguity"],
+            source_authority="direct_user",
         )
         private = _fact(
             fact_id=f"{history_id}-private", example_id=scope_example, subject=subject,
@@ -510,6 +515,7 @@ def generate_dataset(
             support_text=support_texts["private"],
             predicate="PRIVATE_NOTE",
             domain="private_memory",
+            source_authority="direct_user",
         )
         stale = _fact(
             fact_id=f"{history_id}-stale", example_id=transition_example, subject=subject,
@@ -527,6 +533,7 @@ def generate_dataset(
             fact_id=f"{history_id}-backdated", example_id=transition_example, subject=subject,
             object_=backdated_value, valid_from="2025-03-01", valid_to="2025-06-30",
             observed_at="2025-08-20T00:00:00+00:00", support_text=support_texts["backdated"],
+            source_authority="direct_user",
         )
         replaceable = _fact(
             fact_id=f"{history_id}-replaceable", example_id=scope_example,
@@ -601,6 +608,7 @@ def generate_dataset(
             predicate="PRIVATE_NOTE",
             domain="private_memory",
             support_text=f'{event_alias} asked that "{lineage_value}" be retained as a private note.',
+            source_authority="direct_user",
         )
         lineage_copy_one = _fact(
             fact_id=f"{history_id}-lineage-copy-1",
@@ -635,7 +643,7 @@ def generate_dataset(
             fact["split"] = split_by_history[history_id]
         history_events = [
             {"event_id": f"{history_id}-add", "history_id": history_id, "session_id": f"{history_id}-session-1", "turn_index": 1, "event_family": "non_overlap_transition", "operation": "add", "fact": initial},
-            {"event_id": f"{history_id}-transition", "history_id": history_id, "session_id": f"{history_id}-session-2", "turn_index": 1, "event_family": "non_overlap_transition", "operation": "supersede", "fact": current, "supersedes": initial["fact_id"]},
+            {"event_id": f"{history_id}-transition", "history_id": history_id, "session_id": f"{history_id}-session-2", "turn_index": 1, "event_family": "non_overlap_transition", "operation": "supersede", "fact": current, "transitions_from": initial["fact_id"]},
             {"event_id": f"{history_id}-scope", "history_id": history_id, "session_id": f"{history_id}-session-3", "turn_index": 1, "event_family": "scope_exception", "operation": "temporary_exception", "fact": scoped},
             {"event_id": f"{history_id}-constraint", "history_id": history_id, "session_id": f"{history_id}-session-3", "turn_index": 2, "event_family": "hard_constraint", "operation": "hard_constraint", "fact": constraint},
             {"event_id": f"{history_id}-ambiguity", "history_id": history_id, "session_id": f"{history_id}-session-4", "turn_index": 1, "event_family": "ambiguity", "operation": "ambiguous_conflict", "fact": ambiguity},
@@ -729,6 +737,7 @@ def generate_dataset(
                 valid_to=None,
                 scope="project_workspace",
                 observed_at="2027-01-01T00:00:00+00:00",
+                source_authority="direct_user",
                 support_text=(
                     f"While planning a long project, {event_alias} preferred a quiet private studio."
                 ),
@@ -742,6 +751,7 @@ def generate_dataset(
                 valid_to=None,
                 scope="project_workspace",
                 observed_at="2027-02-01T00:00:00+00:00",
+                source_authority="direct_user",
                 support_text=(
                     f"Weeks later, the {query_alias} instead requested an open team lounge for the same project."
                 ),
@@ -784,7 +794,7 @@ def generate_dataset(
                     {"event_id": f"{history_id}-lineage-add", "history_id": history_id, "session_id": f"{history_id}-session-12", "turn_index": 1, "event_family": "private_lineage", "operation": "add", "fact": lineage_root, "model_text": lineage_root["support_text"]},
                     {"event_id": f"{history_id}-lineage-copy-1", "history_id": history_id, "session_id": f"{history_id}-session-13", "turn_index": 1, "event_family": "private_lineage", "operation": "duplicate_delivery", "fact": lineage_copy_one, "duplicate_of": lineage_root["fact_id"], "model_text": lineage_copy_one["support_text"]},
                     {"event_id": f"{history_id}-lineage-copy-2", "history_id": history_id, "session_id": f"{history_id}-session-14", "turn_index": 1, "event_family": "private_lineage", "operation": "duplicate_delivery", "fact": lineage_copy_two, "duplicate_of": lineage_copy_one["fact_id"], "model_text": lineage_copy_two["support_text"]},
-                    {"event_id": f"{history_id}-lineage-retract", "history_id": history_id, "session_id": f"{history_id}-session-15", "turn_index": 1, "event_family": "private_lineage", "operation": "retract", "fact": (lineage_copy_two if composition_axes["chain_variant"] == 0 else lineage_root), "retracts": (lineage_copy_two["fact_id"] if composition_axes["chain_variant"] == 0 else lineage_root["fact_id"]), "model_text": f'{query_alias} withdrew one delivery of the private note and requested that the linked note no longer be recalled.'},
+                    {"event_id": f"{history_id}-lineage-retract", "history_id": history_id, "session_id": f"{history_id}-session-15", "turn_index": 1, "event_family": "private_lineage", "operation": "retract", "fact": (lineage_copy_two if composition_axes["chain_variant"] == 0 else lineage_root), "retracts": (lineage_copy_two["fact_id"] if composition_axes["chain_variant"] == 0 else lineage_root["fact_id"]), "retracts_lineage": True, "model_text": f'{query_alias} withdrew one delivery of the private note and requested that the linked note no longer be recalled.'},
                     {"event_id": f"{history_id}-preference-change-probe", "history_id": history_id, "session_id": f"{history_id}-session-16", "turn_index": 1, "event_family": "delayed_preference_probe", "operation": "context_note", "fact": preference_change_probe, "model_text": preference_change_probe["support_text"]},
                     {"event_id": f"{history_id}-preference-incongruity-probe", "history_id": history_id, "session_id": f"{history_id}-session-17", "turn_index": 1, "event_family": "delayed_preference_probe", "operation": "context_note", "fact": preference_incongruity_probe, "model_text": preference_incongruity_probe["support_text"]},
                 ]
@@ -815,7 +825,7 @@ def generate_dataset(
             {"query_id": f"{history_id}-scope", "history_id": history_id, "kind": "preference", "subject": subject, "date": "2025-08-05", "scope": f"scope-{index:03d}"},
             {"query_id": f"{history_id}-constraint", "history_id": history_id, "kind": "recommendation", "subject": subject, "candidate": forbidden_value},
             {"query_id": f"{history_id}-private", "history_id": history_id, "kind": "private_recall", "subject": subject, "fact_id": private["fact_id"]},
-            {"query_id": f"{history_id}-ambiguity", "history_id": history_id, "kind": "ambiguity", "subject": subject},
+            {"query_id": f"{history_id}-ambiguity", "history_id": history_id, "kind": "ambiguity", "subject": subject, "fact_id": ambiguity["fact_id"], "candidate": ambiguous_value},
             {"query_id": f"{history_id}-backdated", "history_id": history_id, "kind": "preference", "subject": subject, "date": "2025-05-01", "scope": "default"},
             {"query_id": f"{history_id}-duplicate", "history_id": history_id, "kind": "preference", "subject": subject, "date": "2025-08-01", "scope": "default"},
             {"query_id": f"{history_id}-authority", "history_id": history_id, "kind": "preference", "subject": subject, "date": "2025-10-15", "scope": "default"},

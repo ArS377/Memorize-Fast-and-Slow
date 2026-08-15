@@ -371,6 +371,14 @@ def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> 
     duplicate = prompts_by_id["history-001-duplicate"]
     assert "do not discuss delivery timing" in duplicate["semantic_instruction"]
     assert "deduplicat" in duplicate["forbidden_surface_phrases"]
+    negative = prompts_by_id["history-001-lineage-negative-1"]
+    assert "unrelated mention only" in negative["semantic_instruction"]
+    ambiguity_query = next(
+        query
+        for query in _jsonl(output / "queries.jsonl")
+        if query["kind"] == "ambiguity"
+    )
+    assert "vegetable ramen" in ambiguity_query["surface_query_text"]
     assert all(" 001" not in event["model_text"] for event in _jsonl(output / "events.jsonl"))
     assert prompt_events[0]["surface_text"].startswith("AsterArc ")
     assert all(

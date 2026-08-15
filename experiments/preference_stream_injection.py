@@ -50,7 +50,7 @@ def _preference_rows(
                 str(qualifiers.get("source_authority", "inferred")),
             )
         )
-        supersedes = event.get("supersedes")
+        supersedes = event.get("supersedes") or event.get("transitions_from")
         if supersedes is not None:
             supersession_rows.append((event_id, str(supersedes)))
     return sorted(preference_rows), sorted(supersession_rows), sorted(identity_rows)
@@ -183,6 +183,7 @@ class PreferenceStreamInjectionClient:
                 {
                     "event_id": event.get("event_id"),
                     "supersedes": event.get("supersedes"),
+                    "transitions_from": event.get("transitions_from"),
                     "fact": {
                         "fact_id": fact.get("fact_id"),
                         "subject": fact.get("subject"),

@@ -121,7 +121,7 @@ class FakePreferenceStreamClient:
         }
         injections = []
         for event in events:
-            supersedes = event.get("supersedes")
+            supersedes = event.get("supersedes") or event.get("transitions_from")
             prior = event_by_fact_id.get(str(supersedes))
             if prior is None:
                 continue

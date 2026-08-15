@@ -484,9 +484,10 @@ def _surface_query(
     elif kind == "private_recall":
         text = f"What private preference, if any, can still be recalled for {subject}?"
     elif kind == "ambiguity":
+        candidate = value_map.get(str(query.get("candidate")), str(query.get("candidate")))
         text = (
-            f"What settled preference was established after {subject}'s conflicting "
-            "statements? Answer the exact preference or UNKNOWN."
+            f"Was {candidate} ever settled as {subject}'s preference after the conflicting "
+            "statements? Answer the exact settled preference or UNKNOWN."
         )
     elif kind == "private_lineage":
         prefix = "After the withdrawal, " if query_id.endswith("private-lineage") else ""
@@ -529,7 +530,13 @@ def _semantic_instruction(
     event_family = str(event.get("event_family", "")).casefold()
     if event_family == "delayed_preference_probe":
         return "Describe only the review activity; do not claim prior records agree, conflict, or remain unchanged."
-    if (event.get("supersedes") or event.get("corrects")) and len(required_values) >= 2:
+    if event_family == "same_entity_hard_negative":
+        return "Keep this as an unrelated mention only; do not infer a private note, preference, ownership, or duplicate lineage."
+    if (
+        event.get("supersedes")
+        or event.get("corrects")
+        or event.get("transitions_from")
+    ) and len(required_values) >= 2:
         prior_values = list(required_values[:-1])
         old_value, new_value = prior_values[0], required_values[-1]
         if operation == "supersede":
@@ -591,6 +598,16 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
     ]
     if event_family == "delayed_preference_probe":
         phrases.extend(("no conflict", "no conflicting", "everything matches", "still the same"))
+    if event_family == "same_entity_hard_negative":
+        phrases.extend(
+            (
+                "treated as a private note",
+                "attached to",
+                "belongs to",
+                "already associated",
+                "reflects text",
+            )
+        )
     if operation == "supersede":
         phrases.extend(
             (
@@ -604,7 +621,11 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
         )
     if "duplicate" in operation:
         phrases.extend(("last cycle", "deduplicat", "merged", "single canonical"))
-    if (event.get("supersedes") or event.get("corrects")) and operation != "supersede":
+    if (
+        event.get("supersedes")
+        or event.get("corrects")
+        or event.get("transitions_from")
+    ) and operation != "supersede":
         phrases.extend(("stays exactly as it is", "remains unchanged", "keep it unchanged"))
     if operation == "backdated_correction":
         phrases.extend(("after spring", "later entries", "later records"))
@@ -775,7 +796,13 @@ def _required_surface_values(
 ) -> list[str]:
     """Return current and relation-linked values that generated dialogue must preserve."""
     related_ids: list[str] = []
-    for key in ("resolves", "supersedes", "corrects", "conflicts_with"):
+    for key in (
+        "resolves",
+        "supersedes",
+        "corrects",
+        "transitions_from",
+        "conflicts_with",
+    ):
         raw = event.get(key, ())
         if isinstance(raw, str):
             related_ids.append(raw)
@@ -822,12 +849,14 @@ def generate_persona_conversations(
             "hardness_profile": config.hardness_profile,
             "split_counts": list(config.split_counts),
         },
-        "controls": {"full_structured_memory": "oracle control"},
+        "controls": {
+            "full_structured_memory": "event-relation replay oracle",
+        },
         "artifact_roles": {
             "dialogue.jsonl": "model_input",
             "events.jsonl": "latent_structure",
             "source_documents.jsonl": "source_evidence",
-            "facts.jsonl": "structured_oracle",
+            "facts.jsonl": "structured_source_facts",
             "queries.jsonl": "supervision_only",
             "examples.jsonl": "supervision_only",
             "candidate_updates.jsonl": "supervision_only",
@@ -843,12 +872,18 @@ def generate_persona_conversations(
             "event_id": "event_identifier",
             "fact.fact_id": "fact_identifier",
             "supersedes": "fact_identifier",
+            "transitions_from": "fact_identifier",
             "corrects": "fact_identifier",
             "resolves": "fact_identifier_array",
             "retracts": "fact_identifier",
             "duplicate_of": "fact_identifier",
             "conflicts_with": "fact_identifier",
             "replay_order": "events.sequence_index",
+        },
+        "validation_contract": {
+            "recordkeeping_term_pattern": _RECORDKEEPING_LANGUAGE.pattern,
+            "max_recordkeeping_terms_per_event": 3,
+            "lineage_retraction": "retracts_lineage=true propagates through duplicate_of closure",
         },
     }
     _write_json(manifest_path, manifest)
