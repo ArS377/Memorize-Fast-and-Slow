@@ -164,6 +164,8 @@ class GenerationConfig:
     minimum_words_per_turn: int
     events_per_request: int
     enable_thinking: bool
+    max_validation_attempts: int
+    resume_existing: bool
 
     def __post_init__(self) -> None:
         """Validate all provider and source-generation boundaries."""
@@ -195,8 +197,11 @@ class GenerationConfig:
         _positive_int(self.turn_pairs_per_event, "generation.turn_pairs_per_event")
         _positive_int(self.minimum_words_per_turn, "generation.minimum_words_per_turn")
         _positive_int(self.events_per_request, "generation.events_per_request")
+        _positive_int(self.max_validation_attempts, "generation.max_validation_attempts")
         if not isinstance(self.enable_thinking, bool):
             raise ValueError("generation.enable_thinking must be a boolean")
+        if not isinstance(self.resume_existing, bool):
+            raise ValueError("generation.resume_existing must be a boolean")
 
 
 @dataclass(frozen=True)
@@ -799,6 +804,8 @@ def _request_parameters(config: GenerationConfig) -> dict[str, Any]:
         "minimum_words_per_turn": config.minimum_words_per_turn,
         "events_per_request": config.events_per_request,
         "enable_thinking": config.enable_thinking,
+        "max_validation_attempts": config.max_validation_attempts,
+        "resume_existing": config.resume_existing,
         "temperature": 0,
     }
 
@@ -940,6 +947,16 @@ def generate_persona_conversations(
             "lineage_retraction": "retracts_lineage=true propagates through duplicate_of closure",
         },
     }
+    prior_request_rows = (
+        _read_jsonl(requests_path)
+        if config.resume_existing and requests_path.exists()
+        else []
+    )
+    prior_raw_rows = (
+        _read_jsonl(raw_path)
+        if config.resume_existing and raw_path.exists()
+        else []
+    )
     _write_json(manifest_path, manifest)
     raw_rows: list[dict[str, Any]] = []
     request_rows: list[dict[str, Any]] = []
@@ -967,6 +984,7 @@ def generate_persona_conversations(
             by_history.setdefault(str(event["history_id"]), []).append(event)
         response_hashes = []
         model_identities = set()
+        resumed_response_count = 0
         for history_id, history_events in sorted(by_history.items()):
             expected = []
             for event in history_events:
@@ -1048,50 +1066,119 @@ def generate_persona_conversations(
                         ),
                     },
                 ]
-                prompt_sha256 = hashlib.sha256(
+                base_prompt_sha256 = hashlib.sha256(
                     json.dumps(messages, ensure_ascii=True, sort_keys=True).encode("utf-8")
                 ).hexdigest()
-                request_rows.append(
-                    {
-                        "history_id": history_id,
-                        "batch_index": batch_index,
-                        "event_count": len(batch_expected),
-                        "prompt_sha256": prompt_sha256,
-                        "messages": messages,
-                    }
-                )
-                _write_jsonl(requests_path, request_rows)
-                response = client.complete(
-                    messages=messages,
-                    model=config.model,
-                    timeout=config.timeout_seconds,
-                    seed=config.seed,
-                    max_tokens=config.max_tokens,
-                )
-                response_hash = hashlib.sha256(response.content.encode("utf-8")).hexdigest()
-                raw_rows.append(
-                    {
-                        "history_id": history_id,
-                        "batch_index": batch_index,
-                        "model": response.model,
-                        "finish_reason": response.finish_reason,
-                        "usage": dict(response.usage),
-                        "response_sha256": response_hash,
-                        "content": response.content,
-                    }
-                )
-                _write_jsonl(raw_path, raw_rows)
-                if response.finish_reason != "stop":
-                    raise ValueError(
-                        f"generation for {history_id} batch {batch_index} ended with "
-                        f"non-stop finish reason {response.finish_reason!r}"
+                parsed = None
+                validation_error: ValueError | None = None
+                cached_pairs = [
+                    (request, raw)
+                    for request, raw in zip(prior_request_rows, prior_raw_rows)
+                    if request.get("history_id") == history_id
+                    and int(request.get("batch_index", -1)) == batch_index
+                    and request.get("prompt_sha256") == base_prompt_sha256
+                    and raw.get("history_id") == history_id
+                    and int(raw.get("batch_index", -1)) == batch_index
+                ]
+                for cached_request, cached_raw in cached_pairs:
+                    request_rows.append({**cached_request, "resumed_from_prior_run": True})
+                    raw_rows.append({**cached_raw, "resumed_from_prior_run": True})
+                    _write_jsonl(requests_path, request_rows)
+                    _write_jsonl(raw_path, raw_rows)
+                    try:
+                        if cached_raw.get("finish_reason") != "stop":
+                            raise ValueError(
+                                f"cached generation ended with non-stop finish reason "
+                                f"{cached_raw.get('finish_reason')!r}"
+                            )
+                        parsed = validate_generation_response(
+                            str(cached_raw.get("content", "")),
+                            batch_expected,
+                            turn_pairs_per_event=config.turn_pairs_per_event,
+                            minimum_words_per_turn=config.minimum_words_per_turn,
+                        )
+                    except ValueError as error:
+                        validation_error = error
+                        continue
+                    resumed_response_count += 1
+                    break
+
+                attempt_start = 1 if cached_pairs and parsed is None else 0
+                for attempt_index in range(attempt_start, config.max_validation_attempts):
+                    if parsed is not None:
+                        break
+                    attempt_messages = list(messages)
+                    if validation_error is not None:
+                        attempt_messages.insert(
+                            -1,
+                            {
+                                "role": "system",
+                                "content": (
+                                    f"Repair the response after this validation failure: {validation_error}. "
+                                    "Return the complete requested JSON again with exact IDs, order, roles, "
+                                    "turn counts, values, and semantic constraints."
+                                ),
+                            }
+                        )
+                    prompt_sha256 = hashlib.sha256(
+                        json.dumps(
+                            attempt_messages, ensure_ascii=True, sort_keys=True
+                        ).encode("utf-8")
+                    ).hexdigest()
+                    request_rows.append(
+                        {
+                            "history_id": history_id,
+                            "batch_index": batch_index,
+                            "attempt_index": attempt_index,
+                            "event_count": len(batch_expected),
+                            "seed": config.seed + attempt_index,
+                            "prompt_sha256": prompt_sha256,
+                            "messages": attempt_messages,
+                        }
                     )
-                parsed = validate_generation_response(
-                    response.content,
-                    batch_expected,
-                    turn_pairs_per_event=config.turn_pairs_per_event,
-                    minimum_words_per_turn=config.minimum_words_per_turn,
-                )
+                    _write_jsonl(requests_path, request_rows)
+                    response = client.complete(
+                        messages=attempt_messages,
+                        model=config.model,
+                        timeout=config.timeout_seconds,
+                        seed=config.seed + attempt_index,
+                        max_tokens=config.max_tokens,
+                    )
+                    response_hash = hashlib.sha256(
+                        response.content.encode("utf-8")
+                    ).hexdigest()
+                    raw_rows.append(
+                        {
+                            "history_id": history_id,
+                            "batch_index": batch_index,
+                            "attempt_index": attempt_index,
+                            "model": response.model,
+                            "finish_reason": response.finish_reason,
+                            "usage": dict(response.usage),
+                            "response_sha256": response_hash,
+                            "content": response.content,
+                        }
+                    )
+                    _write_jsonl(raw_path, raw_rows)
+                    try:
+                        if response.finish_reason != "stop":
+                            raise ValueError(
+                                f"generation ended with non-stop finish reason "
+                                f"{response.finish_reason!r}"
+                            )
+                        parsed = validate_generation_response(
+                            response.content,
+                            batch_expected,
+                            turn_pairs_per_event=config.turn_pairs_per_event,
+                            minimum_words_per_turn=config.minimum_words_per_turn,
+                        )
+                    except ValueError as error:
+                        validation_error = error
+                if parsed is None:
+                    raise ValueError(
+                        f"generation for {history_id} batch {batch_index} failed after "
+                        f"{config.max_validation_attempts} validation attempts: {validation_error}"
+                    )
                 for event, generated in zip(batch_events, parsed["events"]):
                     event["model_text"] = _render_dialogue(generated["turns"])
                     event["dialogue_subject"] = replacements.get(
@@ -1106,8 +1193,8 @@ def generate_persona_conversations(
                         str(event["fact"].get("object")),
                         str(event["fact"].get("object", "")),
                     )
-                response_hashes.append(response_hash)
-                model_identities.add(response.model)
+                response_hashes = [str(row["response_sha256"]) for row in raw_rows]
+                model_identities.update(str(row["model"]) for row in raw_rows)
         for query in queries:
             query["surface_query_text"], query["surface_gold"] = _surface_query(
                 query, replacements, value_map
@@ -1148,6 +1235,7 @@ def generate_persona_conversations(
                 "completion_status": "completed",
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "model_identity": sorted(model_identities)[0] if len(model_identities) == 1 else sorted(model_identities),
+                "resumed_response_count": resumed_response_count,
                 "effective_generation": _usage_token_totals(raw_rows),
                 "response_sha256": response_hashes,
                 "prompt_sha256": [row["prompt_sha256"] for row in request_rows],
@@ -1206,7 +1294,7 @@ def load_generation_config(path: Path) -> GenerationConfig:
             "max_tokens", "history_count", "condition", "hardness_profile",
             "split_counts", "prompt_schema_version", "turn_pairs_per_event",
             "minimum_words_per_turn", "events_per_request",
-            "enable_thinking",
+            "enable_thinking", "max_validation_attempts", "resume_existing",
         },
         "generation",
     )
@@ -1235,6 +1323,8 @@ def load_generation_config(path: Path) -> GenerationConfig:
         minimum_words_per_turn=raw["minimum_words_per_turn"],
         events_per_request=raw["events_per_request"],
         enable_thinking=raw["enable_thinking"],
+        max_validation_attempts=raw["max_validation_attempts"],
+        resume_existing=raw["resume_existing"],
     )
 
 

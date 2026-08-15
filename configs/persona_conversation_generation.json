@@ -14,7 +14,9 @@
     "turn_pairs_per_event": 1,
     "minimum_words_per_turn": 1,
     "events_per_request": 100,
-    "enable_thinking": false
+    "enable_thinking": false,
+    "max_validation_attempts": 2,
+    "resume_existing": true
   },
   "evaluation": {
     "endpoint_env": "QWEN_BASE_URL",

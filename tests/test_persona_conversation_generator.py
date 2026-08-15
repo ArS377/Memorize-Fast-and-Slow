@@ -79,6 +79,34 @@ class FailingClient:
         raise RuntimeError("fixture provider unavailable")
 
 
+class UnexpectedClient:
+    """Fail if resumable generation makes an unnecessary provider call."""
+
+    def complete(self, **_kwargs: Any) -> LLMResponse:
+        raise AssertionError("provider should not be called for revalidated cached responses")
+
+
+class RepairingClient(SurfaceFakeClient):
+    """Return one schema-invalid response before honoring the changed repair request."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def complete(self, **request: Any) -> LLMResponse:
+        self.calls += 1
+        response = super().complete(**request)
+        if self.calls != 1:
+            return response
+        payload = json.loads(response.content)
+        payload["events"][0]["turns"][0]["role"] = "assistant"
+        return LLMResponse(
+            content=json.dumps(payload, sort_keys=True),
+            finish_reason="stop",
+            model=response.model,
+            usage=response.usage,
+        )
+
+
 def _config() -> GenerationConfig:
     return GenerationConfig(
         endpoint="https://fixture.invalid/v1",
@@ -96,6 +124,8 @@ def _config() -> GenerationConfig:
         minimum_words_per_turn=1,
         events_per_request=100,
         enable_thinking=False,
+        max_validation_attempts=2,
+        resume_existing=True,
     )
 
 
@@ -348,6 +378,8 @@ def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> 
         minimum_words_per_turn=1,
         events_per_request=8,
         enable_thinking=False,
+        max_validation_attempts=2,
+        resume_existing=True,
     )
     output = tmp_path / "v3"
 
@@ -468,3 +500,32 @@ def test_provider_failure_writes_failed_manifest(tmp_path: Path) -> None:
     assert manifest["error"]["type"] == "RuntimeError"
     assert manifest["completion_status"] == "failed"
     assert (output / "raw_responses.jsonl").exists()
+
+
+def test_generation_reuses_only_revalidated_prompt_matched_responses(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "resume"
+    first = generate_persona_conversations(output, _config(), SurfaceFakeClient())
+
+    resumed = generate_persona_conversations(output, _config(), UnexpectedClient())
+
+    assert resumed["status"] == "completed"
+    assert resumed["resumed_response_count"] == len(first["response_sha256"])
+    assert resumed["response_sha256"] == first["response_sha256"]
+
+
+def test_generation_repairs_validation_failure_with_changed_attempt(
+    tmp_path: Path,
+) -> None:
+    client = RepairingClient()
+
+    manifest = generate_persona_conversations(tmp_path / "repair", _config(), client)
+
+    requests = _jsonl(tmp_path / "repair" / "requests.jsonl")
+    raw = _jsonl(tmp_path / "repair" / "raw_responses.jsonl")
+    assert manifest["status"] == "completed"
+    assert client.calls == 5
+    assert len(requests) == len(raw) == 5
+    assert requests[0]["prompt_sha256"] != requests[1]["prompt_sha256"]
+    assert requests[0]["seed"] != requests[1]["seed"]

@@ -127,6 +127,8 @@ def _generation_config() -> GenerationConfig:
         minimum_words_per_turn=1,
         events_per_request=100,
         enable_thinking=False,
+        max_validation_attempts=2,
+        resume_existing=True,
     )
 
 
