@@ -92,13 +92,19 @@ def test_generator_is_deterministic_and_emits_existing_fact_shape(tmp_path: Path
     assert all(
         fact["fact_id"]
         and fact["subject"]
-        and fact["predicate"] == "PREFERS"
+        and fact["predicate"]
         and fact["object"]
         and fact["support_text"]
         and fact["provenance"]
         and fact["temporal"]["valid_from"]
         for fact in facts
     )
+    assert {fact["predicate"] for fact in facts} >= {
+        "PREFERS",
+        "AVOIDS",
+        "AMBIGUOUS_PREFERENCE",
+        "PRIVATE_NOTE",
+    }
     assert {fact["subject"] for fact in facts} >= {
         "subject-001", "subject-002", "subject-003"
     }
@@ -163,6 +169,115 @@ def test_anti_shortcut_profile_is_deterministic_and_composition_held_out(
         )
         expected_marker = "discussed" if axes["negative_family"] == 0 else "planning card"
         assert expected_marker in negative_text.lower()
+
+
+def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
+    tmp_path: Path,
+) -> None:
+    paths = generate_dataset(
+        tmp_path,
+        history_count=1,
+        split_counts=(0, 0, 1),
+        hardness_profile="anti_shortcut_interleaved_v3",
+    )
+    events = _rows(paths["events"])
+    candidates = _rows(paths["candidates"])
+    facts = _rows(paths["facts"])
+    source_documents = {
+        document["document_id"]: document["text"]
+        for document in _rows(paths["source_documents"])
+    }
+    assert [event["sequence_index"] for event in events] == list(range(len(events)))
+    event_fact_ids = {event["fact"]["fact_id"] for event in events}
+    assert event_fact_ids <= {fact["fact_id"] for fact in facts}
+    by_suffix = {
+        event["event_id"].removeprefix("history-001-"): event for event in events
+    }
+
+    context_families = {
+        "alias_bridge",
+        "same_entity_hard_negative",
+        "delayed_preference_probe",
+    }
+    assert all(
+        event["fact"]["predicate"] != "PREFERS"
+        for event in events
+        if event["event_family"] in context_families
+    )
+    assert by_suffix["constraint"]["fact"]["predicate"] == "AVOIDS"
+    assert by_suffix["ambiguity"]["fact"]["predicate"] == "AMBIGUOUS_PREFERENCE"
+    assert by_suffix["private-add"]["fact"]["predicate"] == "PRIVATE_NOTE"
+    assert all(
+        event.get("surface_subject") == "AsterArc"
+        for event in events
+        if event["fact"]["subject"] == "subject-001"
+    )
+    assert set(by_suffix["direct-correction"]["resolves"]) == {
+        "history-001-indirect-source",
+    }
+    assert by_suffix["transition"]["fact"]["temporal"]["valid_to"] == "2025-09-30"
+    assert by_suffix["transition"]["transitions_from"] == "history-001-initial"
+    assert "supersedes" not in by_suffix["transition"]
+    assert by_suffix["transition"]["fact"]["qualifiers"]["source_authority"] == (
+        "direct_user"
+    )
+    assert by_suffix["conflict-right"]["conflicts_with"] == (
+        "history-001-conflict-left"
+    )
+    assert by_suffix["lineage-retract"]["retracts_lineage"] is True
+    for suffix in ("lineage-alias", "lineage-copy-1", "lineage-copy-2"):
+        assert by_suffix[suffix]["fact"]["qualifiers"]["source_authority"] == (
+            "direct_user"
+        )
+    assert set(by_suffix["conflict-resolution"]["resolves"]) == {
+        "history-001-conflict-left",
+        "history-001-conflict-right",
+    }
+    assert by_suffix["conflict-left"]["fact"]["temporal"]["observed_at"].startswith(
+        "2027-01-01"
+    )
+    assert by_suffix["conflict-right"]["fact"]["temporal"]["observed_at"].startswith(
+        "2027-02-01"
+    )
+    assert by_suffix["conflict-resolution"]["fact"]["temporal"]["valid_from"] == (
+        "2027-03-01"
+    )
+    checked_candidates = {
+        "history-001-overlap-replacement",
+        "history-001-direct-conflict-no-supersession",
+        "history-001-ambiguity-resolution",
+    }
+    for candidate in candidates:
+        if candidate["candidate_id"] in checked_candidates:
+            assert candidate["fact"]["object"] in candidate["fact"]["support_text"]
+    constraint_violation = next(
+        candidate
+        for candidate in candidates
+        if candidate["candidate_id"] == "history-001-hard-constraint-violation"
+    )
+    assert "requested" in constraint_violation["fact"]["support_text"]
+    resurrection = next(
+        candidate
+        for candidate in candidates
+        if candidate["candidate_id"] == "history-001-retraction-resurrection"
+    )
+    assert resurrection["fact"]["predicate"] == "PRIVATE_NOTE"
+    direct_conflict = next(
+        candidate
+        for candidate in candidates
+        if candidate["candidate_id"] == "history-001-direct-conflict-no-supersession"
+    )
+    assert direct_conflict["candidate_features"]["active_conflict_count"] == 1
+    all_facts = [
+        *[event["fact"] for event in events],
+        *[candidate["fact"] for candidate in candidates],
+    ]
+    for fact in all_facts:
+        source = fact["provenance"][0]
+        text = source_documents[source["document_id"]]
+        assert text[source["source_span_start"] : source["source_span_end"]] == (
+            fact["support_text"]
+        )
 
 
 def test_aliases_remain_disjoint_at_full_interleaved_scale() -> None:

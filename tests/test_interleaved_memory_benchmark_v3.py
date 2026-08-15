@@ -122,7 +122,6 @@ def test_delayed_methods_share_caps_and_do_not_force_perfection(tmp_path: Path) 
     schedule, queries, capsules, tokenizer = _fixture(tmp_path)
     capsules = [dict(capsule) for capsule in capsules]
     capsules[0]["text"] = "deliberately misleading lexical match"
-    capsules = compact_valid_capsules_to_capacity(capsules, 8)
 
     rows = evaluate_delayed_preference_checkpoints(
         schedule,

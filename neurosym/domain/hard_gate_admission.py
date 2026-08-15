@@ -75,6 +75,15 @@ def _active_events(history_events: Sequence[Mapping[str, Any]]) -> list[Mapping[
         if operation == "retract":
             active.pop(str(event.get("retracts") or ""), None)
             continue
+        resolved = event.get("resolves") or []
+        if not isinstance(resolved, Sequence) or isinstance(resolved, (str, bytes)):
+            raise ValueError(f"event {event.get('event_id')} resolves must be a sequence")
+        supersedes = event.get("supersedes")
+        resolved_ids = [str(identifier) for identifier in resolved]
+        if supersedes is not None:
+            resolved_ids.append(str(supersedes))
+        for resolved_id in resolved_ids:
+            active.pop(resolved_id, None)
         fact = event.get("fact")
         if not isinstance(fact, Mapping):
             continue
@@ -217,7 +226,6 @@ def admit_candidate(
             supersedes == _fact_id(event["fact"])
             or (
                 event["fact"].get("subject") == fact.get("subject")
-                and event["fact"].get("predicate") == fact.get("predicate")
                 and _scope(event["fact"]) == _scope(fact)
                 and _temporal_overlap(event["fact"], fact)
             )

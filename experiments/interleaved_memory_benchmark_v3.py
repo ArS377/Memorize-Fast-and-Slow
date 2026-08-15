@@ -524,6 +524,10 @@ def evaluate_delayed_preference_checkpoints(
             causal_capsules = compact_valid_capsules_to_capacity(
                 causal_candidates, capsule_capacity
             )
+            if not causal_capsules:
+                raise ValueError(
+                    f"no causal capsules available at checkpoint turn {checkpoint_index + 1}"
+                )
             ranker = _capsule_ranker(causal_capsules)
             rankers[checkpoint_index] = ranker
         selected_capsule = _rank_with_index(*ranker, query_text)

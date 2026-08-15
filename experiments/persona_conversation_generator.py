@@ -22,27 +22,36 @@ SOURCE_ARTIFACTS = (
     "examples.jsonl",
     "facts.jsonl",
     "queries.jsonl",
+    "source_documents.jsonl",
 )
 _LATENT_LABEL = re.compile(
-    r"\b(?:history|subject|value|scope|example|candidate|replacement)-\d{3}(?:-[a-z][\w-]*)?\b"
+    r"\b(?:history|subject|value|scope|example|candidate|replacement)-\d+(?:-[a-z][\w-]*)?\b"
     r"|\b(?:event_id|fact_id|query_id|operation|gold)\s*="
 )
-_PREFERENCE_SURFACES = (
-    "cedar tea",
-    "mint tea",
-    "window seating",
-    "aisle seating",
-    "vegetable ramen",
-    "mushroom risotto",
-    "morning delivery",
-    "evening delivery",
-    "quiet workspace",
-    "shared workspace",
-    "paper receipts",
-    "digital receipts",
-    "weekly summaries",
-    "monthly summaries",
+_RECORDKEEPING_LANGUAGE = re.compile(
+    r"\b(?:record(?:ed|ing|s)?|entr(?:y|ies)|files?|noted|audit trail|canonical)\b",
+    re.IGNORECASE,
 )
+_UNSUPPORTED_GENDERED_PRONOUN = re.compile(
+    r"\b(?:he|she|him|her|his|hers)\b",
+    re.IGNORECASE,
+)
+_PREFERENCE_SURFACES = {
+    "a": "cedar tea",
+    "b": "mint tea",
+    "c": "window seating",
+    "d": "aisle seating",
+    "e": "vegetable ramen",
+    "f": "mushroom risotto",
+    "g": "paper receipts",
+    "h": "oolong tea",
+    "i": "evening delivery",
+    "j": "morning delivery",
+    "k": "weekend delivery",
+    "l": "digital receipts",
+    "m": "weekday delivery",
+    "n": "tofu noodles",
+}
 _GIVEN_NAMES = (
     "Morgan", "Riley", "Jordan", "Casey", "Taylor", "Avery", "Cameron", "Drew", "Parker", "Quinn",
 )
@@ -151,6 +160,12 @@ class GenerationConfig:
     hardness_profile: str
     split_counts: tuple[int, int, int]
     prompt_schema_version: str
+    turn_pairs_per_event: int
+    minimum_words_per_turn: int
+    events_per_request: int
+    enable_thinking: bool
+    max_validation_attempts: int
+    resume_existing: bool
 
     def __post_init__(self) -> None:
         """Validate all provider and source-generation boundaries."""
@@ -179,6 +194,14 @@ class GenerationConfig:
         ):
             raise ValueError("generation.split_counts must be three non-negative integers summing to history_count")
         _nonempty(self.prompt_schema_version, "generation.prompt_schema_version")
+        _positive_int(self.turn_pairs_per_event, "generation.turn_pairs_per_event")
+        _positive_int(self.minimum_words_per_turn, "generation.minimum_words_per_turn")
+        _positive_int(self.events_per_request, "generation.events_per_request")
+        _positive_int(self.max_validation_attempts, "generation.max_validation_attempts")
+        if not isinstance(self.enable_thinking, bool):
+            raise ValueError("generation.enable_thinking must be a boolean")
+        if not isinstance(self.resume_existing, bool):
+            raise ValueError("generation.resume_existing must be a boolean")
 
 
 @dataclass(frozen=True)
@@ -389,13 +412,38 @@ def _surface_maps(events: Sequence[Mapping[str, Any]]) -> tuple[dict[str, str], 
             )
         }
     )
-    value_map = {
-        value: _PREFERENCE_SURFACES[index % len(_PREFERENCE_SURFACES)]
-        for index, value in enumerate(values)
+    value_map = {}
+    for value in values:
+        suffix = value.rsplit("-", 1)[-1]
+        if suffix not in _PREFERENCE_SURFACES:
+            raise ValueError(f"unsupported latent preference suffix {suffix!r} in {value!r}")
+        value_map[value] = _PREFERENCE_SURFACES[suffix]
+    numbered_objects = sorted(
+        {
+            str(event["fact"]["object"])
+            for event in events
+            if isinstance(event.get("fact"), Mapping)
+            and isinstance(event["fact"].get("object"), str)
+            and re.search(r"\s\d+$", str(event["fact"]["object"]))
+        }
+    )
+    for raw_object in numbered_objects:
+        natural = re.sub(r"\s+\d+$", "", raw_object).replace("_", " ").strip()
+        value_map[raw_object] = (
+            "quiet private studio" if natural == "quiet studio" else natural
+        )
+    subject_map = {
+        str(event["fact"]["subject"]): str(event["surface_subject"])
+        for event in events
+        if isinstance(event.get("fact"), Mapping)
+        and isinstance(event["fact"].get("subject"), str)
+        and isinstance(event.get("surface_subject"), str)
+        and str(event["surface_subject"]).strip()
     }
-    subject_map = {}
     namespace_size = len(_GIVEN_NAMES) * len(_FAMILY_NAMES)
     for index, subject in enumerate(subjects):
+        if subject in subject_map:
+            continue
         cycle = index // namespace_size
         given = _GIVEN_NAMES[index % len(_GIVEN_NAMES)]
         family = _FAMILY_NAMES[(index // len(_GIVEN_NAMES)) % len(_FAMILY_NAMES)]
@@ -419,41 +467,43 @@ def _surface_query(
     """Return model-visible natural query and answer while preserving latent gold fields."""
     kind = str(query.get("kind"))
     query_id = str(query.get("query_id"))
+    subject = replacements.get(str(query.get("subject")), "the account holder")
     if kind == "preference":
         scope = str(query.get("scope", "default"))
         surface_scope = replacements.get(scope, scope.replace("_", " "))
         date = str(query.get("date", "the requested date"))
         if query_id.endswith("preference-change-delayed"):
             text = (
-                "After the long record, what standing preference applied to the account holder "
+                f"After the long record, what standing preference applied to {subject} "
                 f"on {date}?"
             )
         elif query_id.endswith("preference-incongruity-delayed"):
             text = (
-                "Considering the complete record, what standing preference applied to the "
-                f"account holder on {date}?"
+                f"Considering the complete record, what standing preference applied to {subject} "
+                f"on {date}?"
             )
         else:
             text = (
-                f"What did the account holder prefer in the {surface_scope} on {date}?"
+                f"What did {subject} prefer in the {surface_scope} on {date}?"
             )
     elif kind == "recommendation":
         candidate = value_map.get(str(query.get("candidate")), str(query.get("candidate")))
         text = (
-            f"Is {candidate} feasible under the account holder's stated constraints? "
+            f"Is {candidate} feasible under {subject}'s stated constraints? "
             "Answer FEASIBLE or INFEASIBLE."
         )
     elif kind == "private_recall":
-        text = "What private preference, if any, can still be recalled for the account holder?"
+        text = f"What private preference, if any, can still be recalled for {subject}?"
     elif kind == "ambiguity":
+        candidate = value_map.get(str(query.get("candidate")), str(query.get("candidate")))
         text = (
-            "What settled preference was established after the account holder's conflicting "
-            "statements? Answer the exact preference or UNKNOWN."
+            f"Was {candidate} ever settled as {subject}'s preference after the conflicting "
+            "statements? Answer the exact settled preference or UNKNOWN."
         )
     elif kind == "private_lineage":
         prefix = "After the withdrawal, " if query_id.endswith("private-lineage") else ""
         text = (
-            f"{prefix}what private value, if any, can still be recalled for the account holder?"
+            f"{prefix}what private value, if any, can still be recalled for {subject}?"
         )
     else:
         raise ValueError(f"unsupported surface query kind {kind!r} for {query_id}")
@@ -465,12 +515,17 @@ def _surface_query(
 def _semantic_markers(event: Mapping[str, Any]) -> tuple[str, ...]:
     """Return lexical invariants that preserve operation semantics in generated dialogue."""
     operation = str(event.get("operation", "")).casefold()
+    event_family = str(event.get("event_family", "")).casefold()
     if "retract" in operation:
         return ("retract", "remove", "withdraw", "no longer")
     if "hard_constraint" in operation:
         return ("avoid", "must not", "cannot", "off the table")
-    if "ambig" in operation or "conflict" in operation:
-        return ("conflict", "contradict", "not settled", "clarify")
+    if "rectification" in event_family:
+        return ("resolve", "clarify", "settle", "final choice")
+    if event_family == "contradiction_opening" and not event.get("conflicts_with"):
+        return ()
+    if "contradiction" in event_family or "ambig" in operation or "conflict" in operation:
+        return ("conflict", "contradict", "not settled", "clarify", "incompatible")
     if "duplicate" in operation:
         return ("again", "already", "repeat", "same")
     if "supersede" in operation or "correction" in operation or "replace" in operation:
@@ -478,8 +533,159 @@ def _semantic_markers(event: Mapping[str, Any]) -> tuple[str, ...]:
     return ()
 
 
+def _semantic_instruction(
+    event: Mapping[str, Any], required_values: Sequence[str]
+) -> str:
+    """Return event-specific constraints that prevent plausible but false elaboration."""
+    operation = str(event.get("operation", "")).casefold()
+    event_family = str(event.get("event_family", "")).casefold()
+    if event_family == "delayed_preference_probe":
+        return "Describe only the review activity; do not claim prior records agree, conflict, or remain unchanged."
+    if event_family == "same_entity_hard_negative":
+        return "Keep this as an unrelated mention only; do not infer a private note, preference, ownership, or duplicate lineage."
+    if (
+        event.get("supersedes")
+        or event.get("corrects")
+        or event.get("transitions_from")
+    ) and len(required_values) >= 2:
+        prior_values = list(required_values[:-1])
+        old_value, new_value = prior_values[0], required_values[-1]
+        if operation == "supersede":
+            fact = event.get("fact")
+            temporal = fact.get("temporal", {}) if isinstance(fact, Mapping) else {}
+            valid_from = temporal.get("valid_from")
+            valid_to = temporal.get("valid_to")
+            return (
+                f"State that {old_value} remains historical before the transition and "
+                f"{new_value} is active only from {valid_from} through {valid_to}; do not "
+                "describe it as open-ended or erase the old history."
+            )
+        if operation == "backdated_correction":
+            fact = event.get("fact")
+            temporal = fact.get("temporal", {}) if isinstance(fact, Mapping) else {}
+            return (
+                f"State that {old_value} applies only before {temporal.get('valid_from')} and "
+                f"{new_value} applies from {temporal.get('valid_from')} through "
+                f"{temporal.get('valid_to')}; do not claim {old_value} applies afterward."
+            )
+        return (
+            f"State unambiguously that {new_value} supersedes all prior active choices "
+            f"({', '.join(prior_values)}); do not say any prior choice stays active or unchanged."
+        )
+    fact = event.get("fact")
+    predicate = str(fact.get("predicate", "")) if isinstance(fact, Mapping) else ""
+    if "retract" in operation:
+        return "Mark the value unavailable for future recall without claiming its audit history was destroyed."
+    if predicate == "PRIVATE_NOTE":
+        return "Discuss only a private note and its repetition; never call it a preference, favorite, dish, or recommendation signal."
+    if "duplicate" in operation:
+        return "Have the user naturally repeat a previously stated preference; do not discuss delivery timing, storage, merging, or deduplication."
+    if event_family == "contradiction_opening" and len(required_values) == 1:
+        return "State only the supplied choice; do not invent an alternative or call it a conflict yet."
+    if event_family == "contradiction_opening":
+        return "State exactly which two supplied choices are incompatible and leave the choice unresolved."
+    if "rectification" in event_family:
+        return "State both incompatible prior choices and the supplied final choice that resolves them."
+    return "Do not invent facts, agreement, conflicts, or outcomes beyond the supplied event."
+
+
+def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
+    """Return high-risk unsupported claims that invalidate generated dialogue."""
+    operation = str(event.get("operation", "")).casefold()
+    event_family = str(event.get("event_family", "")).casefold()
+    fact = event.get("fact")
+    predicate = str(fact.get("predicate", "")) if isinstance(fact, Mapping) else ""
+    phrases = [
+        "no other",
+        "nothing else changed",
+        "complete picture",
+        "supplied event",
+        "benchmark",
+        "the prompt",
+        "provided text",
+        "how should i phrase",
+        "supportable statement",
+        "write the entry",
+        "do not add",
+        "same fact delivered",
+        "new evidence",
+        "audit trail",
+        "only thing on file",
+        "canonical record",
+    ]
+    if event_family == "delayed_preference_probe":
+        phrases.extend(("no conflict", "no conflicting", "everything matches", "still the same"))
+    if event_family == "same_entity_hard_negative":
+        phrases.extend(
+            (
+                "treated as a private note",
+                "attached to",
+                "belongs to",
+                "already associated",
+                "reflects text",
+                "would conflict",
+                "correction",
+                "could become",
+            )
+        )
+    if operation == "supersede":
+        phrases.extend(
+            (
+                "fully replacing",
+                "delete the old",
+                "erase the old",
+                "going forward",
+                "from now on",
+                "indefinitely",
+            )
+        )
+    if "duplicate" in operation:
+        phrases.extend(("last cycle", "deduplicat", "merged", "single canonical"))
+        phrases.extend(("on your profile", "already saved", "in storage", "noted"))
+    if predicate == "PRIVATE_NOTE":
+        phrases.extend(("favorite", "preference", "recommend", "dish"))
+    if (
+        event.get("supersedes")
+        or event.get("corrects")
+        or event.get("transitions_from")
+    ) and operation != "supersede":
+        phrases.extend(("stays exactly as it is", "remains unchanged", "keep it unchanged"))
+    if operation == "backdated_correction":
+        phrases.extend(("after spring", "later entries", "later records"))
+    if "retract" in operation:
+        phrases.extend(("nothing remains to be recovered", "permanently deleted", "completely erased"))
+    return tuple(phrases)
+
+
+def _speaker_contract(
+    event: Mapping[str, Any], dialogue_subject: str
+) -> tuple[str, str, list[str]]:
+    """Return a speaker instruction and lexical evidence for source authority."""
+    fact = event.get("fact")
+    qualifiers = fact.get("qualifiers", {}) if isinstance(fact, Mapping) else {}
+    authority = str(qualifiers.get("source_authority", "inferred"))
+    if authority == "direct_user":
+        return (
+            dialogue_subject,
+            f"The user is {dialogue_subject} and states their own information naturally in first person.",
+            [],
+        )
+    if authority == "inferred":
+        return (
+            "observer",
+            f"The user asks about third-party evidence concerning {dialogue_subject}; the assistant "
+            "must label it tentative or inferred, and the user must not personally confirm it.",
+            ["inferred", "tentative", "appears", "reported"],
+        )
+    raise ValueError(f"unsupported source authority {authority!r}")
+
+
 def validate_generation_response(
-    content: str, expected_events: Sequence[Mapping[str, Any]]
+    content: str,
+    expected_events: Sequence[Mapping[str, Any]],
+    *,
+    turn_pairs_per_event: int,
+    minimum_words_per_turn: int,
 ) -> dict[str, Any]:
     """Validate one history batch for schema, order, completeness, and latent-label leakage."""
     if not isinstance(content, str) or not content.strip():
@@ -506,8 +712,12 @@ def validate_generation_response(
         if not isinstance(event, dict) or set(event) != {"event_id", "turns"}:
             raise ValueError(f"generated event at index {index} has malformed fields")
         turns = event["turns"]
-        if not isinstance(turns, list) or len(turns) < 2:
-            raise ValueError(f"generated event {event['event_id']} is missing a complete turn")
+        expected_turn_count = 2 * turn_pairs_per_event
+        if not isinstance(turns, list) or len(turns) != expected_turn_count:
+            raise ValueError(
+                f"generated event {event['event_id']} must contain exactly "
+                f"{expected_turn_count} turns"
+            )
         roles = []
         visible_parts = []
         for turn_index, turn in enumerate(turns):
@@ -517,17 +727,60 @@ def validate_generation_response(
             if role not in {"user", "assistant"}:
                 raise ValueError(f"generated event {event['event_id']} has unsupported role {role!r}")
             text = _nonempty(turn["content"], f"generated event {event['event_id']} content")
+            word_count = len(text.split())
+            if word_count < minimum_words_per_turn:
+                raise ValueError(
+                    f"generated event {event['event_id']} turn {turn_index} must contain at least "
+                    f"{minimum_words_per_turn} words; found {word_count}"
+                )
             if _LATENT_LABEL.search(text) or any(identifier in text for identifier in expected_ids):
                 raise ValueError(f"generated event {event['event_id']} leaked a latent benchmark label")
             roles.append(role)
             visible_parts.append(text)
         if roles[0] != "user" or roles[-1] != "assistant" or any(left == right for left, right in zip(roles, roles[1:])):
             raise ValueError(f"generated event {event['event_id']} is not alternating user/assistant dialogue")
-        required_value = expected_events[index].get("required_surface_value")
-        if required_value and str(required_value).casefold() not in " ".join(visible_parts).casefold():
-            raise ValueError(f"generated event {event['event_id']} omitted its authoritative surface value")
-        semantic_markers = expected_events[index].get("semantic_markers", ())
         visible_text = " ".join(visible_parts).casefold()
+        for required_value in expected_events[index].get("required_surface_values", ()):
+            if str(required_value).casefold() not in visible_text:
+                raise ValueError(
+                    f"generated event {event['event_id']} omitted required surface value "
+                    f"{required_value!r}"
+                )
+        for forbidden_phrase in expected_events[index].get("forbidden_surface_phrases", ()):
+            if str(forbidden_phrase).casefold() in visible_text:
+                raise ValueError(
+                    f"generated event {event['event_id']} asserted forbidden phrase "
+                    f"{forbidden_phrase!r}"
+                )
+        authority_markers = expected_events[index].get("authority_markers", ())
+        if authority_markers and not any(
+            str(marker).casefold() in visible_text for marker in authority_markers
+        ):
+            raise ValueError(
+                f"generated event {event['event_id']} omitted its inferred-authority marker"
+            )
+        if "-lineage-negative-" in str(event["event_id"]) and re.search(
+            r"\b(?:earlier|existing|previous|the)\s+(?:private\s+)?note\s+"
+            r"(?:exists|stays|remains|is\s+(?:stored|separate|unchanged))\b",
+            visible_text,
+        ):
+            raise ValueError(
+                f"generated event {event['event_id']} inferred existence of a private note "
+                "from a hard-negative mention"
+            )
+        semantic_markers = expected_events[index].get("semantic_markers", ())
+        pronoun_match = _UNSUPPORTED_GENDERED_PRONOUN.search(visible_text)
+        if pronoun_match:
+            raise ValueError(
+                f"generated event {event['event_id']} introduced unsupported gendered pronoun "
+                f"{pronoun_match.group(0)!r}"
+            )
+        recordkeeping_count = len(_RECORDKEEPING_LANGUAGE.findall(visible_text))
+        if recordkeeping_count > 3:
+            raise ValueError(
+                f"generated event {event['event_id']} used {recordkeeping_count} recordkeeping "
+                "terms; at most 3 are allowed"
+            )
         positive_marker = False
         for marker in semantic_markers:
             for match in re.finditer(re.escape(str(marker).casefold()), visible_text):
@@ -556,8 +809,89 @@ def _request_parameters(config: GenerationConfig) -> dict[str, Any]:
         "timeout_seconds": config.timeout_seconds,
         "seed": config.seed,
         "max_tokens": config.max_tokens,
+        "turn_pairs_per_event": config.turn_pairs_per_event,
+        "minimum_words_per_turn": config.minimum_words_per_turn,
+        "events_per_request": config.events_per_request,
+        "enable_thinking": config.enable_thinking,
+        "max_validation_attempts": config.max_validation_attempts,
+        "resume_existing": config.resume_existing,
         "temperature": 0,
     }
+
+
+def _usage_token_totals(raw_rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Summarize provider-reported visible and reasoning completion usage."""
+    completion_tokens = 0
+    reasoning_tokens = 0
+    for row in raw_rows:
+        usage = row.get("usage", {})
+        if not isinstance(usage, Mapping):
+            continue
+        completion_tokens += int(usage.get("completion_tokens") or 0)
+        row_reasoning_tokens = int(usage.get("reasoning_tokens") or 0)
+        details = usage.get("completion_tokens_details", {})
+        if isinstance(details, Mapping):
+            row_reasoning_tokens = max(
+                row_reasoning_tokens,
+                int(details.get("reasoning_tokens") or 0),
+            )
+        reasoning_tokens += row_reasoning_tokens
+    return {
+        "provider_reported_completion_tokens": completion_tokens,
+        "provider_reported_reasoning_tokens": reasoning_tokens,
+        "provider_reported_visible_tokens": max(0, completion_tokens - reasoning_tokens),
+        "requested_non_thinking_honored": reasoning_tokens == 0,
+    }
+
+
+def _surface_fact_object(
+    fact: Mapping[str, Any], value_map: Mapping[str, str]
+) -> str | None:
+    """Return a natural object phrase suitable for relation-fidelity checks."""
+    raw_object = fact.get("object")
+    if not isinstance(raw_object, str) or not raw_object.strip():
+        return None
+    if raw_object in value_map:
+        return value_map[raw_object]
+    surface = re.sub(r"\s+\d+$", "", raw_object).replace("_", " ").strip()
+    if surface == "quiet studio":
+        return "quiet private studio"
+    return surface
+
+
+def _required_surface_values(
+    event: Mapping[str, Any],
+    facts_by_id: Mapping[str, Mapping[str, Any]],
+    value_map: Mapping[str, str],
+) -> list[str]:
+    """Return current and relation-linked values that generated dialogue must preserve."""
+    related_ids: list[str] = []
+    for key in (
+        "resolves",
+        "supersedes",
+        "corrects",
+        "transitions_from",
+        "conflicts_with",
+    ):
+        raw = event.get(key, ())
+        if isinstance(raw, str):
+            related_ids.append(raw)
+        elif isinstance(raw, Sequence):
+            related_ids.extend(str(item) for item in raw)
+    for key in ("retracts", "duplicate_of"):
+        raw = event.get(key)
+        if isinstance(raw, str):
+            related_ids.append(raw)
+    facts = [facts_by_id[fact_id] for fact_id in related_ids if fact_id in facts_by_id]
+    current_fact = event.get("fact")
+    if isinstance(current_fact, Mapping):
+        facts.append(current_fact)
+    values = []
+    for fact in facts:
+        value = _surface_fact_object(fact, value_map)
+        if value and value not in values:
+            values.append(value)
+    return values
 
 
 def generate_persona_conversations(
@@ -585,11 +919,58 @@ def generate_persona_conversations(
             "hardness_profile": config.hardness_profile,
             "split_counts": list(config.split_counts),
         },
-        "controls": {"full_structured_memory": "oracle control"},
+        "controls": {
+            "full_structured_memory": "event-relation replay oracle",
+        },
+        "artifact_roles": {
+            "dialogue.jsonl": "model_input",
+            "events.jsonl": "latent_structure",
+            "source_documents.jsonl": "source_evidence",
+            "facts.jsonl": "structured_source_facts",
+            "queries.jsonl": "supervision_only",
+            "examples.jsonl": "supervision_only",
+            "candidate_updates.jsonl": "supervision_only",
+            "requests.jsonl": "generation_provenance",
+            "raw_responses.jsonl": "generation_provenance",
+        },
+        "hashing": {
+            "algorithm": "sha256",
+            "prompt_preimage": "json.dumps(messages, ensure_ascii=True, sort_keys=True).encode('utf-8')",
+            "artifact_preimage": "raw_file_bytes",
+        },
+        "reference_contract": {
+            "event_id": "event_identifier",
+            "fact.fact_id": "fact_identifier",
+            "supersedes": "fact_identifier",
+            "transitions_from": "fact_identifier",
+            "corrects": "fact_identifier",
+            "resolves": "fact_identifier_array",
+            "retracts": "fact_identifier",
+            "duplicate_of": "fact_identifier",
+            "conflicts_with": "fact_identifier",
+            "replay_order": "events.sequence_index",
+        },
+        "validation_contract": {
+            "recordkeeping_term_pattern": _RECORDKEEPING_LANGUAGE.pattern,
+            "max_recordkeeping_terms_per_event": 3,
+            "lineage_retraction": "retracts_lineage=true propagates through duplicate_of closure",
+        },
     }
+    prior_request_rows = (
+        _read_jsonl(requests_path)
+        if config.resume_existing and requests_path.exists()
+        else []
+    )
+    prior_raw_rows = (
+        _read_jsonl(raw_path)
+        if config.resume_existing and raw_path.exists()
+        else []
+    )
     _write_json(manifest_path, manifest)
     raw_rows: list[dict[str, Any]] = []
     request_rows: list[dict[str, Any]] = []
+    _write_jsonl(raw_path, raw_rows)
+    _write_jsonl(requests_path, request_rows)
     try:
         generate_dataset(
             output_dir,
@@ -601,12 +982,18 @@ def generate_persona_conversations(
         events = _read_jsonl(output_dir / "events.jsonl")
         queries = _read_jsonl(output_dir / "queries.jsonl")
         value_map, subject_map, scope_map = _surface_maps(events)
+        facts_by_id = {
+            str(event["fact"]["fact_id"]): event["fact"]
+            for event in events
+            if isinstance(event.get("fact"), Mapping) and event["fact"].get("fact_id")
+        }
         replacements = {**value_map, **subject_map, **scope_map}
         by_history: dict[str, list[dict[str, Any]]] = {}
         for event in events:
             by_history.setdefault(str(event["history_id"]), []).append(event)
         response_hashes = []
         model_identities = set()
+        resumed_response_count = 0
         for history_id, history_events in sorted(by_history.items()):
             expected = []
             for event in history_events:
@@ -615,87 +1002,250 @@ def generate_persona_conversations(
                 if latent_object in value_map:
                     support_text = re.sub(r"\bvalue-\d{3}-[a-z]\b", latent_object, support_text)
                 surface_text = _replace_latent(support_text, replacements)
-                surface_value = value_map.get(latent_object)
+                required_values = _required_surface_values(
+                    event, facts_by_id, value_map
+                )
+                dialogue_subject = replacements.get(
+                    str(event["fact"].get("subject")), "the account owner"
+                )
+                dialogue_speaker, speaker_instruction, authority_markers = _speaker_contract(
+                    event, dialogue_subject
+                )
                 expected.append(
                     {
                         "event_id": event["event_id"],
+                        "dialogue_subject": dialogue_subject,
+                        "dialogue_speaker": dialogue_speaker,
+                        "speaker_instruction": speaker_instruction,
+                        "authority_markers": authority_markers,
                         "surface_text": surface_text,
-                        "required_surface_value": surface_value,
+                        "required_surface_values": required_values,
                         "semantic_markers": list(_semantic_markers(event)),
+                        "semantic_instruction": _semantic_instruction(
+                            event, required_values
+                        ),
+                        "forbidden_surface_phrases": list(
+                            _forbidden_surface_phrases(event)
+                        ),
                     }
                 )
-            messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        "Render each supplied event as concise, realistic user-assistant dialogue. "
-                        "Keep the supplied event order and meaning exactly. Return strict JSON only. "
-                        "Return exactly one top-level key named events. Each events item must contain "
-                        "exactly the supplied event_id and a turns array of alternating role/content "
-                        "objects beginning with user and ending with assistant. Preserve event_id only "
-                        "as metadata; do not expose IDs or benchmark labels inside dialogue content. "
-                        "Required shape: {\"events\":[{\"event_id\":\"the supplied ID\","
-                        "\"turns\":[{\"role\":\"user\",\"content\":\"...\"},"
-                        "{\"role\":\"assistant\",\"content\":\"...\"}]}]}."
-                    ),
-                },
-                {"role": "user", "content": json.dumps({"schema_version": config.prompt_schema_version, "events": expected}, sort_keys=True)},
-            ]
-            prompt_sha256 = hashlib.sha256(
-                json.dumps(messages, ensure_ascii=True, sort_keys=True).encode("utf-8")
-            ).hexdigest()
-            request_rows.append(
-                {
-                    "history_id": history_id,
-                    "prompt_sha256": prompt_sha256,
-                    "messages": messages,
-                }
-            )
-            _write_jsonl(requests_path, request_rows)
-            response = client.complete(
-                messages=messages,
-                model=config.model,
-                timeout=config.timeout_seconds,
-                seed=config.seed,
-                max_tokens=config.max_tokens,
-            )
-            response_hash = hashlib.sha256(response.content.encode("utf-8")).hexdigest()
-            raw_rows.append(
-                {
-                    "history_id": history_id,
-                    "model": response.model,
-                    "finish_reason": response.finish_reason,
-                    "usage": dict(response.usage),
-                    "response_sha256": response_hash,
-                    "content": response.content,
-                }
-            )
-            _write_jsonl(raw_path, raw_rows)
-            if response.finish_reason != "stop":
-                raise ValueError(
-                    f"generation for {history_id} ended with non-stop finish reason {response.finish_reason!r}"
-                )
-            parsed = validate_generation_response(response.content, expected)
-            for event, generated in zip(history_events, parsed["events"]):
-                event["model_text"] = _render_dialogue(generated["turns"])
-                event["surface_object"] = value_map.get(
-                    str(event["fact"].get("object")), str(event["fact"].get("object", ""))
-                )
-            response_hashes.append(response_hash)
-            model_identities.add(response.model)
+            for batch_index, offset in enumerate(
+                range(0, len(expected), config.events_per_request)
+            ):
+                batch_expected = expected[offset : offset + config.events_per_request]
+                batch_events = history_events[offset : offset + config.events_per_request]
+                messages = [
+                    {
+                        "role": "system",
+                        "content": (
+                            "Render each supplied event as an ordinary, realistic memory interaction. "
+                            "The user should discuss their situation directly, never ask how to word, "
+                            "annotate, summarize, or record a benchmark statement. "
+                            "Follow each speaker_instruction exactly so direct statements and inferred "
+                            "third-party evidence remain distinct. "
+                            "Use names, first-person pronouns, or singular they; never invent gendered pronouns. "
+                            "Use extra turns for practical context or tradeoffs, not repetitive "
+                            "paraphrase or recordkeeping; use at most three recordkeeping terms per event. "
+                            "Keep the supplied event order and meaning exactly. Return strict JSON only. "
+                            "Return exactly one top-level key named events. Each events item must contain "
+                            "exactly the supplied event_id and a turns array of alternating role/content "
+                            f"objects beginning with user and ending with assistant, with exactly "
+                            f"{config.turn_pairs_per_event} user-assistant pairs per event and at least "
+                            f"{config.minimum_words_per_turn} words per turn. Mention every supplied "
+                            "required_surface_value naturally and preserve conflict, correction, and "
+                            "resolution relationships explicitly. Follow each semantic_instruction "
+                            "and do not use any forbidden_surface_phrases. Never mention prompts, "
+                            "supplied events, benchmarks, generation, or source instructions. Preserve event_id only "
+                            "as metadata; do not expose IDs or benchmark labels inside dialogue content. "
+                            "Required shape: {\"events\":[{\"event_id\":\"the supplied ID\","
+                            "\"turns\":[{\"role\":\"user\",\"content\":\"...\"},"
+                            "{\"role\":\"assistant\",\"content\":\"...\"}]}]}."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": json.dumps(
+                            {
+                                "schema_version": config.prompt_schema_version,
+                                "turn_pairs_per_event": config.turn_pairs_per_event,
+                                "minimum_words_per_turn": config.minimum_words_per_turn,
+                                "events": batch_expected,
+                            },
+                            sort_keys=True,
+                        ),
+                    },
+                ]
+                base_prompt_sha256 = hashlib.sha256(
+                    json.dumps(messages, ensure_ascii=True, sort_keys=True).encode("utf-8")
+                ).hexdigest()
+                parsed = None
+                validation_error: ValueError | None = None
+                cached_pairs = [
+                    (request, raw)
+                    for request, raw in zip(prior_request_rows, prior_raw_rows)
+                    if request.get("history_id") == history_id
+                    and int(request.get("batch_index", -1)) == batch_index
+                    and request.get("prompt_sha256") == base_prompt_sha256
+                    and raw.get("history_id") == history_id
+                    and int(raw.get("batch_index", -1)) == batch_index
+                ]
+                for cached_request, cached_raw in cached_pairs:
+                    request_rows.append({**cached_request, "resumed_from_prior_run": True})
+                    raw_rows.append({**cached_raw, "resumed_from_prior_run": True})
+                    _write_jsonl(requests_path, request_rows)
+                    _write_jsonl(raw_path, raw_rows)
+                    try:
+                        if cached_raw.get("finish_reason") != "stop":
+                            raise ValueError(
+                                f"cached generation ended with non-stop finish reason "
+                                f"{cached_raw.get('finish_reason')!r}"
+                            )
+                        parsed = validate_generation_response(
+                            str(cached_raw.get("content", "")),
+                            batch_expected,
+                            turn_pairs_per_event=config.turn_pairs_per_event,
+                            minimum_words_per_turn=config.minimum_words_per_turn,
+                        )
+                    except ValueError as error:
+                        validation_error = error
+                        continue
+                    resumed_response_count += 1
+                    break
+
+                attempt_start = 1 if cached_pairs and parsed is None else 0
+                for attempt_index in range(attempt_start, config.max_validation_attempts):
+                    if parsed is not None:
+                        break
+                    attempt_messages = list(messages)
+                    if validation_error is not None:
+                        attempt_messages.insert(
+                            -1,
+                            {
+                                "role": "system",
+                                "content": (
+                                    f"Repair the response after this validation failure: {validation_error}. "
+                                    "Return the complete requested JSON again with exact IDs, order, roles, "
+                                    "turn counts, values, and semantic constraints."
+                                ),
+                            }
+                        )
+                    prompt_sha256 = hashlib.sha256(
+                        json.dumps(
+                            attempt_messages, ensure_ascii=True, sort_keys=True
+                        ).encode("utf-8")
+                    ).hexdigest()
+                    request_rows.append(
+                        {
+                            "history_id": history_id,
+                            "batch_index": batch_index,
+                            "attempt_index": attempt_index,
+                            "event_count": len(batch_expected),
+                            "seed": config.seed + attempt_index,
+                            "prompt_sha256": prompt_sha256,
+                            "messages": attempt_messages,
+                        }
+                    )
+                    _write_jsonl(requests_path, request_rows)
+                    response = client.complete(
+                        messages=attempt_messages,
+                        model=config.model,
+                        timeout=config.timeout_seconds,
+                        seed=config.seed + attempt_index,
+                        max_tokens=config.max_tokens,
+                    )
+                    response_hash = hashlib.sha256(
+                        response.content.encode("utf-8")
+                    ).hexdigest()
+                    raw_rows.append(
+                        {
+                            "history_id": history_id,
+                            "batch_index": batch_index,
+                            "attempt_index": attempt_index,
+                            "model": response.model,
+                            "finish_reason": response.finish_reason,
+                            "usage": dict(response.usage),
+                            "response_sha256": response_hash,
+                            "content": response.content,
+                        }
+                    )
+                    _write_jsonl(raw_path, raw_rows)
+                    try:
+                        if response.finish_reason != "stop":
+                            raise ValueError(
+                                f"generation ended with non-stop finish reason "
+                                f"{response.finish_reason!r}"
+                            )
+                        parsed = validate_generation_response(
+                            response.content,
+                            batch_expected,
+                            turn_pairs_per_event=config.turn_pairs_per_event,
+                            minimum_words_per_turn=config.minimum_words_per_turn,
+                        )
+                    except ValueError as error:
+                        validation_error = error
+                if parsed is None:
+                    raise ValueError(
+                        f"generation for {history_id} batch {batch_index} failed after "
+                        f"{config.max_validation_attempts} validation attempts: {validation_error}"
+                    )
+                for event, generated in zip(batch_events, parsed["events"]):
+                    event["model_text"] = _render_dialogue(generated["turns"])
+                    event["dialogue_subject"] = replacements.get(
+                        str(event["fact"].get("subject")), "the account owner"
+                    )
+                    event["dialogue_speaker"] = next(
+                        str(expected_event["dialogue_speaker"])
+                        for expected_event in batch_expected
+                        if expected_event["event_id"] == event["event_id"]
+                    )
+                    event["surface_object"] = value_map.get(
+                        str(event["fact"].get("object")),
+                        str(event["fact"].get("object", "")),
+                    )
+                response_hashes = [str(row["response_sha256"]) for row in raw_rows]
+                model_identities.update(str(row["model"]) for row in raw_rows)
         for query in queries:
             query["surface_query_text"], query["surface_gold"] = _surface_query(
                 query, replacements, value_map
             )
+            query["query_text"] = query["surface_query_text"]
         _write_jsonl(output_dir / "events.jsonl", events)
         _write_jsonl(output_dir / "queries.jsonl", queries)
-        artifact_names = (*SOURCE_ARTIFACTS, raw_path.name, requests_path.name)
+        conversation_ids = {
+            history_id: f"conversation-{index:06d}"
+            for index, history_id in enumerate(sorted(by_history), start=1)
+        }
+        event_indices: dict[str, int] = {}
+        dialogue_rows = []
+        for event in events:
+            history_id = str(event["history_id"])
+            event_index = event_indices.get(history_id, 0)
+            dialogue_rows.append(
+                {
+                    "conversation_id": conversation_ids[history_id],
+                    "event_index": event_index,
+                    "speaker": event["dialogue_speaker"],
+                    "subject": event["dialogue_subject"],
+                    "text": event["model_text"],
+                }
+            )
+            event_indices[history_id] = event_index + 1
+        dialogue_path = output_dir / "dialogue.jsonl"
+        _write_jsonl(dialogue_path, dialogue_rows)
+        artifact_names = (
+            *SOURCE_ARTIFACTS,
+            dialogue_path.name,
+            raw_path.name,
+            requests_path.name,
+        )
         manifest.update(
             {
                 "status": "completed",
                 "completion_status": "completed",
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "model_identity": sorted(model_identities)[0] if len(model_identities) == 1 else sorted(model_identities),
+                "resumed_response_count": resumed_response_count,
+                "effective_generation": _usage_token_totals(raw_rows),
                 "response_sha256": response_hashes,
                 "prompt_sha256": [row["prompt_sha256"] for row in request_rows],
                 "artifact_sha256": {
@@ -751,7 +1301,9 @@ def load_generation_config(path: Path) -> GenerationConfig:
         {
             "endpoint_env", "api_key_env", "model_env", "timeout_seconds", "seed",
             "max_tokens", "history_count", "condition", "hardness_profile",
-            "split_counts", "prompt_schema_version",
+            "split_counts", "prompt_schema_version", "turn_pairs_per_event",
+            "minimum_words_per_turn", "events_per_request",
+            "enable_thinking", "max_validation_attempts", "resume_existing",
         },
         "generation",
     )
@@ -776,6 +1328,12 @@ def load_generation_config(path: Path) -> GenerationConfig:
         hardness_profile=raw["hardness_profile"],
         split_counts=tuple(split_counts),
         prompt_schema_version=raw["prompt_schema_version"],
+        turn_pairs_per_event=raw["turn_pairs_per_event"],
+        minimum_words_per_turn=raw["minimum_words_per_turn"],
+        events_per_request=raw["events_per_request"],
+        enable_thinking=raw["enable_thinking"],
+        max_validation_attempts=raw["max_validation_attempts"],
+        resume_existing=raw["resume_existing"],
     )
 
 
@@ -794,6 +1352,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             config.api_key,
             config.timeout_seconds,
             json_mode=True,
+            enable_thinking=config.enable_thinking,
         ),
     )
     return 0

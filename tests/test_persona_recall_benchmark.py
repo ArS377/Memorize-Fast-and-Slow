@@ -42,13 +42,27 @@ class SurfaceFakeClient:
                         {
                             "event_id": event["event_id"],
                             "turns": [
-                                {"role": "user", "content": event["surface_text"]},
+                                {
+                                    "role": "user",
+                                    "content": " ".join(
+                                        [
+                                            event["surface_text"],
+                                            *event["required_surface_values"],
+                                        ]
+                                    ),
+                                },
                                 {
                                     "role": "assistant",
-                                    "content": "Noted. "
+                                    "content": "Understood. "
                                     + (
                                         event["semantic_markers"][0]
                                         if event["semantic_markers"]
+                                        else ""
+                                    )
+                                    + " "
+                                    + (
+                                        event["authority_markers"][0]
+                                        if event["authority_markers"]
                                         else ""
                                     ),
                                 },
@@ -109,6 +123,12 @@ def _generation_config() -> GenerationConfig:
         hardness_profile="base",
         split_counts=(1, 1, 2),
         prompt_schema_version="persona-conversation.v1",
+        turn_pairs_per_event=1,
+        minimum_words_per_turn=1,
+        events_per_request=100,
+        enable_thinking=False,
+        max_validation_attempts=2,
+        resume_existing=True,
     )
 
 

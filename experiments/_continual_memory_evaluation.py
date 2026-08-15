@@ -341,6 +341,8 @@ def _fit_injected_context(
 ) -> tuple[list[Mapping[str, Any]], int]:
     """Fit a maximal raw suffix after reserving the same budget for source injections."""
     injection_only = list(injections)
+    if not injection_only:
+        raise ValueError("Scallop source injection returned no causal source capsule")
     minimum = len(tokenizer.encode(_serialized_model_input(injection_only, query_text)))
     if minimum > max_tokens:
         raise ValueError(
