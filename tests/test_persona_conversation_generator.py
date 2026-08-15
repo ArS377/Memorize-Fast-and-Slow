@@ -33,14 +33,7 @@ class SurfaceFakeClient:
         events = [
             {
                 "event_id": event["event_id"],
-                "turns": [
-                    {"role": "user", "content": event["surface_text"]},
-                    {
-                        "role": "assistant",
-                        "content": "Thanks, I will keep that in mind. "
-                        + (event["semantic_markers"][0] if event["semantic_markers"] else ""),
-                    },
-                ],
+                "turns": self._turns(event, payload["turn_pairs_per_event"]),
             }
             for event in payload["events"]
         ]
@@ -50,6 +43,31 @@ class SurfaceFakeClient:
             model="fake-kimi",
             usage={"prompt_tokens": 10, "completion_tokens": 20},
         )
+
+    @staticmethod
+    def _turns(event: Mapping[str, Any], turn_pairs: int) -> list[dict[str, str]]:
+        """Build exact-length dialogue while preserving every required concept."""
+        required = " ".join(event["required_surface_values"])
+        marker = event["semantic_markers"][0] if event["semantic_markers"] else "record"
+        turns = []
+        for pair_index in range(turn_pairs):
+            turns.extend(
+                [
+                    {
+                        "role": "user",
+                        "content": (
+                            f"{event['surface_text']} Please discuss {required} clearly for this task phase."
+                        ),
+                    },
+                    {
+                        "role": "assistant",
+                        "content": (
+                            f"I will {marker} the stated choice and preserve its task-specific context accurately."
+                        ),
+                    },
+                ]
+            )
+        return turns
 
 
 class FailingClient:
@@ -72,6 +90,10 @@ def _config() -> GenerationConfig:
         hardness_profile="base",
         split_counts=(1, 1, 2),
         prompt_schema_version="persona-conversation.v1",
+        turn_pairs_per_event=1,
+        minimum_words_per_turn=1,
+        events_per_request=100,
+        enable_thinking=False,
     )
 
 
@@ -121,22 +143,40 @@ def test_generation_rejects_hidden_ids_gold_leakage_and_missing_turn() -> None:
             for event in expected
         ]
     }
-    validate_generation_response(json.dumps(valid), expected)
+    validate_generation_response(
+        json.dumps(valid), expected, turn_pairs_per_event=1, minimum_words_per_turn=1
+    )
 
     leaked_id = json.loads(json.dumps(valid))
     leaked_id["events"][0]["turns"][0]["content"] += " history-001-add"
     with pytest.raises(ValueError, match="latent benchmark label"):
-        validate_generation_response(json.dumps(leaked_id), expected)
+        validate_generation_response(
+            json.dumps(leaked_id), expected, turn_pairs_per_event=1, minimum_words_per_turn=1
+        )
 
     leaked_gold = json.loads(json.dumps(valid))
     leaked_gold["events"][0]["turns"][0]["content"] += " value-001-a"
     with pytest.raises(ValueError, match="latent benchmark label"):
-        validate_generation_response(json.dumps(leaked_gold), expected)
+        validate_generation_response(
+            json.dumps(leaked_gold), expected, turn_pairs_per_event=1, minimum_words_per_turn=1
+        )
 
     missing = json.loads(json.dumps(valid))
     missing["events"].pop()
     with pytest.raises(ValueError, match="missing event IDs"):
-        validate_generation_response(json.dumps(missing), expected)
+        validate_generation_response(
+            json.dumps(missing), expected, turn_pairs_per_event=1, minimum_words_per_turn=1
+        )
+
+    four_digit_leak = json.loads(json.dumps(valid))
+    four_digit_leak["events"][0]["turns"][0]["content"] += " subject-1000"
+    with pytest.raises(ValueError, match="latent benchmark label"):
+        validate_generation_response(
+            json.dumps(four_digit_leak),
+            expected,
+            turn_pairs_per_event=1,
+            minimum_words_per_turn=1,
+        )
 
 
 def test_generation_rejects_semantically_inverted_retraction() -> None:
@@ -144,7 +184,7 @@ def test_generation_rejects_semantically_inverted_retraction() -> None:
         {
             "event_id": "history-001-retract",
             "surface_text": "The account holder retracted mint tea.",
-            "required_surface_value": "mint tea",
+            "required_surface_values": ["mint tea"],
             "semantic_markers": ["retract", "remove", "withdraw", "no longer"],
         }
     ]
@@ -161,7 +201,9 @@ def test_generation_rejects_semantically_inverted_retraction() -> None:
     }
 
     with pytest.raises(ValueError, match="operation semantics"):
-        validate_generation_response(json.dumps(inverted), expected)
+        validate_generation_response(
+            json.dumps(inverted), expected, turn_pairs_per_event=1, minimum_words_per_turn=1
+        )
 
     negated = {
         "events": [
@@ -175,7 +217,132 @@ def test_generation_rejects_semantically_inverted_retraction() -> None:
         ]
     }
     with pytest.raises(ValueError, match="operation semantics"):
-        validate_generation_response(json.dumps(negated), expected)
+        validate_generation_response(
+            json.dumps(negated), expected, turn_pairs_per_event=1, minimum_words_per_turn=1
+        )
+
+
+def test_generation_enforces_dialogue_length_and_conflict_values() -> None:
+    expected = [
+        {
+            "event_id": "history-001-conflict-resolution",
+            "surface_text": "The user resolved the workspace conflict.",
+            "required_surface_values": [
+                "quiet private studio",
+                "open team lounge",
+                "window desk",
+            ],
+            "semantic_markers": ["clarify", "resolve"],
+        }
+    ]
+    turns = [
+        {
+            "role": "user",
+            "content": "The quiet private studio and open team lounge requests conflict, so clarify them.",
+        },
+        {
+            "role": "assistant",
+            "content": "I understand that the choice now resolves to the window desk for this project.",
+        },
+        {
+            "role": "user",
+            "content": "Please preserve this as the final workspace decision for all later phases.",
+        },
+        {
+            "role": "assistant",
+            "content": "I will keep the resolved decision separate from unrelated intervening tasks.",
+        },
+    ]
+    valid = {"events": [{"event_id": expected[0]["event_id"], "turns": turns}]}
+
+    validate_generation_response(
+        json.dumps(valid), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
+    )
+
+    too_short = json.loads(json.dumps(valid))
+    too_short["events"][0]["turns"] = too_short["events"][0]["turns"][:2]
+    with pytest.raises(ValueError, match="exactly 4 turns"):
+        validate_generation_response(
+            json.dumps(too_short), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
+        )
+
+    missing_conflict_value = json.loads(json.dumps(valid))
+    missing_conflict_value["events"][0]["turns"][0]["content"] = (
+        "The quiet private studio request remains relevant, so please clarify the conflict carefully."
+    )
+    with pytest.raises(ValueError, match="open team lounge"):
+        validate_generation_response(
+            json.dumps(missing_conflict_value),
+            expected,
+            turn_pairs_per_event=2,
+            minimum_words_per_turn=8,
+        )
+
+    short_turn = json.loads(json.dumps(valid))
+    short_turn["events"][0]["turns"][2]["content"] = "Keep it."
+    with pytest.raises(ValueError, match="at least 8 words"):
+        validate_generation_response(
+            json.dumps(short_turn), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
+        )
+
+    forbidden = json.loads(json.dumps(valid))
+    expected[0]["forbidden_surface_phrases"] = ["everything matches"]
+    forbidden["events"][0]["turns"][2]["content"] = (
+        "Everything matches the previous record, so preserve this final workspace decision now."
+    )
+    with pytest.raises(ValueError, match="forbidden phrase"):
+        validate_generation_response(
+            json.dumps(forbidden), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
+        )
+
+
+def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> None:
+    config = GenerationConfig(
+        endpoint="https://fixture.invalid/v1",
+        api_key="fixture-secret",
+        model="fixture-kimi",
+        timeout_seconds=3.0,
+        seed=47,
+        max_tokens=16384,
+        history_count=1,
+        condition="lexical",
+        hardness_profile="anti_shortcut_interleaved_v3",
+        split_counts=(0, 0, 1),
+        prompt_schema_version="persona-conversation.v3",
+        turn_pairs_per_event=1,
+        minimum_words_per_turn=1,
+        events_per_request=8,
+        enable_thinking=False,
+    )
+    output = tmp_path / "v3"
+
+    generate_persona_conversations(output, config, SurfaceFakeClient())
+
+    requests = _jsonl(output / "requests.jsonl")
+    assert len(requests) == 4
+    prompt_events = [
+        event
+        for request in requests
+        for event in json.loads(request["messages"][-1]["content"])["events"]
+    ]
+    event_ids = [event["event_id"] for event in prompt_events]
+    assert event_ids[4].endswith("-conflict-left")
+    assert event_ids[13].endswith("-conflict-right")
+    assert event_ids[21].endswith("-conflict-resolution")
+    assert prompt_events[4]["semantic_markers"] == []
+    assert "do not invent an alternative" in prompt_events[4]["semantic_instruction"]
+    assert prompt_events[13]["required_surface_values"] == [
+        "quiet private studio",
+        "open team lounge",
+    ]
+    resolution = prompt_events[21]
+    assert resolution["required_surface_values"] == [
+        "quiet private studio",
+        "open team lounge",
+        "window desk",
+    ]
+    assert "resolve" in resolution["semantic_markers"]
+    assert all(" 001" not in event["model_text"] for event in _jsonl(output / "events.jsonl"))
 
 
 def test_personas_are_matched_without_encoding_preferences() -> None:

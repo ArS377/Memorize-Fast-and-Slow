@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from experiments.preference_stream_injection import (
+    _preference_rows,
     derive_preference_injections_with_scallop,
     validate_preference_injection_result,
 )
@@ -58,6 +59,23 @@ def test_actual_scallop_derives_source_grounded_preference_pairs(tmp_path: Path)
         for injection in result["injections"]
         for key in {"answer", "gold", "prediction", "object", "text"}
     )
+
+
+def test_typed_identity_is_separate_from_preference_rows(tmp_path: Path) -> None:
+    paths = generate_dataset(
+        tmp_path,
+        history_count=1,
+        split_counts=(0, 0, 1),
+        hardness_profile="anti_shortcut_interleaved_v3",
+    )
+    events = _rows(paths["events"])
+
+    preference_rows, _, identity_rows = _preference_rows(events)
+
+    assert identity_rows == [("history-001-lineage-alias", "subject-001")]
+    preference_event_ids = {row[0] for row in preference_rows}
+    assert "history-001-lineage-alias" not in preference_event_ids
+    assert "history-001-preference-change-probe" not in preference_event_ids
 
 
 @pytest.mark.parametrize("forbidden_key", ["answer", "gold", "prediction", "object", "text"])

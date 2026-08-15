@@ -131,13 +131,15 @@ def _fact(
     scope: str = "default",
     observed_at: str = "2025-01-01T00:00:00+00:00",
     source_authority: str = "inferred",
+    predicate: str = "PREFERS",
+    domain: str = "personal_preference",
 ) -> dict[str, Any]:
     return {
         "fact_id": fact_id,
         "session_id": DATASET_VERSION,
         "example_id": example_id,
         "subject": subject,
-        "predicate": "PREFERS",
+        "predicate": predicate,
         "object": object_,
         "temporal": {
             "valid_from": valid_from,
@@ -146,7 +148,7 @@ def _fact(
         },
         "qualifiers": {
             "scope": scope,
-            "domain": "personal_preference",
+            "domain": domain,
             "source_authority": source_authority,
         },
         "provenance": [{
@@ -160,7 +162,11 @@ def _fact(
             "run_id": DATASET_VERSION,
         }],
         "support_text": support_text,
-        "question_relevance": "States an explicit preference and its temporal scope.",
+        "question_relevance": (
+            "States an explicit preference and its temporal scope."
+            if predicate == "PREFERS"
+            else "Provides non-preference context for interference and identity reasoning."
+        ),
         "confidence": "supported",
         "confidence_score": confidence_score,
         "confidence_method": "synthetic_ground_truth",
@@ -193,6 +199,7 @@ def _support_texts(
     replacement_subject: str,
     accepted_value: str,
     backdated_value: str,
+    replaceable_value: str,
     indirect_value: str,
     direct_value: str,
     leakage_value: str,
@@ -202,7 +209,7 @@ def _support_texts(
     if condition == "lexical":
         return {
             "initial": f"{subject} preferred {initial_value} through June 2025.",
-            "current": f"{subject} preferred {current_value} from July 2025 onward.",
+            "current": f"{subject} preferred {current_value} from July through September 2025.",
             "scoped": f"{subject} preferred {scoped_value} in {scope} during early August 2025.",
             "constraint": f"{subject} must avoid {forbidden_value}.",
             "ambiguity": f"{subject} gave conflicting statements about {ambiguous_value}.",
@@ -213,13 +220,13 @@ def _support_texts(
             "indirect": f"An inferred record says {subject} preferred {indirect_value} from October 2025 onward.",
             "direct": f"{subject} directly corrected the record to {direct_value} from October 2025 onward.",
             "leakage": f"{subject} preferred {leakage_value} only in leakage-scope-{scope[-3:]} during mid-August 2025.",
-            "replaceable": f"{replacement_subject} was tentatively recorded as preferring {replacement_value}.",
+            "replaceable": f"{replacement_subject} was tentatively recorded as preferring {replaceable_value}.",
             "replacement": f"Corroborating records establish that {replacement_subject} preferred {replacement_value}.",
         }
     if condition == "paraphrase":
         return {
             "initial": f"The standing selection for {subject} was {initial_value} until the end of June 2025.",
-            "current": f"Beginning in July 2025, {subject}'s standing selection became {current_value} indefinitely.",
+            "current": f"From July through September 2025, {subject}'s standing selection was {current_value}.",
             "scoped": f"For the short-lived {scope} setting, {subject} selected {scoped_value} from August 1 through August 14, 2025.",
             "constraint": f"A safety exclusion bars {subject} from {forbidden_value}.",
             "ambiguity": f"The record leaves {ambiguous_value} unresolved because {subject}'s accounts disagree.",
@@ -230,7 +237,7 @@ def _support_texts(
             "indirect": f"An inferred October 2025 entry associates {subject} with {indirect_value}.",
             "direct": f"In a direct October 2025 correction, {subject} selected {direct_value}.",
             "leakage": f"Within the limited leakage-scope-{scope[-3:]} context, {subject} selected {leakage_value} in mid-August 2025.",
-            "replaceable": f"A tentative entry associates {replacement_subject} with {replacement_value}.",
+            "replaceable": f"A tentative entry associates {replacement_subject} with {replaceable_value}.",
             "replacement": f"Multiple corroborating records associate {replacement_subject} with {replacement_value}.",
         }
     raise ValueError(f"unsupported rendering condition: {condition}")
@@ -273,6 +280,8 @@ def resolve_preference(
         }:
             continue
         fact = event["fact"]
+        if fact.get("predicate") != "PREFERS":
+            continue
         temporal = fact["temporal"]
         if fact["subject"] != subject or not (temporal["valid_from"] <= date):
             continue
@@ -352,6 +361,8 @@ def resolve_preference_with_scallop(
         }:
             continue
         fact = event["fact"]
+        if fact.get("predicate") != "PREFERS":
+            continue
         temporal = fact["temporal"]
         if fact["subject"] != subject or temporal["valid_from"] > date:
             continue
@@ -454,6 +465,7 @@ def generate_dataset(
             replacement_subject=f"replacement-{index:03d}",
             accepted_value=accepted_value,
             backdated_value=backdated_value,
+            replaceable_value=replaceable_value,
             indirect_value=replaceable_value,
             direct_value=direct_value,
             leakage_value=leakage_value,
@@ -467,7 +479,7 @@ def generate_dataset(
         )
         current = _fact(
             fact_id=f"{history_id}-current", example_id=transition_example, subject=subject,
-            object_=current_value, valid_from="2025-07-01", valid_to=None,
+            object_=current_value, valid_from="2025-07-01", valid_to="2025-09-30",
             support_text=support_texts["current"],
         )
         scoped = _fact(
@@ -546,7 +558,7 @@ def generate_dataset(
         hard_constraint_violation = _fact(
             fact_id=f"{history_id}-hard-constraint-violation", example_id=scope_example,
             subject=subject, object_=forbidden_value, valid_from="2025-07-01", valid_to=None,
-            support_text=support_texts["constraint"],
+            support_text=f"{subject} requested {forbidden_value} despite the standing constraint.",
         )
         resurrection = _fact(
             fact_id=private["fact_id"], example_id=scope_example, subject=subject,
@@ -556,13 +568,19 @@ def generate_dataset(
         direct_conflict = _fact(
             fact_id=f"{history_id}-direct-conflict-no-supersession", example_id=transition_example,
             subject=subject, object_=direct_conflict_value, valid_from="2025-10-01", valid_to=None,
-            source_authority="direct_user", support_text=support_texts["direct"],
+            source_authority="direct_user",
+            support_text=(
+                f"{subject} directly requested {direct_conflict_value} from October 2025 onward."
+            ),
         )
         ambiguity_resolution = _fact(
             fact_id=f"{history_id}-ambiguity-resolution", example_id=scope_example,
             subject=subject, object_=ambiguity_resolution_value, valid_from="2025-09-01", valid_to=None,
             scope=f"ambiguity-scope-{index:03d}",
-            source_authority="direct_user", support_text=support_texts["direct"],
+            source_authority="direct_user",
+            support_text=(
+                f"{subject} directly resolved the scoped ambiguity to {ambiguity_resolution_value}."
+            ),
         )
         lineage_root = _fact(
             fact_id=f"{history_id}-lineage-root",
@@ -609,11 +627,11 @@ def generate_dataset(
             {"event_id": f"{history_id}-ambiguity", "history_id": history_id, "session_id": f"{history_id}-session-4", "turn_index": 1, "event_family": "ambiguity", "operation": "ambiguous_conflict", "fact": ambiguity},
             {"event_id": f"{history_id}-private-add", "history_id": history_id, "session_id": f"{history_id}-session-4", "turn_index": 2, "event_family": "retraction", "operation": "add", "fact": private},
             {"event_id": f"{history_id}-retract", "history_id": history_id, "session_id": f"{history_id}-session-5", "turn_index": 1, "event_family": "retraction", "operation": "retract", "fact": private, "retracts": private["fact_id"]},
-            {"event_id": f"{history_id}-backdated", "history_id": history_id, "session_id": f"{history_id}-session-6", "turn_index": 1, "event_family": "backdated_correction", "operation": "backdated_correction", "fact": backdated},
+            {"event_id": f"{history_id}-backdated", "history_id": history_id, "session_id": f"{history_id}-session-6", "turn_index": 1, "event_family": "backdated_correction", "operation": "backdated_correction", "fact": backdated, "corrects": initial["fact_id"]},
             {"event_id": f"{history_id}-duplicate", "history_id": history_id, "session_id": f"{history_id}-session-7", "turn_index": 1, "event_family": "duplicate_delivery", "operation": "duplicate_delivery", "fact": current, "duplicate_of": current["fact_id"]},
             {"event_id": f"{history_id}-replaceable", "history_id": history_id, "session_id": f"{history_id}-session-8", "turn_index": 1, "event_family": "overlapping_replacement", "operation": "add", "fact": replaceable},
             {"event_id": f"{history_id}-indirect-source", "history_id": history_id, "session_id": f"{history_id}-session-9", "turn_index": 1, "event_family": "source_authority_conflict", "operation": "add", "fact": indirect},
-            {"event_id": f"{history_id}-direct-correction", "history_id": history_id, "session_id": f"{history_id}-session-9", "turn_index": 2, "event_family": "source_authority_conflict", "operation": "direct_user_correction", "fact": direct, "supersedes": indirect["fact_id"]},
+            {"event_id": f"{history_id}-direct-correction", "history_id": history_id, "session_id": f"{history_id}-session-9", "turn_index": 2, "event_family": "source_authority_conflict", "operation": "direct_user_correction", "fact": direct, "supersedes": indirect["fact_id"], "resolves": [indirect["fact_id"]]},
             {"event_id": f"{history_id}-scope-leakage", "history_id": history_id, "session_id": f"{history_id}-session-10", "turn_index": 1, "event_family": "scope_leakage", "operation": "temporary_exception", "fact": leakage},
         ]
         if hardness_profile in ANTI_SHORTCUT_PROFILES:
@@ -639,6 +657,8 @@ def generate_dataset(
                     valid_from="2026-01-01",
                     valid_to=None,
                     scope="private",
+                    predicate="MENTIONS",
+                    domain="conversation_context",
                     support_text=text,
                 )
                 for note_index, text in enumerate(note_texts, start=1)
@@ -651,6 +671,8 @@ def generate_dataset(
                 valid_from="2026-01-01",
                 valid_to=None,
                 scope="identity",
+                predicate="SAME_ACCOUNT",
+                domain="identity_resolution",
                 support_text=(
                     f"{event_alias} and the {query_alias} refer to the same account. "
                     f"The standing preference history belongs to the {query_alias}."
@@ -664,6 +686,8 @@ def generate_dataset(
                 valid_from="2026-02-01",
                 valid_to=None,
                 scope="context",
+                predicate="CONTEXT_NOTE",
+                domain="conversation_context",
                 support_text=(
                     f"Much later, {query_alias} reviewed unrelated calendar and account settings."
                 ),
@@ -676,6 +700,8 @@ def generate_dataset(
                 valid_from="2026-03-01",
                 valid_to=None,
                 scope="context",
+                predicate="CONTEXT_NOTE",
+                domain="conversation_context",
                 support_text=(
                     f"During a later account review, {event_alias} revisited the long-running record."
                 ),
@@ -688,6 +714,7 @@ def generate_dataset(
                 valid_from="2027-01-01",
                 valid_to=None,
                 scope="project_workspace",
+                observed_at="2027-01-01T00:00:00+00:00",
                 support_text=(
                     f"While planning a long project, {event_alias} preferred a quiet private studio."
                 ),
@@ -700,6 +727,7 @@ def generate_dataset(
                 valid_from="2027-01-01",
                 valid_to=None,
                 scope="project_workspace",
+                observed_at="2027-02-01T00:00:00+00:00",
                 support_text=(
                     f"Weeks later, the {query_alias} instead requested an open team lounge for the same project."
                 ),
@@ -709,7 +737,7 @@ def generate_dataset(
                 example_id=f"{history_id}-contradiction",
                 subject=subject,
                 object_=f"window desk {index:03d}",
-                valid_from="2027-01-01",
+                valid_from="2027-03-01",
                 valid_to=None,
                 scope="project_workspace",
                 source_authority="direct_user",
@@ -749,7 +777,7 @@ def generate_dataset(
             )
             if hardness_profile == "anti_shortcut_interleaved_v3":
                 history_events.insert(4, {"event_id": f"{history_id}-conflict-left", "history_id": history_id, "session_id": f"{history_id}-session-18", "turn_index": 1, "event_family": "contradiction_opening", "operation": "add", "fact": conflict_left, "model_text": conflict_left["support_text"]})
-                history_events.insert(13, {"event_id": f"{history_id}-conflict-right", "history_id": history_id, "session_id": f"{history_id}-session-19", "turn_index": 1, "event_family": "contradiction_opening", "operation": "add", "fact": conflict_right, "model_text": conflict_right["support_text"]})
+                history_events.insert(13, {"event_id": f"{history_id}-conflict-right", "history_id": history_id, "session_id": f"{history_id}-session-19", "turn_index": 1, "event_family": "contradiction_opening", "operation": "add", "fact": conflict_right, "conflicts_with": conflict_left["fact_id"], "model_text": conflict_right["support_text"]})
                 history_events.insert(21, {"event_id": f"{history_id}-conflict-resolution", "history_id": history_id, "session_id": f"{history_id}-session-20", "turn_index": 1, "event_family": "contradiction_rectification", "operation": "direct_user_correction", "fact": conflict_resolution, "resolves": [conflict_left["fact_id"], conflict_right["fact_id"]], "model_text": conflict_resolution["support_text"]})
             natural_overrides = {
                 "retract": f"{subject} withdrew the previously recorded private value.",

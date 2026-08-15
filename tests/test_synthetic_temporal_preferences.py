@@ -165,6 +165,67 @@ def test_anti_shortcut_profile_is_deterministic_and_composition_held_out(
         assert expected_marker in negative_text.lower()
 
 
+def test_interleaved_v3_preserves_typed_context_and_conflict_relations(
+    tmp_path: Path,
+) -> None:
+    paths = generate_dataset(
+        tmp_path,
+        history_count=1,
+        split_counts=(0, 0, 1),
+        hardness_profile="anti_shortcut_interleaved_v3",
+    )
+    events = _rows(paths["events"])
+    candidates = _rows(paths["candidates"])
+    by_suffix = {
+        event["event_id"].removeprefix("history-001-"): event for event in events
+    }
+
+    context_families = {
+        "alias_bridge",
+        "same_entity_hard_negative",
+        "delayed_preference_probe",
+    }
+    assert all(
+        event["fact"]["predicate"] != "PREFERS"
+        for event in events
+        if event["event_family"] in context_families
+    )
+    assert set(by_suffix["direct-correction"]["resolves"]) == {
+        "history-001-indirect-source",
+    }
+    assert by_suffix["transition"]["fact"]["temporal"]["valid_to"] == "2025-09-30"
+    assert by_suffix["conflict-right"]["conflicts_with"] == (
+        "history-001-conflict-left"
+    )
+    assert set(by_suffix["conflict-resolution"]["resolves"]) == {
+        "history-001-conflict-left",
+        "history-001-conflict-right",
+    }
+    assert by_suffix["conflict-left"]["fact"]["temporal"]["observed_at"].startswith(
+        "2027-01-01"
+    )
+    assert by_suffix["conflict-right"]["fact"]["temporal"]["observed_at"].startswith(
+        "2027-02-01"
+    )
+    assert by_suffix["conflict-resolution"]["fact"]["temporal"]["valid_from"] == (
+        "2027-03-01"
+    )
+    checked_candidates = {
+        "history-001-overlap-replacement",
+        "history-001-direct-conflict-no-supersession",
+        "history-001-ambiguity-resolution",
+    }
+    for candidate in candidates:
+        if candidate["candidate_id"] in checked_candidates:
+            assert candidate["fact"]["object"] in candidate["fact"]["support_text"]
+    constraint_violation = next(
+        candidate
+        for candidate in candidates
+        if candidate["candidate_id"] == "history-001-hard-constraint-violation"
+    )
+    assert "requested" in constraint_violation["fact"]["support_text"]
+
+
 def test_aliases_remain_disjoint_at_full_interleaved_scale() -> None:
     split_counts = (88, 88, 1024)
     boundaries = (split_counts[0], split_counts[0] + split_counts[1])

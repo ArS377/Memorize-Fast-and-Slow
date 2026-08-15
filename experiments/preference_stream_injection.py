@@ -16,15 +16,23 @@ FORBIDDEN_INJECTION_KEYS = {"answer", "gold", "prediction", "object", "text"}
 
 def _preference_rows(
     events: Sequence[Mapping[str, Any]],
-) -> tuple[list[tuple[str, str, str, str, str, str, str]], list[tuple[str, str]]]:
-    """Return canonical preference and supersession relations from causal events."""
+) -> tuple[
+    list[tuple[str, str, str, str, str, str, str]],
+    list[tuple[str, str]],
+    list[tuple[str, str]],
+]:
+    """Return canonical preference, supersession, and identity relations."""
     preference_rows = []
     supersession_rows = []
+    identity_rows = []
     for event in events:
         event_id = str(event.get("event_id", ""))
         fact = event.get("fact")
         if not event_id or not isinstance(fact, Mapping):
             raise ValueError("every preference-stream event needs an event_id and fact")
+        if fact.get("predicate") == "SAME_ACCOUNT":
+            identity_rows.append((event_id, str(fact.get("subject", ""))))
+            continue
         if fact.get("predicate") != "PREFERS":
             continue
         qualifiers = fact.get("qualifiers")
@@ -45,7 +53,7 @@ def _preference_rows(
         supersedes = event.get("supersedes")
         if supersedes is not None:
             supersession_rows.append((event_id, str(supersedes)))
-    return sorted(preference_rows), sorted(supersession_rows)
+    return sorted(preference_rows), sorted(supersession_rows), sorted(identity_rows)
 
 
 def validate_preference_injection_result(
@@ -107,17 +115,19 @@ def derive_preference_injections_with_scallop(
         import scallopy
     except ImportError as error:
         raise RuntimeError("scallopy is required for preference-stream injection") from error
-    preference_rows, supersession_rows = _preference_rows(events)
+    preference_rows, supersession_rows, identity_rows = _preference_rows(events)
     context = scallopy.ScallopContext(provenance="unit")
     context.add_relation("preference_event", (str, str, str, str, str, str, str))
     context.add_relation("supersedes_event", (str, str))
+    context.add_relation("identity_event", (str, str))
     context.add_facts("preference_event", preference_rows)
     context.add_facts("supersedes_event", supersession_rows)
+    context.add_facts("identity_event", identity_rows)
     context.add_rule(
         "preference_change(old_event, new_event, alias_event) = "
         "preference_event(old_event, old_fact, subject, scope, old_value, old_from, _) "
         "and preference_event(new_event, _, subject, scope, new_value, new_from, _) "
-        "and preference_event(alias_event, _, subject, \"identity\", _, _, _) "
+        "and identity_event(alias_event, subject) "
         "and supersedes_event(new_event, old_fact) "
         "and old_value != new_value and old_from != new_from"
     )
@@ -125,7 +135,7 @@ def derive_preference_injections_with_scallop(
         "preference_incongruity(old_event, new_event, alias_event) = "
         "preference_event(old_event, old_fact, subject, scope, old_value, valid_from, old_authority) "
         "and preference_event(new_event, _, subject, scope, new_value, valid_from, new_authority) "
-        "and preference_event(alias_event, _, subject, \"identity\", _, _, _) "
+        "and identity_event(alias_event, subject) "
         "and supersedes_event(new_event, old_fact) "
         "and old_value != new_value and old_authority != new_authority"
     )

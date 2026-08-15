@@ -1,0 +1,19 @@
+{
+  "generation": {
+    "endpoint_env": "KIMI_BASE_URL",
+    "api_key_env": "KIMI_API_KEY",
+    "model_env": "KIMI_MODEL",
+    "timeout_seconds": 600.0,
+    "seed": 47,
+    "max_tokens": 16384,
+    "history_count": 16,
+    "condition": "lexical",
+    "hardness_profile": "anti_shortcut_interleaved_v3",
+    "split_counts": [2, 2, 12],
+    "prompt_schema_version": "persona-conversation.v3",
+    "turn_pairs_per_event": 2,
+    "minimum_words_per_turn": 20,
+    "events_per_request": 4,
+    "enable_thinking": false
+  }
+}
