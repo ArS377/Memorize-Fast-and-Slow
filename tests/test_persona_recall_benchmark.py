@@ -53,7 +53,7 @@ class SurfaceFakeClient:
                                 },
                                 {
                                     "role": "assistant",
-                                    "content": "Noted. "
+                                    "content": "Understood. "
                                     + (
                                         event["semantic_markers"][0]
                                         if event["semantic_markers"]

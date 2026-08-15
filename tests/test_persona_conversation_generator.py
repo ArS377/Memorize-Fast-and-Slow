@@ -323,6 +323,13 @@ def test_generation_enforces_dialogue_length_and_conflict_values() -> None:
             json.dumps(repetitive), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
         )
 
+    gendered = json.loads(json.dumps(valid))
+    gendered["events"][0]["turns"][2]["content"] += " He confirmed the final choice."
+    with pytest.raises(ValueError, match="unsupported gendered pronoun"):
+        validate_generation_response(
+            json.dumps(gendered), expected, turn_pairs_per_event=2, minimum_words_per_turn=8
+        )
+
 
 def test_v3_prompt_preserves_interspersed_conflict_lifecycle(tmp_path: Path) -> None:
     config = GenerationConfig(

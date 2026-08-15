@@ -32,6 +32,10 @@ _RECORDKEEPING_LANGUAGE = re.compile(
     r"\b(?:record(?:ed|ing|s)?|entr(?:y|ies)|files?|noted|audit trail|canonical)\b",
     re.IGNORECASE,
 )
+_UNSUPPORTED_GENDERED_PRONOUN = re.compile(
+    r"\b(?:he|she|him|her|his|hers)\b",
+    re.IGNORECASE,
+)
 _PREFERENCE_SURFACES = {
     "a": "cedar tea",
     "b": "mint tea",
@@ -614,6 +618,9 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
                 "belongs to",
                 "already associated",
                 "reflects text",
+                "would conflict",
+                "correction",
+                "could become",
             )
         )
     if operation == "supersede":
@@ -629,7 +636,7 @@ def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
         )
     if "duplicate" in operation:
         phrases.extend(("last cycle", "deduplicat", "merged", "single canonical"))
-        phrases.extend(("on your profile", "already saved", "in storage"))
+        phrases.extend(("on your profile", "already saved", "in storage", "noted"))
     if predicate == "PRIVATE_NOTE":
         phrases.extend(("favorite", "preference", "recommend", "dish"))
     if (
@@ -748,6 +755,12 @@ def validate_generation_response(
                 f"generated event {event['event_id']} omitted its inferred-authority marker"
             )
         semantic_markers = expected_events[index].get("semantic_markers", ())
+        pronoun_match = _UNSUPPORTED_GENDERED_PRONOUN.search(visible_text)
+        if pronoun_match:
+            raise ValueError(
+                f"generated event {event['event_id']} introduced unsupported gendered pronoun "
+                f"{pronoun_match.group(0)!r}"
+            )
         recordkeeping_count = len(_RECORDKEEPING_LANGUAGE.findall(visible_text))
         if recordkeeping_count > 3:
             raise ValueError(
@@ -1003,6 +1016,7 @@ def generate_persona_conversations(
                             "annotate, summarize, or record a benchmark statement. "
                             "Follow each speaker_instruction exactly so direct statements and inferred "
                             "third-party evidence remain distinct. "
+                            "Use names, first-person pronouns, or singular they; never invent gendered pronouns. "
                             "Use extra turns for practical context or tradeoffs, not repetitive "
                             "paraphrase or recordkeeping; use at most three recordkeeping terms per event. "
                             "Keep the supplied event order and meaning exactly. Return strict JSON only. "
