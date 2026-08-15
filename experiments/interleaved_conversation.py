@@ -27,8 +27,7 @@ def _conversation_text(event: Mapping[str, Any]) -> str:
     text = str(event.get("model_text") or event["fact"]["support_text"])
     if event.get("hardness_profile") != "anti_shortcut_interleaved_v3":
         return text
-    fact = event["fact"]
-    value = str(fact.get("object", "the current choice"))
+    value = str(event.get("surface_object") or "the current choice")
     closing_variants = (
         "They closed by listing the next decision that would be needed when this work resumed.",
         "The remaining uncertainty was recorded so a later session could continue without guessing.",

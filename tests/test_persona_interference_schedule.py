@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -115,6 +116,7 @@ def test_phase_and_distance_schedule_is_causal_complete_and_immutable(tmp_path: 
         set(row) == {"evaluation_input_id", "context", "query_text"}
         for row in model_inputs
     )
+    assert all(not re.search(r"\b(?:value|subject|history)-\d+", row["context"]) for row in model_inputs)
     assert manifest["artifact_sha256"]["evaluation_inputs.jsonl"] == _sha256(
         tmp_path / "scheduled" / "evaluation_inputs.jsonl"
     )
