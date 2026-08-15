@@ -889,6 +889,8 @@ def generate_persona_conversations(
     _write_json(manifest_path, manifest)
     raw_rows: list[dict[str, Any]] = []
     request_rows: list[dict[str, Any]] = []
+    _write_jsonl(raw_path, raw_rows)
+    _write_jsonl(requests_path, request_rows)
     try:
         generate_dataset(
             output_dir,
