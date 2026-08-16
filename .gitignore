@@ -10,6 +10,10 @@ data_small.jsonl
 !results/persona_recall_v1/*.jsonl
 !results/persona_conflict_conversations_v1/*.jsonl
 !results/persona_end_to_end_qwen35_4b_v1/*.jsonl
+!results/persona_conflict_conversations_surface_a/*.jsonl
+!results/persona_conflict_conversations_surface_b/*.jsonl
+!results/persona_end_to_end_qwen35_4b_surface_a/*.jsonl
+!results/persona_end_to_end_qwen35_4b_surface_b/*.jsonl
 
 # Python
 __pycache__/

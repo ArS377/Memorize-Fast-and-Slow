@@ -1,0 +1,1257 @@
+{
+  "artifact_roles": {
+    "candidate_updates.jsonl": "supervision_only",
+    "dialogue.jsonl": "model_input",
+    "events.jsonl": "latent_structure",
+    "examples.jsonl": "supervision_only",
+    "facts.jsonl": "structured_source_facts",
+    "queries.jsonl": "supervision_only",
+    "raw_responses.jsonl": "generation_provenance",
+    "requests.jsonl": "generation_provenance",
+    "source_documents.jsonl": "source_evidence"
+  },
+  "artifact_sha256": {
+    "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+    "dialogue.jsonl": "6abd3090a1e69f4cd3bef4388ce10051fd9bb753fcb8d2b17d3c55fd590adf39",
+    "events.jsonl": "930e95a49fff427db2303aad1f19b531dddb9c52aa3aee07cfa875b7c94fef25",
+    "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+    "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+    "queries.jsonl": "b01ceac57949a43600ddfb3c960754bf29f4487bd43b6ec1839e134ba1f3f40a",
+    "raw_responses.jsonl": "d35a5aa5464655421700bff566f4e42cfecc8d33c02a211603055a4842261928",
+    "requests.jsonl": "7646a1746c4247c3b4f69ddefe92415db3b5e595b772b1bc08b84f537a1b2894",
+    "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+  },
+  "completion_status": "completed",
+  "derivation": {
+    "algorithm": "category_block_permutation",
+    "seed": 137,
+    "version": "persona-surface-derivation.v2"
+  },
+  "generator_role": "deterministic category-preserving surface derivation",
+  "hashing": {
+    "algorithm": "sha256",
+    "artifact_preimage": "raw_file_bytes",
+    "mapping_preimage": "canonical_json"
+  },
+  "model_identity": "deterministic-derived-surface",
+  "parent": {
+    "artifact_sha256": {
+      "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+      "dialogue.jsonl": "21e9d035fdd645793b1ec4ccaaf2f6ef104363c1a891ee6ec84f7045e9bad7b5",
+      "events.jsonl": "c74d2a3fd2cfdad48b3b63d11ac2cf54ae3074e385bc77e8ddbc128f818fd0eb",
+      "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+      "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+      "queries.jsonl": "bcff1787b01e0654a73c002b2eb11ccbec2937e7ab58d889cbe6bed8f8f15075",
+      "raw_responses.jsonl": "d35a5aa5464655421700bff566f4e42cfecc8d33c02a211603055a4842261928",
+      "requests.jsonl": "7646a1746c4247c3b4f69ddefe92415db3b5e595b772b1bc08b84f537a1b2894",
+      "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+    },
+    "corpus_name": "persona_conflict_conversations_v1",
+    "generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+    "kimi_provenance": {
+      "generator_role": "Kimi K3 generation-only surface realization",
+      "model_identity": "kimi-k3",
+      "prompt_schema_version": "persona-conversation.v3",
+      "provider_identity_assurance": "endpoint-self-reported; artifact hashes are cryptographic",
+      "status": "completed"
+    }
+  },
+  "status": "completed",
+  "surface_mapping": [
+    {
+      "category": "delivery",
+      "history_id": "history-001",
+      "source_phrase": "evening delivery",
+      "target_phrase": "Tuesday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-001",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "curbside delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-001",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "broccoli soba"
+    },
+    {
+      "category": "food",
+      "history_id": "history-001",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "tomato farro"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-001",
+      "source_phrase": "cedar glass",
+      "target_phrase": "ivory medallion"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-001",
+      "source_phrase": "digital receipts",
+      "target_phrase": "invoice receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-001",
+      "source_phrase": "aisle seating",
+      "target_phrase": "walkway-side seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-001",
+      "source_phrase": "window seating",
+      "target_phrase": "boundary-side seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-001",
+      "source_phrase": "cedar tea",
+      "target_phrase": "thyme tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-001",
+      "source_phrase": "mint tea",
+      "target_phrase": "saffron tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-001",
+      "source_phrase": "oolong tea",
+      "target_phrase": "matcha tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-002",
+      "source_phrase": "evening delivery",
+      "target_phrase": "Wednesday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-002",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "lobby delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-002",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "pesto orzo"
+    },
+    {
+      "category": "food",
+      "history_id": "history-002",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "black bean soup"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-002",
+      "source_phrase": "cedar glass",
+      "target_phrase": "silver lantern"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-002",
+      "source_phrase": "digital receipts",
+      "target_phrase": "carbon-copy receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-002",
+      "source_phrase": "aisle seating",
+      "target_phrase": "traffic-side seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-002",
+      "source_phrase": "window seating",
+      "target_phrase": "wall-adjacent seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-002",
+      "source_phrase": "cedar tea",
+      "target_phrase": "anise tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-002",
+      "source_phrase": "mint tea",
+      "target_phrase": "buckwheat tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-002",
+      "source_phrase": "oolong tea",
+      "target_phrase": "darjeeling tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-003",
+      "source_phrase": "evening delivery",
+      "target_phrase": "dawn delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-003",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "express delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-003",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "tomato gnocchi"
+    },
+    {
+      "category": "food",
+      "history_id": "history-003",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "vegetable paella"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-003",
+      "source_phrase": "cedar glass",
+      "target_phrase": "violet seal"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-003",
+      "source_phrase": "digital receipts",
+      "target_phrase": "thermal receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-003",
+      "source_phrase": "aisle seating",
+      "target_phrase": "doorway-side seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-003",
+      "source_phrase": "window seating",
+      "target_phrase": "view-oriented seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-003",
+      "source_phrase": "cedar tea",
+      "target_phrase": "lavender tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-003",
+      "source_phrase": "mint tea",
+      "target_phrase": "tulsi tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-003",
+      "source_phrase": "oolong tea",
+      "target_phrase": "hibiscus tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-004",
+      "source_phrase": "evening delivery",
+      "target_phrase": "Monday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-004",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "home delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-004",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "corn chowder"
+    },
+    {
+      "category": "food",
+      "history_id": "history-004",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "zucchini fritters"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-004",
+      "source_phrase": "cedar glass",
+      "target_phrase": "willow token"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-004",
+      "source_phrase": "digital receipts",
+      "target_phrase": "email receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-004",
+      "source_phrase": "aisle seating",
+      "target_phrase": "circulation-path seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-004",
+      "source_phrase": "window seating",
+      "target_phrase": "outer-edge seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-004",
+      "source_phrase": "cedar tea",
+      "target_phrase": "quince tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-004",
+      "source_phrase": "mint tea",
+      "target_phrase": "vanilla tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-004",
+      "source_phrase": "oolong tea",
+      "target_phrase": "jasmine tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-005",
+      "source_phrase": "evening delivery",
+      "target_phrase": "midday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-005",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "doorstep delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-005",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "spinach dumplings"
+    },
+    {
+      "category": "food",
+      "history_id": "history-005",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "lemon risotto"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-005",
+      "source_phrase": "cedar glass",
+      "target_phrase": "scarlet pebble"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-005",
+      "source_phrase": "digital receipts",
+      "target_phrase": "mailed receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-005",
+      "source_phrase": "aisle seating",
+      "target_phrase": "corridor-side seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-005",
+      "source_phrase": "window seating",
+      "target_phrase": "perimeter seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-005",
+      "source_phrase": "cedar tea",
+      "target_phrase": "rose tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-005",
+      "source_phrase": "mint tea",
+      "target_phrase": "honeybush tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-005",
+      "source_phrase": "oolong tea",
+      "target_phrase": "lapsang tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-006",
+      "source_phrase": "evening delivery",
+      "target_phrase": "Sunday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-006",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "porch delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-006",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "miso udon"
+    },
+    {
+      "category": "food",
+      "history_id": "history-006",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "red pepper pasta"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-006",
+      "source_phrase": "cedar glass",
+      "target_phrase": "crystal button"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-006",
+      "source_phrase": "digital receipts",
+      "target_phrase": "paperless receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-006",
+      "source_phrase": "aisle seating",
+      "target_phrase": "access-lane seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-006",
+      "source_phrase": "window seating",
+      "target_phrase": "exterior-side seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-006",
+      "source_phrase": "cedar tea",
+      "target_phrase": "peach tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-006",
+      "source_phrase": "mint tea",
+      "target_phrase": "osmanthus tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-006",
+      "source_phrase": "oolong tea",
+      "target_phrase": "genmaicha tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-007",
+      "source_phrase": "evening delivery",
+      "target_phrase": "sunset delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-007",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "courier delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-007",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "lentil curry"
+    },
+    {
+      "category": "food",
+      "history_id": "history-007",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "chickpea tagine"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-007",
+      "source_phrase": "cedar glass",
+      "target_phrase": "bronze charm"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-007",
+      "source_phrase": "digital receipts",
+      "target_phrase": "register receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-007",
+      "source_phrase": "aisle seating",
+      "target_phrase": "through-route seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-007",
+      "source_phrase": "window seating",
+      "target_phrase": "side-wall seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-007",
+      "source_phrase": "cedar tea",
+      "target_phrase": "lemongrass tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-007",
+      "source_phrase": "mint tea",
+      "target_phrase": "coconut tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-007",
+      "source_phrase": "oolong tea",
+      "target_phrase": "pu-erh tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-008",
+      "source_phrase": "evening delivery",
+      "target_phrase": "night delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-008",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "fortnightly delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-008",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "sweet potato tacos"
+    },
+    {
+      "category": "food",
+      "history_id": "history-008",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "sesame tofu"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-008",
+      "source_phrase": "cedar glass",
+      "target_phrase": "marble key"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-008",
+      "source_phrase": "digital receipts",
+      "target_phrase": "summary receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-008",
+      "source_phrase": "aisle seating",
+      "target_phrase": "central-passage seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-008",
+      "source_phrase": "window seating",
+      "target_phrase": "light-facing seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-008",
+      "source_phrase": "cedar tea",
+      "target_phrase": "nettle tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-008",
+      "source_phrase": "mint tea",
+      "target_phrase": "ginger turmeric tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-008",
+      "source_phrase": "oolong tea",
+      "target_phrase": "assam tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-009",
+      "source_phrase": "evening delivery",
+      "target_phrase": "Thursday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-009",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "scheduled delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-009",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "saffron couscous"
+    },
+    {
+      "category": "food",
+      "history_id": "history-009",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "coconut noodles"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-009",
+      "source_phrase": "cedar glass",
+      "target_phrase": "linen bookmark"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-009",
+      "source_phrase": "digital receipts",
+      "target_phrase": "full-page receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-009",
+      "source_phrase": "aisle seating",
+      "target_phrase": "open-passage seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-009",
+      "source_phrase": "window seating",
+      "target_phrase": "natural-light seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-009",
+      "source_phrase": "cedar tea",
+      "target_phrase": "sage tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-009",
+      "source_phrase": "mint tea",
+      "target_phrase": "magnolia tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-009",
+      "source_phrase": "oolong tea",
+      "target_phrase": "white peony tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-010",
+      "source_phrase": "evening delivery",
+      "target_phrase": "afternoon delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-010",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "priority delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-010",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "sesame noodles"
+    },
+    {
+      "category": "food",
+      "history_id": "history-010",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "spinach curry"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-010",
+      "source_phrase": "cedar glass",
+      "target_phrase": "opal marker"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-010",
+      "source_phrase": "digital receipts",
+      "target_phrase": "text receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-010",
+      "source_phrase": "aisle seating",
+      "target_phrase": "entry-path seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-010",
+      "source_phrase": "window seating",
+      "target_phrase": "window-adjacent seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-010",
+      "source_phrase": "cedar tea",
+      "target_phrase": "cinnamon tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-010",
+      "source_phrase": "mint tea",
+      "target_phrase": "raspberry leaf tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-010",
+      "source_phrase": "oolong tea",
+      "target_phrase": "hojicha tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-011",
+      "source_phrase": "evening delivery",
+      "target_phrase": "Friday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-011",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "monthly delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-011",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "bean enchiladas"
+    },
+    {
+      "category": "food",
+      "history_id": "history-011",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "lentil pilaf"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-011",
+      "source_phrase": "cedar glass",
+      "target_phrase": "walnut emblem"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-011",
+      "source_phrase": "digital receipts",
+      "target_phrase": "PDF receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-011",
+      "source_phrase": "aisle seating",
+      "target_phrase": "passage-side seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-011",
+      "source_phrase": "window seating",
+      "target_phrase": "window-side seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-011",
+      "source_phrase": "cedar tea",
+      "target_phrase": "rosehip tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-011",
+      "source_phrase": "mint tea",
+      "target_phrase": "verbena tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-011",
+      "source_phrase": "oolong tea",
+      "target_phrase": "chamomile tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-012",
+      "source_phrase": "evening delivery",
+      "target_phrase": "holiday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-012",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "standard delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-012",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "pumpkin ravioli"
+    },
+    {
+      "category": "food",
+      "history_id": "history-012",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "herb dumplings"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-012",
+      "source_phrase": "cedar glass",
+      "target_phrase": "satin badge"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-012",
+      "source_phrase": "digital receipts",
+      "target_phrase": "itemized receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-012",
+      "source_phrase": "aisle seating",
+      "target_phrase": "cross-traffic seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-012",
+      "source_phrase": "window seating",
+      "target_phrase": "outside-edge seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-012",
+      "source_phrase": "cedar tea",
+      "target_phrase": "apricot tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-012",
+      "source_phrase": "mint tea",
+      "target_phrase": "chrysanthemum tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-012",
+      "source_phrase": "oolong tea",
+      "target_phrase": "rooibos tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-013",
+      "source_phrase": "evening delivery",
+      "target_phrase": "twilight delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-013",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "next-day delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-013",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "chickpea stew"
+    },
+    {
+      "category": "food",
+      "history_id": "history-013",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "ginger noodles"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-013",
+      "source_phrase": "cedar glass",
+      "target_phrase": "amber compass"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-013",
+      "source_phrase": "digital receipts",
+      "target_phrase": "detailed receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-013",
+      "source_phrase": "aisle seating",
+      "target_phrase": "exit-path seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-013",
+      "source_phrase": "window seating",
+      "target_phrase": "outward-facing seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-013",
+      "source_phrase": "cedar tea",
+      "target_phrase": "orange blossom tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-013",
+      "source_phrase": "mint tea",
+      "target_phrase": "elderflower tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-013",
+      "source_phrase": "oolong tea",
+      "target_phrase": "barley tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-014",
+      "source_phrase": "evening delivery",
+      "target_phrase": "sunrise delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-014",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "reception delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-014",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "herb polenta"
+    },
+    {
+      "category": "food",
+      "history_id": "history-014",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "butternut ravioli"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-014",
+      "source_phrase": "cedar glass",
+      "target_phrase": "maple pendant"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-014",
+      "source_phrase": "digital receipts",
+      "target_phrase": "compact receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-014",
+      "source_phrase": "aisle seating",
+      "target_phrase": "aisle-side seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-014",
+      "source_phrase": "window seating",
+      "target_phrase": "edge-position seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-014",
+      "source_phrase": "cedar tea",
+      "target_phrase": "fennel tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-014",
+      "source_phrase": "mint tea",
+      "target_phrase": "apple spice tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-014",
+      "source_phrase": "oolong tea",
+      "target_phrase": "sencha tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-015",
+      "source_phrase": "evening delivery",
+      "target_phrase": "breakfast delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-015",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "office delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-015",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "eggplant lasagna"
+    },
+    {
+      "category": "food",
+      "history_id": "history-015",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "mushroom barley"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-015",
+      "source_phrase": "cedar glass",
+      "target_phrase": "indigo ribbon"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-015",
+      "source_phrase": "digital receipts",
+      "target_phrase": "app receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-015",
+      "source_phrase": "aisle seating",
+      "target_phrase": "foot-traffic seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-015",
+      "source_phrase": "window seating",
+      "target_phrase": "view-facing seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-015",
+      "source_phrase": "cedar tea",
+      "target_phrase": "plum tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-015",
+      "source_phrase": "mint tea",
+      "target_phrase": "blackcurrant tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-015",
+      "source_phrase": "oolong tea",
+      "target_phrase": "earl grey tea"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-016",
+      "source_phrase": "evening delivery",
+      "target_phrase": "Saturday delivery"
+    },
+    {
+      "category": "delivery",
+      "history_id": "history-016",
+      "source_phrase": "weekend delivery",
+      "target_phrase": "same-day delivery"
+    },
+    {
+      "category": "food",
+      "history_id": "history-016",
+      "source_phrase": "mushroom risotto",
+      "target_phrase": "coconut rice"
+    },
+    {
+      "category": "food",
+      "history_id": "history-016",
+      "source_phrase": "vegetable ramen",
+      "target_phrase": "pumpkin soup"
+    },
+    {
+      "category": "private_lineage",
+      "history_id": "history-016",
+      "source_phrase": "cedar glass",
+      "target_phrase": "copper feather"
+    },
+    {
+      "category": "receipt",
+      "history_id": "history-016",
+      "source_phrase": "digital receipts",
+      "target_phrase": "printed receipts"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-016",
+      "source_phrase": "aisle seating",
+      "target_phrase": "main-walkway seating"
+    },
+    {
+      "category": "seating",
+      "history_id": "history-016",
+      "source_phrase": "window seating",
+      "target_phrase": "wall-side seating"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-016",
+      "source_phrase": "cedar tea",
+      "target_phrase": "cardamom tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-016",
+      "source_phrase": "mint tea",
+      "target_phrase": "blueberry tea"
+    },
+    {
+      "category": "tea",
+      "history_id": "history-016",
+      "source_phrase": "oolong tea",
+      "target_phrase": "lemon ginger tea"
+    }
+  ],
+  "surface_mapping_sha256": "47b5ca82eb7b0cca45fe8a52fb7a2b8767686a4cfe49bfbc55c37b953a7bc5a7",
+  "visible_replacement_contract": [
+    {
+      "mode": "full",
+      "pattern": "\\bcedar[-\\s]+glass\\b",
+      "source_phrase": "cedar glass"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\b(?:cedar|glass)[-\\s]+keepsake\\b",
+      "source_phrase": "cedar glass"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bcedar\\s+tea\\b",
+      "source_phrase": "cedar tea"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bmint\\s+tea\\b",
+      "source_phrase": "mint tea"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\boolong\\s+tea\\b",
+      "source_phrase": "oolong tea"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bwindow\\s+seating\\b",
+      "source_phrase": "window seating"
+    },
+    {
+      "mode": "seat",
+      "pattern": "\\bwindow\\s+seat\\b",
+      "source_phrase": "window seating"
+    },
+    {
+      "mode": "seats",
+      "pattern": "\\bwindow\\s+seats\\b",
+      "source_phrase": "window seating"
+    },
+    {
+      "mode": "spot",
+      "pattern": "\\bwindow\\s+spot\\b",
+      "source_phrase": "window seating"
+    },
+    {
+      "mode": "spots",
+      "pattern": "\\bwindow\\s+spots\\b",
+      "source_phrase": "window seating"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\baisle\\s+seating\\b",
+      "source_phrase": "aisle seating"
+    },
+    {
+      "mode": "seat",
+      "pattern": "\\baisle\\s+seat\\b",
+      "source_phrase": "aisle seating"
+    },
+    {
+      "mode": "seats",
+      "pattern": "\\baisle\\s+seats\\b",
+      "source_phrase": "aisle seating"
+    },
+    {
+      "mode": "spot",
+      "pattern": "\\baisle\\s+spot\\b",
+      "source_phrase": "aisle seating"
+    },
+    {
+      "mode": "spots",
+      "pattern": "\\baisle\\s+spots\\b",
+      "source_phrase": "aisle seating"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bvegetable\\s+ramen\\b",
+      "source_phrase": "vegetable ramen"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bmushroom\\s+risotto\\b",
+      "source_phrase": "mushroom risotto"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bevening\\s+delivery\\b",
+      "source_phrase": "evening delivery"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bweekend\\s+delivery\\b",
+      "source_phrase": "weekend delivery"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bdigital\\s+receipts?\\b",
+      "source_phrase": "digital receipts"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bweekend\\b(?=\\s+date\\b)",
+      "source_phrase": "weekend delivery"
+    },
+    {
+      "mode": "descriptor",
+      "pattern": "\\bevening\\b(?=\\s+(?:option|choice|selection|preference|timing|schedule)\\b)",
+      "source_phrase": "evening delivery"
+    },
+    {
+      "mode": "descriptor",
+      "pattern": "\\bweekend\\b(?=\\s+(?:option|choice|selection|preference|timing|schedule)\\b)",
+      "source_phrase": "weekend delivery"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bcedar(?:-flavored)?\\b(?!\\s+glass\\b)",
+      "source_phrase": "cedar tea"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bwoodsy\\b(?=\\s+flavou?r\\b)",
+      "source_phrase": "cedar tea"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\bminty?\\b",
+      "source_phrase": "mint tea"
+    },
+    {
+      "mode": "full",
+      "pattern": "\\boolong\\b",
+      "source_phrase": "oolong tea"
+    }
+  ],
+  "visible_replacement_contract_sha256": "ecd1a21cc1e57443e42d192bf538a4626ac9d1f83df52ada1e02ccfb8abcb60b"
+}

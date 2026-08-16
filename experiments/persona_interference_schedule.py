@@ -14,6 +14,13 @@ from experiments._continual_memory_config import HuggingFaceTokenizer, Tokenizer
 from experiments._continual_memory_episodes import TURN_SEPARATOR, _serialized_turn_increment
 from experiments.interleaved_conversation import build_interleaved_schedule, schedule_metrics
 from experiments.persona_conversation_generator import SOURCE_ARTIFACTS
+from experiments.persona_surface_derivation import (
+    DERIVATION_ALGORITHM,
+    DERIVATION_VERSION,
+    ROLE_VARIANT_RULES,
+    build_surface_mapping,
+    transform_surface_artifacts,
+)
 from experiments.synthetic_temporal_preferences import resolve_query
 
 
@@ -132,8 +139,8 @@ def _stable_sha256(value: Any) -> str:
 
 def _authenticate_dataset(
     dataset_dir: Path, expected_manifest_sha256: str
-) -> tuple[dict[str, Any], dict[str, bytes]]:
-    """Bind scheduling to one completed, hash-matched Kimi corpus."""
+) -> tuple[dict[str, Any], dict[str, bytes], dict[str, Any] | None]:
+    """Bind scheduling to one completed Kimi corpus or explicit derived chain."""
     manifest_path = dataset_dir / "generation_manifest.json"
     try:
         manifest_bytes = manifest_path.read_bytes()
@@ -151,12 +158,176 @@ def _authenticate_dataset(
         raise ValueError(f"cannot load generation manifest {manifest_path}: {error}") from error
     if not isinstance(manifest, Mapping) or manifest.get("status") != "completed":
         raise ValueError("persona interference scheduling requires a completed manifest")
-    model_identity = manifest.get("model_identity")
-    if not isinstance(model_identity, str) or "kimi" not in model_identity.casefold():
-        raise ValueError(f"generation manifest is not Kimi-authored: {model_identity!r}")
     recorded = manifest.get("artifact_sha256")
     if not isinstance(recorded, Mapping):
         raise ValueError("generation manifest lacks artifact_sha256")
+    model_identity = manifest.get("model_identity")
+    derivation = manifest.get("derivation")
+    parent = manifest.get("parent")
+    if isinstance(model_identity, str) and "kimi" in model_identity.casefold():
+        derived_provenance = None
+        authenticated_parent = None
+    else:
+        if not isinstance(derivation, Mapping) or not isinstance(parent, Mapping):
+            raise ValueError(
+                f"generation manifest is neither Kimi-authored nor explicitly derived: {model_identity!r}"
+            )
+        if (
+            derivation.get("algorithm") != DERIVATION_ALGORITHM
+            or derivation.get("version") != DERIVATION_VERSION
+            or isinstance(derivation.get("seed"), bool)
+            or not isinstance(derivation.get("seed"), int)
+        ):
+            raise ValueError("derived generation manifest has an invalid derivation contract")
+        parent_manifest_sha256 = parent.get("generation_manifest_sha256")
+        parent_artifacts = parent.get("artifact_sha256")
+        kimi_provenance = parent.get("kimi_provenance")
+        parent_corpus_name = parent.get("corpus_name")
+        if not isinstance(parent_manifest_sha256, str) or len(parent_manifest_sha256) != 64 or any(
+            character not in "0123456789abcdef" for character in parent_manifest_sha256
+        ):
+            raise ValueError("derived generation manifest has an invalid parent manifest hash")
+        if not isinstance(parent_artifacts, Mapping) or any(
+            not isinstance(name, str)
+            or not isinstance(digest, str)
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+            for name, digest in parent_artifacts.items()
+        ):
+            raise ValueError("derived generation manifest has invalid parent artifact hashes")
+        required_parent_artifacts = {*SOURCE_ARTIFACTS, "dialogue.jsonl"}
+        if not required_parent_artifacts.issubset(parent_artifacts):
+            raise ValueError("derived generation manifest has an incomplete parent artifact chain")
+        if set(parent_artifacts) != set(recorded):
+            raise ValueError(
+                "derived generation parent and child artifact hash sets differ"
+            )
+        if not isinstance(kimi_provenance, Mapping) or kimi_provenance.get("status") != "completed":
+            raise ValueError("derived generation manifest lacks completed Kimi parent provenance")
+        parent_model = kimi_provenance.get("model_identity")
+        if not isinstance(parent_model, str) or "kimi" not in parent_model.casefold():
+            raise ValueError(f"derived generation parent is not Kimi-authored: {parent_model!r}")
+        if (
+            not isinstance(parent_corpus_name, str)
+            or not parent_corpus_name
+            or Path(parent_corpus_name).name != parent_corpus_name
+        ):
+            raise ValueError("derived generation manifest has an invalid parent corpus name")
+        mapping = manifest.get("surface_mapping")
+        mapping_sha256 = manifest.get("surface_mapping_sha256")
+        if not isinstance(mapping, list) or _stable_sha256(mapping) != mapping_sha256:
+            raise ValueError("derived generation manifest surface mapping hash mismatch")
+        expected_replacement_contract = [
+            {"mode": mode, "pattern": pattern, "source_phrase": source}
+            for source, pattern, mode in ROLE_VARIANT_RULES
+        ]
+        if (
+            manifest.get("visible_replacement_contract") != expected_replacement_contract
+            or manifest.get("visible_replacement_contract_sha256")
+            != _stable_sha256(ROLE_VARIANT_RULES)
+        ):
+            raise ValueError("derived generation manifest has an invalid visible replacement contract")
+
+        resolved_dataset = dataset_dir.resolve()
+        parent_dir = (resolved_dataset.parent / parent_corpus_name).resolve()
+        if parent_dir.parent != resolved_dataset.parent or parent_dir == resolved_dataset:
+            raise ValueError("derived generation parent must resolve to a sibling corpus")
+        parent_manifest_path = parent_dir / "generation_manifest.json"
+        try:
+            actual_parent_manifest_bytes = parent_manifest_path.read_bytes()
+        except OSError as error:
+            raise ValueError(
+                f"cannot read actual parent generation manifest {parent_manifest_path}: {error}"
+            ) from error
+        actual_parent_manifest_sha256 = _sha256_bytes(actual_parent_manifest_bytes)
+        if actual_parent_manifest_sha256 != parent_manifest_sha256:
+            raise ValueError(
+                "actual parent generation manifest hash mismatch: "
+                f"expected {parent_manifest_sha256}, got {actual_parent_manifest_sha256}"
+            )
+        try:
+            actual_parent_manifest = json.loads(actual_parent_manifest_bytes)
+        except json.JSONDecodeError as error:
+            raise ValueError(
+                f"cannot load actual parent generation manifest {parent_manifest_path}: {error}"
+            ) from error
+        if not isinstance(actual_parent_manifest, Mapping) or actual_parent_manifest.get(
+            "status"
+        ) != "completed":
+            raise ValueError("actual parent generation manifest is not completed")
+        actual_parent_model = actual_parent_manifest.get("model_identity")
+        if not isinstance(actual_parent_model, str) or "kimi" not in actual_parent_model.casefold():
+            raise ValueError(
+                f"actual parent generation is not Kimi-authored: {actual_parent_model!r}"
+            )
+        actual_parent_recorded = actual_parent_manifest.get("artifact_sha256")
+        if not isinstance(actual_parent_recorded, Mapping) or dict(actual_parent_recorded) != dict(
+            parent_artifacts
+        ):
+            raise ValueError(
+                "actual parent artifact hash manifest differs from derived provenance"
+            )
+        expected_kimi_provenance = {
+            "generator_role": actual_parent_manifest.get("generator_role"),
+            "model_identity": actual_parent_model,
+            "prompt_schema_version": actual_parent_manifest.get("prompt_schema_version"),
+            "provider_identity_assurance": actual_parent_manifest.get(
+                "provider_identity_assurance"
+            ),
+            "status": actual_parent_manifest.get("status"),
+        }
+        if dict(kimi_provenance) != expected_kimi_provenance:
+            raise ValueError("copied Kimi parent provenance differs from actual parent")
+        actual_parent_artifacts = {}
+        for name, expected in sorted(parent_artifacts.items()):
+            if Path(name).name != name or name == "generation_manifest.json":
+                raise ValueError(f"invalid actual parent artifact name: {name!r}")
+            path = parent_dir / name
+            try:
+                payload = path.read_bytes()
+            except OSError as error:
+                raise ValueError(f"cannot read actual parent artifact {path}: {error}") from error
+            actual = _sha256_bytes(payload)
+            if actual != expected:
+                raise ValueError(f"actual parent artifact hash mismatch for {name}")
+            actual_parent_artifacts[name] = payload
+        authenticated_parent = {
+            "path": parent_dir,
+            "generation_manifest_sha256": actual_parent_manifest_sha256,
+            "artifact_bytes": actual_parent_artifacts,
+        }
+        parent_events = _read_jsonl_bytes(
+            actual_parent_artifacts["events.jsonl"], parent_dir / "events.jsonl"
+        )
+        history_ids = sorted({str(event.get("history_id", "")) for event in parent_events})
+        if not history_ids or any(not history_id for history_id in history_ids):
+            raise ValueError("authenticated parent events contain incomplete history identifiers")
+        expected_mapping = build_surface_mapping(history_ids, derivation["seed"])
+        if mapping != expected_mapping:
+            raise ValueError("derived surface mapping does not match its declared seed")
+        expected_child_artifacts = transform_surface_artifacts(
+            actual_parent_artifacts, mapping
+        )
+        for name, expected_payload in sorted(expected_child_artifacts.items()):
+            path = dataset_dir / name
+            try:
+                child_payload = path.read_bytes()
+            except OSError as error:
+                raise ValueError(f"cannot read derived corpus artifact {path}: {error}") from error
+            if child_payload != expected_payload:
+                if name == "queries.jsonl":
+                    raise ValueError(
+                        "derived query gold or causal contract differs from canonical transformation"
+                    )
+                raise ValueError(
+                    f"derived canonical transformation mismatch for {name}"
+                )
+        derived_provenance = {
+            "checkpoint_policy": "authenticated_parent_exact_indices",
+            "derivation": dict(derivation),
+            "parent_generation_manifest_sha256": parent_manifest_sha256,
+            "parent_path": str(parent_dir),
+        }
     hashes = {}
     artifact_bytes = {}
     for name in (*SOURCE_ARTIFACTS, "dialogue.jsonl"):
@@ -170,15 +341,15 @@ def _authenticate_dataset(
             raise ValueError(f"artifact hash mismatch for {name}")
         hashes[name] = current
         artifact_bytes[name] = payload
-    return (
-        {
-            "path": str(dataset_dir),
-            "generation_model": model_identity,
-            "generation_manifest_sha256": manifest_sha256,
-            "artifact_sha256": hashes,
-        },
-        artifact_bytes,
-    )
+    provenance = {
+        "path": str(dataset_dir),
+        "generation_model": model_identity,
+        "generation_manifest_sha256": manifest_sha256,
+        "artifact_sha256": hashes,
+    }
+    if derived_provenance is not None:
+        provenance.update(derived_provenance)
+    return provenance, artifact_bytes, authenticated_parent
 
 
 def _surface_gold(
@@ -300,7 +471,7 @@ def build_evaluation_schedule(
 ) -> dict[str, Any]:
     """Build causal phase and token-distance conditions from an immutable corpus."""
     dataset_dir = Path(dataset_dir)
-    provenance, artifacts = _authenticate_dataset(
+    provenance, artifacts, authenticated_parent = _authenticate_dataset(
         dataset_dir, config.source_manifest_sha256
     )
     events = [
@@ -322,6 +493,66 @@ def build_evaluation_schedule(
     ]
     if not events or not queries:
         raise ValueError("source split/profile/query filters selected no evaluation data")
+    parent_events = None
+    parent_queries = None
+    if authenticated_parent is not None:
+        parent_artifacts = authenticated_parent["artifact_bytes"]
+        parent_path = Path(authenticated_parent["path"])
+        parent_events = [
+            row
+            for row in _read_jsonl_bytes(
+                parent_artifacts["events.jsonl"], parent_path / "events.jsonl"
+            )
+            if row.get("split") == config.source_split
+            and row.get("hardness_profile") == config.source_profile
+        ]
+        parent_queries = [
+            row
+            for row in _read_jsonl_bytes(
+                parent_artifacts["queries.jsonl"], parent_path / "queries.jsonl"
+            )
+            if row.get("split") == config.source_split
+            and row.get("hardness_profile") == config.source_profile
+            and str(row.get("query_id", "")).endswith(config.query_suffixes)
+        ]
+        latent_events = [
+            {
+                key: value
+                for key, value in row.items()
+                if key not in {"model_text", "surface_object"}
+            }
+            for row in events
+        ]
+        parent_latent_events = [
+            {
+                key: value
+                for key, value in row.items()
+                if key not in {"model_text", "surface_object"}
+            }
+            for row in parent_events
+        ]
+        if latent_events != parent_latent_events:
+            raise ValueError("derived event latent structure differs from authenticated parent")
+        latent_queries = [
+            {
+                key: value
+                for key, value in row.items()
+                if key not in {"query_text", "surface_query_text", "surface_gold"}
+            }
+            for row in queries
+        ]
+        parent_latent_queries = [
+            {
+                key: value
+                for key, value in row.items()
+                if key not in {"query_text", "surface_query_text", "surface_gold"}
+            }
+            for row in parent_queries
+        ]
+        if latent_queries != parent_latent_queries:
+            raise ValueError(
+                "derived query gold or causal contract differs from authenticated parent"
+            )
     schedule = build_interleaved_schedule(
         events,
         tokenizer=tokenizer,
@@ -331,6 +562,35 @@ def build_evaluation_schedule(
         max_segment_events=config.max_segment_events,
     )
     turns = list(schedule["turns"])
+    checkpoint_turns = turns
+    if parent_events is not None:
+        parent_schedule = build_interleaved_schedule(
+            parent_events,
+            tokenizer=tokenizer,
+            seed=config.seed,
+            concurrent_accounts=config.concurrent_accounts,
+            min_segment_events=config.min_segment_events,
+            max_segment_events=config.max_segment_events,
+        )
+        checkpoint_turns = list(parent_schedule["turns"])
+        turn_identity = [
+            (
+                str(turn["turn_id"]),
+                str(turn["history_id"]),
+                str(turn["stream_event"]["event_id"]),
+            )
+            for turn in turns
+        ]
+        parent_turn_identity = [
+            (
+                str(turn["turn_id"]),
+                str(turn["history_id"]),
+                str(turn["stream_event"]["event_id"]),
+            )
+            for turn in checkpoint_turns
+        ]
+        if turn_identity != parent_turn_identity:
+            raise ValueError("derived interleaving differs from authenticated parent")
     event_turn = {
         str(turn["stream_event"]["event_id"]): index for index, turn in enumerate(turns)
     }
@@ -343,6 +603,9 @@ def build_evaluation_schedule(
         query_id = str(query["query_id"])
         history_id = str(query["history_id"])
         cumulative = _visible_cumulative_tokens(turns, history_id, tokenizer)
+        checkpoint_cumulative = _visible_cumulative_tokens(
+            checkpoint_turns, history_id, tokenizer
+        )
         contract = query.get("checkpoint_contract")
         if not isinstance(contract, Mapping):
             raise ValueError(f"query {query_id} lacks checkpoint_contract")
@@ -403,7 +666,8 @@ def build_evaluation_schedule(
                 (
                     index + 1
                     for index in range(update_index + 1, len(turns))
-                    if cumulative[index] - cumulative[update_index] >= threshold
+                    if checkpoint_cumulative[index] - checkpoint_cumulative[update_index]
+                    >= threshold
                     and any(
                         str(turn["history_id"]) != history_id
                         for turn in turns[update_index + 1 : index + 1]
@@ -412,7 +676,7 @@ def build_evaluation_schedule(
                 None,
             )
             if checkpoint is None:
-                available = cumulative[-1] - cumulative[update_index]
+                available = checkpoint_cumulative[-1] - checkpoint_cumulative[update_index]
                 raise ValueError(
                     f"query {query_id} cannot reach token distance {threshold}; "
                     f"maximum is {available}"
