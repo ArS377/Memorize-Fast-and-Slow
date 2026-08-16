@@ -1,0 +1,480 @@
+{"document_id": "history-001-accepted", "history_id": "history-001", "split": "train", "text": "candidate-001 preferred value-001-g."}
+{"document_id": "history-001-ambiguity", "history_id": "history-001", "split": "train", "text": "subject-001 gave conflicting statements about value-001-e."}
+{"document_id": "history-001-ambiguity-resolution", "history_id": "history-001", "split": "train", "text": "subject-001 directly resolved the scoped ambiguity to value-001-n."}
+{"document_id": "history-001-backdated", "history_id": "history-001", "split": "train", "text": "A correction records that subject-001 preferred value-001-h during spring 2025."}
+{"document_id": "history-001-conflict-left", "history_id": "history-001", "split": "train", "text": "While planning a long project, AsterArc preferred a quiet private studio."}
+{"document_id": "history-001-conflict-resolution", "history_id": "history-001", "split": "train", "text": "After reviewing both incompatible requests, AsterArc directly chose a window desk for the project."}
+{"document_id": "history-001-conflict-right", "history_id": "history-001", "split": "train", "text": "Weeks later, the AsterArcGuild account instead requested an open team lounge for the same project."}
+{"document_id": "history-001-constraint", "history_id": "history-001", "split": "train", "text": "subject-001 must avoid value-001-d."}
+{"document_id": "history-001-current", "history_id": "history-001", "split": "train", "text": "subject-001 preferred value-001-b from July through September 2025."}
+{"document_id": "history-001-direct-conflict-no-supersession", "history_id": "history-001", "split": "train", "text": "subject-001 directly requested value-001-m from October 2025 onward."}
+{"document_id": "history-001-direct-correction", "history_id": "history-001", "split": "train", "text": "subject-001 directly corrected the record to value-001-k from October 2025 onward."}
+{"document_id": "history-001-equal-evidence-conflict", "history_id": "history-001", "split": "train", "text": "subject-001 preferred value-001-a from July 2025 onward."}
+{"document_id": "history-001-hard-constraint-violation", "history_id": "history-001", "split": "train", "text": "subject-001 requested value-001-d despite the standing constraint."}
+{"document_id": "history-001-indirect-source", "history_id": "history-001", "split": "train", "text": "An inferred record says subject-001 preferred value-001-i from October 2025 onward."}
+{"document_id": "history-001-initial", "history_id": "history-001", "split": "train", "text": "subject-001 preferred value-001-a through June 2025."}
+{"document_id": "history-001-lineage-alias", "history_id": "history-001", "split": "train", "text": "AsterArc and the AsterArcGuild account refer to the same account. The standing preference history belongs to the AsterArcGuild account."}
+{"document_id": "history-001-lineage-copy-1", "history_id": "history-001", "split": "train", "text": "The private note for AsterArcGuild account was delivered again as \"cedar glass 001\"."}
+{"document_id": "history-001-lineage-copy-2", "history_id": "history-001", "split": "train", "text": "A later delivery repeated AsterArc's private note, \"cedar glass 001\"."}
+{"document_id": "history-001-lineage-negative-1", "history_id": "history-001", "split": "train", "text": "AsterArcGuild account discussed \"cedar glass 001\" during a conversation about private notes."}
+{"document_id": "history-001-lineage-negative-2", "history_id": "history-001", "split": "train", "text": "A message to AsterArcGuild account asked whether \"cedar glass 001\" should replace an existing note."}
+{"document_id": "history-001-lineage-negative-3", "history_id": "history-001", "split": "train", "text": "AsterArc's travel profile used \"cedar glass 001\" as a temporary label."}
+{"document_id": "history-001-lineage-root", "history_id": "history-001", "split": "train", "text": "AsterArc asked that \"cedar glass 001\" be retained as a private note."}
+{"document_id": "history-001-overlap-replacement", "history_id": "history-001", "split": "train", "text": "Corroborating records establish that replacement-001 preferred value-001-j."}
+{"document_id": "history-001-preference-change-probe", "history_id": "history-001", "split": "train", "text": "Much later, AsterArcGuild account reviewed unrelated calendar and account settings."}
+{"document_id": "history-001-preference-incongruity-probe", "history_id": "history-001", "split": "train", "text": "During a later account review, AsterArc revisited the long-running record."}
+{"document_id": "history-001-private", "history_id": "history-001", "split": "train", "text": "subject-001's private value was recorded as value-001-f."}
+{"document_id": "history-001-replaceable", "history_id": "history-001", "split": "train", "text": "replacement-001 was tentatively recorded as preferring value-001-i."}
+{"document_id": "history-001-scope-leakage", "history_id": "history-001", "split": "train", "text": "subject-001 preferred value-001-l only in leakage-scope-001 during mid-August 2025."}
+{"document_id": "history-001-scoped", "history_id": "history-001", "split": "train", "text": "subject-001 preferred value-001-c in scope-001 during early August 2025."}
+{"document_id": "history-001-stale", "history_id": "history-001", "split": "train", "text": "subject-001 preferred value-001-a from July 2025 onward."}
+{"document_id": "history-002-accepted", "history_id": "history-002", "split": "train", "text": "candidate-002 preferred value-002-g."}
+{"document_id": "history-002-ambiguity", "history_id": "history-002", "split": "train", "text": "subject-002 gave conflicting statements about value-002-e."}
+{"document_id": "history-002-ambiguity-resolution", "history_id": "history-002", "split": "train", "text": "subject-002 directly resolved the scoped ambiguity to value-002-n."}
+{"document_id": "history-002-backdated", "history_id": "history-002", "split": "train", "text": "A correction records that subject-002 preferred value-002-h during spring 2025."}
+{"document_id": "history-002-conflict-left", "history_id": "history-002", "split": "train", "text": "While planning a long project, BirchArc preferred a quiet private studio."}
+{"document_id": "history-002-conflict-resolution", "history_id": "history-002", "split": "train", "text": "After reviewing both incompatible requests, BirchArc directly chose a window desk for the project."}
+{"document_id": "history-002-conflict-right", "history_id": "history-002", "split": "train", "text": "Weeks later, the BirchArcGuild account instead requested an open team lounge for the same project."}
+{"document_id": "history-002-constraint", "history_id": "history-002", "split": "train", "text": "subject-002 must avoid value-002-d."}
+{"document_id": "history-002-current", "history_id": "history-002", "split": "train", "text": "subject-002 preferred value-002-b from July through September 2025."}
+{"document_id": "history-002-direct-conflict-no-supersession", "history_id": "history-002", "split": "train", "text": "subject-002 directly requested value-002-m from October 2025 onward."}
+{"document_id": "history-002-direct-correction", "history_id": "history-002", "split": "train", "text": "subject-002 directly corrected the record to value-002-k from October 2025 onward."}
+{"document_id": "history-002-equal-evidence-conflict", "history_id": "history-002", "split": "train", "text": "subject-002 preferred value-002-a from July 2025 onward."}
+{"document_id": "history-002-hard-constraint-violation", "history_id": "history-002", "split": "train", "text": "subject-002 requested value-002-d despite the standing constraint."}
+{"document_id": "history-002-indirect-source", "history_id": "history-002", "split": "train", "text": "An inferred record says subject-002 preferred value-002-i from October 2025 onward."}
+{"document_id": "history-002-initial", "history_id": "history-002", "split": "train", "text": "subject-002 preferred value-002-a through June 2025."}
+{"document_id": "history-002-lineage-alias", "history_id": "history-002", "split": "train", "text": "BirchArc and the BirchArcGuild account refer to the same account. The standing preference history belongs to the BirchArcGuild account."}
+{"document_id": "history-002-lineage-copy-1", "history_id": "history-002", "split": "train", "text": "The private note for BirchArcGuild account was delivered again as \"cedar glass 002\"."}
+{"document_id": "history-002-lineage-copy-2", "history_id": "history-002", "split": "train", "text": "A later delivery repeated BirchArc's private note, \"cedar glass 002\"."}
+{"document_id": "history-002-lineage-negative-1", "history_id": "history-002", "split": "train", "text": "A planning card for BirchArcGuild account quoted \"cedar glass 002\" beside a private-note heading."}
+{"document_id": "history-002-lineage-negative-2", "history_id": "history-002", "split": "train", "text": "BirchArc compared the labels \"cedar glass 002\" and \"ember field\" in meeting notes."}
+{"document_id": "history-002-lineage-negative-3", "history_id": "history-002", "split": "train", "text": "A reminder sent to BirchArcGuild account repeated \"cedar glass 002\" while discussing account settings."}
+{"document_id": "history-002-lineage-root", "history_id": "history-002", "split": "train", "text": "BirchArc asked that \"cedar glass 002\" be retained as a private note."}
+{"document_id": "history-002-overlap-replacement", "history_id": "history-002", "split": "train", "text": "Corroborating records establish that replacement-002 preferred value-002-j."}
+{"document_id": "history-002-preference-change-probe", "history_id": "history-002", "split": "train", "text": "Much later, BirchArcGuild account reviewed unrelated calendar and account settings."}
+{"document_id": "history-002-preference-incongruity-probe", "history_id": "history-002", "split": "train", "text": "During a later account review, BirchArc revisited the long-running record."}
+{"document_id": "history-002-private", "history_id": "history-002", "split": "train", "text": "subject-002's private value was recorded as value-002-f."}
+{"document_id": "history-002-replaceable", "history_id": "history-002", "split": "train", "text": "replacement-002 was tentatively recorded as preferring value-002-i."}
+{"document_id": "history-002-scope-leakage", "history_id": "history-002", "split": "train", "text": "subject-002 preferred value-002-l only in leakage-scope-002 during mid-August 2025."}
+{"document_id": "history-002-scoped", "history_id": "history-002", "split": "train", "text": "subject-002 preferred value-002-c in scope-002 during early August 2025."}
+{"document_id": "history-002-stale", "history_id": "history-002", "split": "train", "text": "subject-002 preferred value-002-a from July 2025 onward."}
+{"document_id": "history-003-accepted", "history_id": "history-003", "split": "dev", "text": "candidate-003 preferred value-003-g."}
+{"document_id": "history-003-ambiguity", "history_id": "history-003", "split": "dev", "text": "subject-003 gave conflicting statements about value-003-e."}
+{"document_id": "history-003-ambiguity-resolution", "history_id": "history-003", "split": "dev", "text": "subject-003 directly resolved the scoped ambiguity to value-003-n."}
+{"document_id": "history-003-backdated", "history_id": "history-003", "split": "dev", "text": "A correction records that subject-003 preferred value-003-h during spring 2025."}
+{"document_id": "history-003-conflict-left", "history_id": "history-003", "split": "dev", "text": "While planning a long project, CedarArcGuild account preferred a quiet private studio."}
+{"document_id": "history-003-conflict-resolution", "history_id": "history-003", "split": "dev", "text": "After reviewing both incompatible requests, CedarArcGuild account directly chose a window desk for the project."}
+{"document_id": "history-003-conflict-right", "history_id": "history-003", "split": "dev", "text": "Weeks later, the CedarArc instead requested an open team lounge for the same project."}
+{"document_id": "history-003-constraint", "history_id": "history-003", "split": "dev", "text": "subject-003 must avoid value-003-d."}
+{"document_id": "history-003-current", "history_id": "history-003", "split": "dev", "text": "subject-003 preferred value-003-b from July through September 2025."}
+{"document_id": "history-003-direct-conflict-no-supersession", "history_id": "history-003", "split": "dev", "text": "subject-003 directly requested value-003-m from October 2025 onward."}
+{"document_id": "history-003-direct-correction", "history_id": "history-003", "split": "dev", "text": "subject-003 directly corrected the record to value-003-k from October 2025 onward."}
+{"document_id": "history-003-equal-evidence-conflict", "history_id": "history-003", "split": "dev", "text": "subject-003 preferred value-003-a from July 2025 onward."}
+{"document_id": "history-003-hard-constraint-violation", "history_id": "history-003", "split": "dev", "text": "subject-003 requested value-003-d despite the standing constraint."}
+{"document_id": "history-003-indirect-source", "history_id": "history-003", "split": "dev", "text": "An inferred record says subject-003 preferred value-003-i from October 2025 onward."}
+{"document_id": "history-003-initial", "history_id": "history-003", "split": "dev", "text": "subject-003 preferred value-003-a through June 2025."}
+{"document_id": "history-003-lineage-alias", "history_id": "history-003", "split": "dev", "text": "CedarArcGuild account and the CedarArc refer to the same account. The standing preference history belongs to the CedarArc."}
+{"document_id": "history-003-lineage-copy-1", "history_id": "history-003", "split": "dev", "text": "The private note for CedarArc was delivered again as \"cedar glass 003\"."}
+{"document_id": "history-003-lineage-copy-2", "history_id": "history-003", "split": "dev", "text": "A later delivery repeated CedarArcGuild account's private note, \"cedar glass 003\"."}
+{"document_id": "history-003-lineage-negative-1", "history_id": "history-003", "split": "dev", "text": "A planning card for CedarArc quoted \"cedar glass 003\" beside a private-note heading."}
+{"document_id": "history-003-lineage-negative-2", "history_id": "history-003", "split": "dev", "text": "CedarArcGuild account compared the labels \"cedar glass 003\" and \"ember field\" in meeting notes."}
+{"document_id": "history-003-lineage-negative-3", "history_id": "history-003", "split": "dev", "text": "A reminder sent to CedarArc repeated \"cedar glass 003\" while discussing account settings."}
+{"document_id": "history-003-lineage-root", "history_id": "history-003", "split": "dev", "text": "CedarArcGuild account asked that \"cedar glass 003\" be retained as a private note."}
+{"document_id": "history-003-overlap-replacement", "history_id": "history-003", "split": "dev", "text": "Corroborating records establish that replacement-003 preferred value-003-j."}
+{"document_id": "history-003-preference-change-probe", "history_id": "history-003", "split": "dev", "text": "Much later, CedarArc reviewed unrelated calendar and account settings."}
+{"document_id": "history-003-preference-incongruity-probe", "history_id": "history-003", "split": "dev", "text": "During a later account review, CedarArcGuild account revisited the long-running record."}
+{"document_id": "history-003-private", "history_id": "history-003", "split": "dev", "text": "subject-003's private value was recorded as value-003-f."}
+{"document_id": "history-003-replaceable", "history_id": "history-003", "split": "dev", "text": "replacement-003 was tentatively recorded as preferring value-003-i."}
+{"document_id": "history-003-scope-leakage", "history_id": "history-003", "split": "dev", "text": "subject-003 preferred value-003-l only in leakage-scope-003 during mid-August 2025."}
+{"document_id": "history-003-scoped", "history_id": "history-003", "split": "dev", "text": "subject-003 preferred value-003-c in scope-003 during early August 2025."}
+{"document_id": "history-003-stale", "history_id": "history-003", "split": "dev", "text": "subject-003 preferred value-003-a from July 2025 onward."}
+{"document_id": "history-004-accepted", "history_id": "history-004", "split": "dev", "text": "candidate-004 preferred value-004-g."}
+{"document_id": "history-004-ambiguity", "history_id": "history-004", "split": "dev", "text": "subject-004 gave conflicting statements about value-004-e."}
+{"document_id": "history-004-ambiguity-resolution", "history_id": "history-004", "split": "dev", "text": "subject-004 directly resolved the scoped ambiguity to value-004-n."}
+{"document_id": "history-004-backdated", "history_id": "history-004", "split": "dev", "text": "A correction records that subject-004 preferred value-004-h during spring 2025."}
+{"document_id": "history-004-conflict-left", "history_id": "history-004", "split": "dev", "text": "While planning a long project, DahliaArcGuild account preferred a quiet private studio."}
+{"document_id": "history-004-conflict-resolution", "history_id": "history-004", "split": "dev", "text": "After reviewing both incompatible requests, DahliaArcGuild account directly chose a window desk for the project."}
+{"document_id": "history-004-conflict-right", "history_id": "history-004", "split": "dev", "text": "Weeks later, the DahliaArc instead requested an open team lounge for the same project."}
+{"document_id": "history-004-constraint", "history_id": "history-004", "split": "dev", "text": "subject-004 must avoid value-004-d."}
+{"document_id": "history-004-current", "history_id": "history-004", "split": "dev", "text": "subject-004 preferred value-004-b from July through September 2025."}
+{"document_id": "history-004-direct-conflict-no-supersession", "history_id": "history-004", "split": "dev", "text": "subject-004 directly requested value-004-m from October 2025 onward."}
+{"document_id": "history-004-direct-correction", "history_id": "history-004", "split": "dev", "text": "subject-004 directly corrected the record to value-004-k from October 2025 onward."}
+{"document_id": "history-004-equal-evidence-conflict", "history_id": "history-004", "split": "dev", "text": "subject-004 preferred value-004-a from July 2025 onward."}
+{"document_id": "history-004-hard-constraint-violation", "history_id": "history-004", "split": "dev", "text": "subject-004 requested value-004-d despite the standing constraint."}
+{"document_id": "history-004-indirect-source", "history_id": "history-004", "split": "dev", "text": "An inferred record says subject-004 preferred value-004-i from October 2025 onward."}
+{"document_id": "history-004-initial", "history_id": "history-004", "split": "dev", "text": "subject-004 preferred value-004-a through June 2025."}
+{"document_id": "history-004-lineage-alias", "history_id": "history-004", "split": "dev", "text": "DahliaArcGuild account and the DahliaArc refer to the same account. The standing preference history belongs to the DahliaArc."}
+{"document_id": "history-004-lineage-copy-1", "history_id": "history-004", "split": "dev", "text": "The private note for DahliaArc was delivered again as \"cedar glass 004\"."}
+{"document_id": "history-004-lineage-copy-2", "history_id": "history-004", "split": "dev", "text": "A later delivery repeated DahliaArcGuild account's private note, \"cedar glass 004\"."}
+{"document_id": "history-004-lineage-negative-1", "history_id": "history-004", "split": "dev", "text": "DahliaArc discussed \"cedar glass 004\" during a conversation about private notes."}
+{"document_id": "history-004-lineage-negative-2", "history_id": "history-004", "split": "dev", "text": "A message to DahliaArc asked whether \"cedar glass 004\" should replace an existing note."}
+{"document_id": "history-004-lineage-negative-3", "history_id": "history-004", "split": "dev", "text": "DahliaArcGuild account's travel profile used \"cedar glass 004\" as a temporary label."}
+{"document_id": "history-004-lineage-root", "history_id": "history-004", "split": "dev", "text": "DahliaArcGuild account asked that \"cedar glass 004\" be retained as a private note."}
+{"document_id": "history-004-overlap-replacement", "history_id": "history-004", "split": "dev", "text": "Corroborating records establish that replacement-004 preferred value-004-j."}
+{"document_id": "history-004-preference-change-probe", "history_id": "history-004", "split": "dev", "text": "Much later, DahliaArc reviewed unrelated calendar and account settings."}
+{"document_id": "history-004-preference-incongruity-probe", "history_id": "history-004", "split": "dev", "text": "During a later account review, DahliaArcGuild account revisited the long-running record."}
+{"document_id": "history-004-private", "history_id": "history-004", "split": "dev", "text": "subject-004's private value was recorded as value-004-f."}
+{"document_id": "history-004-replaceable", "history_id": "history-004", "split": "dev", "text": "replacement-004 was tentatively recorded as preferring value-004-i."}
+{"document_id": "history-004-scope-leakage", "history_id": "history-004", "split": "dev", "text": "subject-004 preferred value-004-l only in leakage-scope-004 during mid-August 2025."}
+{"document_id": "history-004-scoped", "history_id": "history-004", "split": "dev", "text": "subject-004 preferred value-004-c in scope-004 during early August 2025."}
+{"document_id": "history-004-stale", "history_id": "history-004", "split": "dev", "text": "subject-004 preferred value-004-a from July 2025 onward."}
+{"document_id": "history-005-accepted", "history_id": "history-005", "split": "test", "text": "candidate-005 preferred value-005-g."}
+{"document_id": "history-005-ambiguity", "history_id": "history-005", "split": "test", "text": "subject-005 gave conflicting statements about value-005-e."}
+{"document_id": "history-005-ambiguity-resolution", "history_id": "history-005", "split": "test", "text": "subject-005 directly resolved the scoped ambiguity to value-005-n."}
+{"document_id": "history-005-backdated", "history_id": "history-005", "split": "test", "text": "A correction records that subject-005 preferred value-005-h during spring 2025."}
+{"document_id": "history-005-conflict-left", "history_id": "history-005", "split": "test", "text": "While planning a long project, ElmArc preferred a quiet private studio."}
+{"document_id": "history-005-conflict-resolution", "history_id": "history-005", "split": "test", "text": "After reviewing both incompatible requests, ElmArc directly chose a window desk for the project."}
+{"document_id": "history-005-conflict-right", "history_id": "history-005", "split": "test", "text": "Weeks later, the ElmArcGuild account instead requested an open team lounge for the same project."}
+{"document_id": "history-005-constraint", "history_id": "history-005", "split": "test", "text": "subject-005 must avoid value-005-d."}
+{"document_id": "history-005-current", "history_id": "history-005", "split": "test", "text": "subject-005 preferred value-005-b from July through September 2025."}
+{"document_id": "history-005-direct-conflict-no-supersession", "history_id": "history-005", "split": "test", "text": "subject-005 directly requested value-005-m from October 2025 onward."}
+{"document_id": "history-005-direct-correction", "history_id": "history-005", "split": "test", "text": "subject-005 directly corrected the record to value-005-k from October 2025 onward."}
+{"document_id": "history-005-equal-evidence-conflict", "history_id": "history-005", "split": "test", "text": "subject-005 preferred value-005-a from July 2025 onward."}
+{"document_id": "history-005-hard-constraint-violation", "history_id": "history-005", "split": "test", "text": "subject-005 requested value-005-d despite the standing constraint."}
+{"document_id": "history-005-indirect-source", "history_id": "history-005", "split": "test", "text": "An inferred record says subject-005 preferred value-005-i from October 2025 onward."}
+{"document_id": "history-005-initial", "history_id": "history-005", "split": "test", "text": "subject-005 preferred value-005-a through June 2025."}
+{"document_id": "history-005-lineage-alias", "history_id": "history-005", "split": "test", "text": "ElmArc and the ElmArcGuild account refer to the same account. The standing preference history belongs to the ElmArcGuild account."}
+{"document_id": "history-005-lineage-copy-1", "history_id": "history-005", "split": "test", "text": "The private note for ElmArcGuild account was delivered again as \"cedar glass 005\"."}
+{"document_id": "history-005-lineage-copy-2", "history_id": "history-005", "split": "test", "text": "A later delivery repeated ElmArc's private note, \"cedar glass 005\"."}
+{"document_id": "history-005-lineage-negative-1", "history_id": "history-005", "split": "test", "text": "A planning card for ElmArcGuild account quoted \"cedar glass 005\" beside a private-note heading."}
+{"document_id": "history-005-lineage-negative-2", "history_id": "history-005", "split": "test", "text": "ElmArc compared the labels \"cedar glass 005\" and \"ember field\" in meeting notes."}
+{"document_id": "history-005-lineage-negative-3", "history_id": "history-005", "split": "test", "text": "A reminder sent to ElmArcGuild account repeated \"cedar glass 005\" while discussing account settings."}
+{"document_id": "history-005-lineage-root", "history_id": "history-005", "split": "test", "text": "ElmArc asked that \"cedar glass 005\" be retained as a private note."}
+{"document_id": "history-005-overlap-replacement", "history_id": "history-005", "split": "test", "text": "Corroborating records establish that replacement-005 preferred value-005-j."}
+{"document_id": "history-005-preference-change-probe", "history_id": "history-005", "split": "test", "text": "Much later, ElmArcGuild account reviewed unrelated calendar and account settings."}
+{"document_id": "history-005-preference-incongruity-probe", "history_id": "history-005", "split": "test", "text": "During a later account review, ElmArc revisited the long-running record."}
+{"document_id": "history-005-private", "history_id": "history-005", "split": "test", "text": "subject-005's private value was recorded as value-005-f."}
+{"document_id": "history-005-replaceable", "history_id": "history-005", "split": "test", "text": "replacement-005 was tentatively recorded as preferring value-005-i."}
+{"document_id": "history-005-scope-leakage", "history_id": "history-005", "split": "test", "text": "subject-005 preferred value-005-l only in leakage-scope-005 during mid-August 2025."}
+{"document_id": "history-005-scoped", "history_id": "history-005", "split": "test", "text": "subject-005 preferred value-005-c in scope-005 during early August 2025."}
+{"document_id": "history-005-stale", "history_id": "history-005", "split": "test", "text": "subject-005 preferred value-005-a from July 2025 onward."}
+{"document_id": "history-006-accepted", "history_id": "history-006", "split": "test", "text": "candidate-006 preferred value-006-g."}
+{"document_id": "history-006-ambiguity", "history_id": "history-006", "split": "test", "text": "subject-006 gave conflicting statements about value-006-e."}
+{"document_id": "history-006-ambiguity-resolution", "history_id": "history-006", "split": "test", "text": "subject-006 directly resolved the scoped ambiguity to value-006-n."}
+{"document_id": "history-006-backdated", "history_id": "history-006", "split": "test", "text": "A correction records that subject-006 preferred value-006-h during spring 2025."}
+{"document_id": "history-006-conflict-left", "history_id": "history-006", "split": "test", "text": "While planning a long project, FernArc preferred a quiet private studio."}
+{"document_id": "history-006-conflict-resolution", "history_id": "history-006", "split": "test", "text": "After reviewing both incompatible requests, FernArc directly chose a window desk for the project."}
+{"document_id": "history-006-conflict-right", "history_id": "history-006", "split": "test", "text": "Weeks later, the FernArcGuild account instead requested an open team lounge for the same project."}
+{"document_id": "history-006-constraint", "history_id": "history-006", "split": "test", "text": "subject-006 must avoid value-006-d."}
+{"document_id": "history-006-current", "history_id": "history-006", "split": "test", "text": "subject-006 preferred value-006-b from July through September 2025."}
+{"document_id": "history-006-direct-conflict-no-supersession", "history_id": "history-006", "split": "test", "text": "subject-006 directly requested value-006-m from October 2025 onward."}
+{"document_id": "history-006-direct-correction", "history_id": "history-006", "split": "test", "text": "subject-006 directly corrected the record to value-006-k from October 2025 onward."}
+{"document_id": "history-006-equal-evidence-conflict", "history_id": "history-006", "split": "test", "text": "subject-006 preferred value-006-a from July 2025 onward."}
+{"document_id": "history-006-hard-constraint-violation", "history_id": "history-006", "split": "test", "text": "subject-006 requested value-006-d despite the standing constraint."}
+{"document_id": "history-006-indirect-source", "history_id": "history-006", "split": "test", "text": "An inferred record says subject-006 preferred value-006-i from October 2025 onward."}
+{"document_id": "history-006-initial", "history_id": "history-006", "split": "test", "text": "subject-006 preferred value-006-a through June 2025."}
+{"document_id": "history-006-lineage-alias", "history_id": "history-006", "split": "test", "text": "FernArc and the FernArcGuild account refer to the same account. The standing preference history belongs to the FernArcGuild account."}
+{"document_id": "history-006-lineage-copy-1", "history_id": "history-006", "split": "test", "text": "The private note for FernArcGuild account was delivered again as \"cedar glass 006\"."}
+{"document_id": "history-006-lineage-copy-2", "history_id": "history-006", "split": "test", "text": "A later delivery repeated FernArc's private note, \"cedar glass 006\"."}
+{"document_id": "history-006-lineage-negative-1", "history_id": "history-006", "split": "test", "text": "FernArcGuild account discussed \"cedar glass 006\" during a conversation about private notes."}
+{"document_id": "history-006-lineage-negative-2", "history_id": "history-006", "split": "test", "text": "A message to FernArcGuild account asked whether \"cedar glass 006\" should replace an existing note."}
+{"document_id": "history-006-lineage-negative-3", "history_id": "history-006", "split": "test", "text": "FernArc's travel profile used \"cedar glass 006\" as a temporary label."}
+{"document_id": "history-006-lineage-root", "history_id": "history-006", "split": "test", "text": "FernArc asked that \"cedar glass 006\" be retained as a private note."}
+{"document_id": "history-006-overlap-replacement", "history_id": "history-006", "split": "test", "text": "Corroborating records establish that replacement-006 preferred value-006-j."}
+{"document_id": "history-006-preference-change-probe", "history_id": "history-006", "split": "test", "text": "Much later, FernArcGuild account reviewed unrelated calendar and account settings."}
+{"document_id": "history-006-preference-incongruity-probe", "history_id": "history-006", "split": "test", "text": "During a later account review, FernArc revisited the long-running record."}
+{"document_id": "history-006-private", "history_id": "history-006", "split": "test", "text": "subject-006's private value was recorded as value-006-f."}
+{"document_id": "history-006-replaceable", "history_id": "history-006", "split": "test", "text": "replacement-006 was tentatively recorded as preferring value-006-i."}
+{"document_id": "history-006-scope-leakage", "history_id": "history-006", "split": "test", "text": "subject-006 preferred value-006-l only in leakage-scope-006 during mid-August 2025."}
+{"document_id": "history-006-scoped", "history_id": "history-006", "split": "test", "text": "subject-006 preferred value-006-c in scope-006 during early August 2025."}
+{"document_id": "history-006-stale", "history_id": "history-006", "split": "test", "text": "subject-006 preferred value-006-a from July 2025 onward."}
+{"document_id": "history-007-accepted", "history_id": "history-007", "split": "test", "text": "candidate-007 preferred value-007-g."}
+{"document_id": "history-007-ambiguity", "history_id": "history-007", "split": "test", "text": "subject-007 gave conflicting statements about value-007-e."}
+{"document_id": "history-007-ambiguity-resolution", "history_id": "history-007", "split": "test", "text": "subject-007 directly resolved the scoped ambiguity to value-007-n."}
+{"document_id": "history-007-backdated", "history_id": "history-007", "split": "test", "text": "A correction records that subject-007 preferred value-007-h during spring 2025."}
+{"document_id": "history-007-conflict-left", "history_id": "history-007", "split": "test", "text": "While planning a long project, GroveArcGuild account preferred a quiet private studio."}
+{"document_id": "history-007-conflict-resolution", "history_id": "history-007", "split": "test", "text": "After reviewing both incompatible requests, GroveArcGuild account directly chose a window desk for the project."}
+{"document_id": "history-007-conflict-right", "history_id": "history-007", "split": "test", "text": "Weeks later, the GroveArc instead requested an open team lounge for the same project."}
+{"document_id": "history-007-constraint", "history_id": "history-007", "split": "test", "text": "subject-007 must avoid value-007-d."}
+{"document_id": "history-007-current", "history_id": "history-007", "split": "test", "text": "subject-007 preferred value-007-b from July through September 2025."}
+{"document_id": "history-007-direct-conflict-no-supersession", "history_id": "history-007", "split": "test", "text": "subject-007 directly requested value-007-m from October 2025 onward."}
+{"document_id": "history-007-direct-correction", "history_id": "history-007", "split": "test", "text": "subject-007 directly corrected the record to value-007-k from October 2025 onward."}
+{"document_id": "history-007-equal-evidence-conflict", "history_id": "history-007", "split": "test", "text": "subject-007 preferred value-007-a from July 2025 onward."}
+{"document_id": "history-007-hard-constraint-violation", "history_id": "history-007", "split": "test", "text": "subject-007 requested value-007-d despite the standing constraint."}
+{"document_id": "history-007-indirect-source", "history_id": "history-007", "split": "test", "text": "An inferred record says subject-007 preferred value-007-i from October 2025 onward."}
+{"document_id": "history-007-initial", "history_id": "history-007", "split": "test", "text": "subject-007 preferred value-007-a through June 2025."}
+{"document_id": "history-007-lineage-alias", "history_id": "history-007", "split": "test", "text": "GroveArcGuild account and the GroveArc refer to the same account. The standing preference history belongs to the GroveArc."}
+{"document_id": "history-007-lineage-copy-1", "history_id": "history-007", "split": "test", "text": "The private note for GroveArc was delivered again as \"cedar glass 007\"."}
+{"document_id": "history-007-lineage-copy-2", "history_id": "history-007", "split": "test", "text": "A later delivery repeated GroveArcGuild account's private note, \"cedar glass 007\"."}
+{"document_id": "history-007-lineage-negative-1", "history_id": "history-007", "split": "test", "text": "GroveArc discussed \"cedar glass 007\" during a conversation about private notes."}
+{"document_id": "history-007-lineage-negative-2", "history_id": "history-007", "split": "test", "text": "A message to GroveArc asked whether \"cedar glass 007\" should replace an existing note."}
+{"document_id": "history-007-lineage-negative-3", "history_id": "history-007", "split": "test", "text": "GroveArcGuild account's travel profile used \"cedar glass 007\" as a temporary label."}
+{"document_id": "history-007-lineage-root", "history_id": "history-007", "split": "test", "text": "GroveArcGuild account asked that \"cedar glass 007\" be retained as a private note."}
+{"document_id": "history-007-overlap-replacement", "history_id": "history-007", "split": "test", "text": "Corroborating records establish that replacement-007 preferred value-007-j."}
+{"document_id": "history-007-preference-change-probe", "history_id": "history-007", "split": "test", "text": "Much later, GroveArc reviewed unrelated calendar and account settings."}
+{"document_id": "history-007-preference-incongruity-probe", "history_id": "history-007", "split": "test", "text": "During a later account review, GroveArcGuild account revisited the long-running record."}
+{"document_id": "history-007-private", "history_id": "history-007", "split": "test", "text": "subject-007's private value was recorded as value-007-f."}
+{"document_id": "history-007-replaceable", "history_id": "history-007", "split": "test", "text": "replacement-007 was tentatively recorded as preferring value-007-i."}
+{"document_id": "history-007-scope-leakage", "history_id": "history-007", "split": "test", "text": "subject-007 preferred value-007-l only in leakage-scope-007 during mid-August 2025."}
+{"document_id": "history-007-scoped", "history_id": "history-007", "split": "test", "text": "subject-007 preferred value-007-c in scope-007 during early August 2025."}
+{"document_id": "history-007-stale", "history_id": "history-007", "split": "test", "text": "subject-007 preferred value-007-a from July 2025 onward."}
+{"document_id": "history-008-accepted", "history_id": "history-008", "split": "test", "text": "candidate-008 preferred value-008-g."}
+{"document_id": "history-008-ambiguity", "history_id": "history-008", "split": "test", "text": "subject-008 gave conflicting statements about value-008-e."}
+{"document_id": "history-008-ambiguity-resolution", "history_id": "history-008", "split": "test", "text": "subject-008 directly resolved the scoped ambiguity to value-008-n."}
+{"document_id": "history-008-backdated", "history_id": "history-008", "split": "test", "text": "A correction records that subject-008 preferred value-008-h during spring 2025."}
+{"document_id": "history-008-conflict-left", "history_id": "history-008", "split": "test", "text": "While planning a long project, HazelArcGuild account preferred a quiet private studio."}
+{"document_id": "history-008-conflict-resolution", "history_id": "history-008", "split": "test", "text": "After reviewing both incompatible requests, HazelArcGuild account directly chose a window desk for the project."}
+{"document_id": "history-008-conflict-right", "history_id": "history-008", "split": "test", "text": "Weeks later, the HazelArc instead requested an open team lounge for the same project."}
+{"document_id": "history-008-constraint", "history_id": "history-008", "split": "test", "text": "subject-008 must avoid value-008-d."}
+{"document_id": "history-008-current", "history_id": "history-008", "split": "test", "text": "subject-008 preferred value-008-b from July through September 2025."}
+{"document_id": "history-008-direct-conflict-no-supersession", "history_id": "history-008", "split": "test", "text": "subject-008 directly requested value-008-m from October 2025 onward."}
+{"document_id": "history-008-direct-correction", "history_id": "history-008", "split": "test", "text": "subject-008 directly corrected the record to value-008-k from October 2025 onward."}
+{"document_id": "history-008-equal-evidence-conflict", "history_id": "history-008", "split": "test", "text": "subject-008 preferred value-008-a from July 2025 onward."}
+{"document_id": "history-008-hard-constraint-violation", "history_id": "history-008", "split": "test", "text": "subject-008 requested value-008-d despite the standing constraint."}
+{"document_id": "history-008-indirect-source", "history_id": "history-008", "split": "test", "text": "An inferred record says subject-008 preferred value-008-i from October 2025 onward."}
+{"document_id": "history-008-initial", "history_id": "history-008", "split": "test", "text": "subject-008 preferred value-008-a through June 2025."}
+{"document_id": "history-008-lineage-alias", "history_id": "history-008", "split": "test", "text": "HazelArcGuild account and the HazelArc refer to the same account. The standing preference history belongs to the HazelArc."}
+{"document_id": "history-008-lineage-copy-1", "history_id": "history-008", "split": "test", "text": "The private note for HazelArc was delivered again as \"cedar glass 008\"."}
+{"document_id": "history-008-lineage-copy-2", "history_id": "history-008", "split": "test", "text": "A later delivery repeated HazelArcGuild account's private note, \"cedar glass 008\"."}
+{"document_id": "history-008-lineage-negative-1", "history_id": "history-008", "split": "test", "text": "A planning card for HazelArc quoted \"cedar glass 008\" beside a private-note heading."}
+{"document_id": "history-008-lineage-negative-2", "history_id": "history-008", "split": "test", "text": "HazelArcGuild account compared the labels \"cedar glass 008\" and \"ember field\" in meeting notes."}
+{"document_id": "history-008-lineage-negative-3", "history_id": "history-008", "split": "test", "text": "A reminder sent to HazelArc repeated \"cedar glass 008\" while discussing account settings."}
+{"document_id": "history-008-lineage-root", "history_id": "history-008", "split": "test", "text": "HazelArcGuild account asked that \"cedar glass 008\" be retained as a private note."}
+{"document_id": "history-008-overlap-replacement", "history_id": "history-008", "split": "test", "text": "Corroborating records establish that replacement-008 preferred value-008-j."}
+{"document_id": "history-008-preference-change-probe", "history_id": "history-008", "split": "test", "text": "Much later, HazelArc reviewed unrelated calendar and account settings."}
+{"document_id": "history-008-preference-incongruity-probe", "history_id": "history-008", "split": "test", "text": "During a later account review, HazelArcGuild account revisited the long-running record."}
+{"document_id": "history-008-private", "history_id": "history-008", "split": "test", "text": "subject-008's private value was recorded as value-008-f."}
+{"document_id": "history-008-replaceable", "history_id": "history-008", "split": "test", "text": "replacement-008 was tentatively recorded as preferring value-008-i."}
+{"document_id": "history-008-scope-leakage", "history_id": "history-008", "split": "test", "text": "subject-008 preferred value-008-l only in leakage-scope-008 during mid-August 2025."}
+{"document_id": "history-008-scoped", "history_id": "history-008", "split": "test", "text": "subject-008 preferred value-008-c in scope-008 during early August 2025."}
+{"document_id": "history-008-stale", "history_id": "history-008", "split": "test", "text": "subject-008 preferred value-008-a from July 2025 onward."}
+{"document_id": "history-009-accepted", "history_id": "history-009", "split": "test", "text": "candidate-009 preferred value-009-g."}
+{"document_id": "history-009-ambiguity", "history_id": "history-009", "split": "test", "text": "subject-009 gave conflicting statements about value-009-e."}
+{"document_id": "history-009-ambiguity-resolution", "history_id": "history-009", "split": "test", "text": "subject-009 directly resolved the scoped ambiguity to value-009-n."}
+{"document_id": "history-009-backdated", "history_id": "history-009", "split": "test", "text": "A correction records that subject-009 preferred value-009-h during spring 2025."}
+{"document_id": "history-009-conflict-left", "history_id": "history-009", "split": "test", "text": "While planning a long project, IrisArc preferred a quiet private studio."}
+{"document_id": "history-009-conflict-resolution", "history_id": "history-009", "split": "test", "text": "After reviewing both incompatible requests, IrisArc directly chose a window desk for the project."}
+{"document_id": "history-009-conflict-right", "history_id": "history-009", "split": "test", "text": "Weeks later, the IrisArcGuild account instead requested an open team lounge for the same project."}
+{"document_id": "history-009-constraint", "history_id": "history-009", "split": "test", "text": "subject-009 must avoid value-009-d."}
+{"document_id": "history-009-current", "history_id": "history-009", "split": "test", "text": "subject-009 preferred value-009-b from July through September 2025."}
+{"document_id": "history-009-direct-conflict-no-supersession", "history_id": "history-009", "split": "test", "text": "subject-009 directly requested value-009-m from October 2025 onward."}
+{"document_id": "history-009-direct-correction", "history_id": "history-009", "split": "test", "text": "subject-009 directly corrected the record to value-009-k from October 2025 onward."}
+{"document_id": "history-009-equal-evidence-conflict", "history_id": "history-009", "split": "test", "text": "subject-009 preferred value-009-a from July 2025 onward."}
+{"document_id": "history-009-hard-constraint-violation", "history_id": "history-009", "split": "test", "text": "subject-009 requested value-009-d despite the standing constraint."}
+{"document_id": "history-009-indirect-source", "history_id": "history-009", "split": "test", "text": "An inferred record says subject-009 preferred value-009-i from October 2025 onward."}
+{"document_id": "history-009-initial", "history_id": "history-009", "split": "test", "text": "subject-009 preferred value-009-a through June 2025."}
+{"document_id": "history-009-lineage-alias", "history_id": "history-009", "split": "test", "text": "IrisArc and the IrisArcGuild account refer to the same account. The standing preference history belongs to the IrisArcGuild account."}
+{"document_id": "history-009-lineage-copy-1", "history_id": "history-009", "split": "test", "text": "The private note for IrisArcGuild account was delivered again as \"cedar glass 009\"."}
+{"document_id": "history-009-lineage-copy-2", "history_id": "history-009", "split": "test", "text": "A later delivery repeated IrisArc's private note, \"cedar glass 009\"."}
+{"document_id": "history-009-lineage-negative-1", "history_id": "history-009", "split": "test", "text": "A planning card for IrisArcGuild account quoted \"cedar glass 009\" beside a private-note heading."}
+{"document_id": "history-009-lineage-negative-2", "history_id": "history-009", "split": "test", "text": "IrisArc compared the labels \"cedar glass 009\" and \"ember field\" in meeting notes."}
+{"document_id": "history-009-lineage-negative-3", "history_id": "history-009", "split": "test", "text": "A reminder sent to IrisArcGuild account repeated \"cedar glass 009\" while discussing account settings."}
+{"document_id": "history-009-lineage-root", "history_id": "history-009", "split": "test", "text": "IrisArc asked that \"cedar glass 009\" be retained as a private note."}
+{"document_id": "history-009-overlap-replacement", "history_id": "history-009", "split": "test", "text": "Corroborating records establish that replacement-009 preferred value-009-j."}
+{"document_id": "history-009-preference-change-probe", "history_id": "history-009", "split": "test", "text": "Much later, IrisArcGuild account reviewed unrelated calendar and account settings."}
+{"document_id": "history-009-preference-incongruity-probe", "history_id": "history-009", "split": "test", "text": "During a later account review, IrisArc revisited the long-running record."}
+{"document_id": "history-009-private", "history_id": "history-009", "split": "test", "text": "subject-009's private value was recorded as value-009-f."}
+{"document_id": "history-009-replaceable", "history_id": "history-009", "split": "test", "text": "replacement-009 was tentatively recorded as preferring value-009-i."}
+{"document_id": "history-009-scope-leakage", "history_id": "history-009", "split": "test", "text": "subject-009 preferred value-009-l only in leakage-scope-009 during mid-August 2025."}
+{"document_id": "history-009-scoped", "history_id": "history-009", "split": "test", "text": "subject-009 preferred value-009-c in scope-009 during early August 2025."}
+{"document_id": "history-009-stale", "history_id": "history-009", "split": "test", "text": "subject-009 preferred value-009-a from July 2025 onward."}
+{"document_id": "history-010-accepted", "history_id": "history-010", "split": "test", "text": "candidate-010 preferred value-010-g."}
+{"document_id": "history-010-ambiguity", "history_id": "history-010", "split": "test", "text": "subject-010 gave conflicting statements about value-010-e."}
+{"document_id": "history-010-ambiguity-resolution", "history_id": "history-010", "split": "test", "text": "subject-010 directly resolved the scoped ambiguity to value-010-n."}
+{"document_id": "history-010-backdated", "history_id": "history-010", "split": "test", "text": "A correction records that subject-010 preferred value-010-h during spring 2025."}
+{"document_id": "history-010-conflict-left", "history_id": "history-010", "split": "test", "text": "While planning a long project, JuniperArc preferred a quiet private studio."}
+{"document_id": "history-010-conflict-resolution", "history_id": "history-010", "split": "test", "text": "After reviewing both incompatible requests, JuniperArc directly chose a window desk for the project."}
+{"document_id": "history-010-conflict-right", "history_id": "history-010", "split": "test", "text": "Weeks later, the JuniperArcGuild account instead requested an open team lounge for the same project."}
+{"document_id": "history-010-constraint", "history_id": "history-010", "split": "test", "text": "subject-010 must avoid value-010-d."}
+{"document_id": "history-010-current", "history_id": "history-010", "split": "test", "text": "subject-010 preferred value-010-b from July through September 2025."}
+{"document_id": "history-010-direct-conflict-no-supersession", "history_id": "history-010", "split": "test", "text": "subject-010 directly requested value-010-m from October 2025 onward."}
+{"document_id": "history-010-direct-correction", "history_id": "history-010", "split": "test", "text": "subject-010 directly corrected the record to value-010-k from October 2025 onward."}
+{"document_id": "history-010-equal-evidence-conflict", "history_id": "history-010", "split": "test", "text": "subject-010 preferred value-010-a from July 2025 onward."}
+{"document_id": "history-010-hard-constraint-violation", "history_id": "history-010", "split": "test", "text": "subject-010 requested value-010-d despite the standing constraint."}
+{"document_id": "history-010-indirect-source", "history_id": "history-010", "split": "test", "text": "An inferred record says subject-010 preferred value-010-i from October 2025 onward."}
+{"document_id": "history-010-initial", "history_id": "history-010", "split": "test", "text": "subject-010 preferred value-010-a through June 2025."}
+{"document_id": "history-010-lineage-alias", "history_id": "history-010", "split": "test", "text": "JuniperArc and the JuniperArcGuild account refer to the same account. The standing preference history belongs to the JuniperArcGuild account."}
+{"document_id": "history-010-lineage-copy-1", "history_id": "history-010", "split": "test", "text": "The private note for JuniperArcGuild account was delivered again as \"cedar glass 010\"."}
+{"document_id": "history-010-lineage-copy-2", "history_id": "history-010", "split": "test", "text": "A later delivery repeated JuniperArc's private note, \"cedar glass 010\"."}
+{"document_id": "history-010-lineage-negative-1", "history_id": "history-010", "split": "test", "text": "JuniperArcGuild account discussed \"cedar glass 010\" during a conversation about private notes."}
+{"document_id": "history-010-lineage-negative-2", "history_id": "history-010", "split": "test", "text": "A message to JuniperArcGuild account asked whether \"cedar glass 010\" should replace an existing note."}
+{"document_id": "history-010-lineage-negative-3", "history_id": "history-010", "split": "test", "text": "JuniperArc's travel profile used \"cedar glass 010\" as a temporary label."}
+{"document_id": "history-010-lineage-root", "history_id": "history-010", "split": "test", "text": "JuniperArc asked that \"cedar glass 010\" be retained as a private note."}
+{"document_id": "history-010-overlap-replacement", "history_id": "history-010", "split": "test", "text": "Corroborating records establish that replacement-010 preferred value-010-j."}
+{"document_id": "history-010-preference-change-probe", "history_id": "history-010", "split": "test", "text": "Much later, JuniperArcGuild account reviewed unrelated calendar and account settings."}
+{"document_id": "history-010-preference-incongruity-probe", "history_id": "history-010", "split": "test", "text": "During a later account review, JuniperArc revisited the long-running record."}
+{"document_id": "history-010-private", "history_id": "history-010", "split": "test", "text": "subject-010's private value was recorded as value-010-f."}
+{"document_id": "history-010-replaceable", "history_id": "history-010", "split": "test", "text": "replacement-010 was tentatively recorded as preferring value-010-i."}
+{"document_id": "history-010-scope-leakage", "history_id": "history-010", "split": "test", "text": "subject-010 preferred value-010-l only in leakage-scope-010 during mid-August 2025."}
+{"document_id": "history-010-scoped", "history_id": "history-010", "split": "test", "text": "subject-010 preferred value-010-c in scope-010 during early August 2025."}
+{"document_id": "history-010-stale", "history_id": "history-010", "split": "test", "text": "subject-010 preferred value-010-a from July 2025 onward."}
+{"document_id": "history-011-accepted", "history_id": "history-011", "split": "test", "text": "candidate-011 preferred value-011-g."}
+{"document_id": "history-011-ambiguity", "history_id": "history-011", "split": "test", "text": "subject-011 gave conflicting statements about value-011-e."}
+{"document_id": "history-011-ambiguity-resolution", "history_id": "history-011", "split": "test", "text": "subject-011 directly resolved the scoped ambiguity to value-011-n."}
+{"document_id": "history-011-backdated", "history_id": "history-011", "split": "test", "text": "A correction records that subject-011 preferred value-011-h during spring 2025."}
+{"document_id": "history-011-conflict-left", "history_id": "history-011", "split": "test", "text": "While planning a long project, KestrelArcGuild account preferred a quiet private studio."}
+{"document_id": "history-011-conflict-resolution", "history_id": "history-011", "split": "test", "text": "After reviewing both incompatible requests, KestrelArcGuild account directly chose a window desk for the project."}
+{"document_id": "history-011-conflict-right", "history_id": "history-011", "split": "test", "text": "Weeks later, the KestrelArc instead requested an open team lounge for the same project."}
+{"document_id": "history-011-constraint", "history_id": "history-011", "split": "test", "text": "subject-011 must avoid value-011-d."}
+{"document_id": "history-011-current", "history_id": "history-011", "split": "test", "text": "subject-011 preferred value-011-b from July through September 2025."}
+{"document_id": "history-011-direct-conflict-no-supersession", "history_id": "history-011", "split": "test", "text": "subject-011 directly requested value-011-m from October 2025 onward."}
+{"document_id": "history-011-direct-correction", "history_id": "history-011", "split": "test", "text": "subject-011 directly corrected the record to value-011-k from October 2025 onward."}
+{"document_id": "history-011-equal-evidence-conflict", "history_id": "history-011", "split": "test", "text": "subject-011 preferred value-011-a from July 2025 onward."}
+{"document_id": "history-011-hard-constraint-violation", "history_id": "history-011", "split": "test", "text": "subject-011 requested value-011-d despite the standing constraint."}
+{"document_id": "history-011-indirect-source", "history_id": "history-011", "split": "test", "text": "An inferred record says subject-011 preferred value-011-i from October 2025 onward."}
+{"document_id": "history-011-initial", "history_id": "history-011", "split": "test", "text": "subject-011 preferred value-011-a through June 2025."}
+{"document_id": "history-011-lineage-alias", "history_id": "history-011", "split": "test", "text": "KestrelArcGuild account and the KestrelArc refer to the same account. The standing preference history belongs to the KestrelArc."}
+{"document_id": "history-011-lineage-copy-1", "history_id": "history-011", "split": "test", "text": "The private note for KestrelArc was delivered again as \"cedar glass 011\"."}
+{"document_id": "history-011-lineage-copy-2", "history_id": "history-011", "split": "test", "text": "A later delivery repeated KestrelArcGuild account's private note, \"cedar glass 011\"."}
+{"document_id": "history-011-lineage-negative-1", "history_id": "history-011", "split": "test", "text": "KestrelArc discussed \"cedar glass 011\" during a conversation about private notes."}
+{"document_id": "history-011-lineage-negative-2", "history_id": "history-011", "split": "test", "text": "A message to KestrelArc asked whether \"cedar glass 011\" should replace an existing note."}
+{"document_id": "history-011-lineage-negative-3", "history_id": "history-011", "split": "test", "text": "KestrelArcGuild account's travel profile used \"cedar glass 011\" as a temporary label."}
+{"document_id": "history-011-lineage-root", "history_id": "history-011", "split": "test", "text": "KestrelArcGuild account asked that \"cedar glass 011\" be retained as a private note."}
+{"document_id": "history-011-overlap-replacement", "history_id": "history-011", "split": "test", "text": "Corroborating records establish that replacement-011 preferred value-011-j."}
+{"document_id": "history-011-preference-change-probe", "history_id": "history-011", "split": "test", "text": "Much later, KestrelArc reviewed unrelated calendar and account settings."}
+{"document_id": "history-011-preference-incongruity-probe", "history_id": "history-011", "split": "test", "text": "During a later account review, KestrelArcGuild account revisited the long-running record."}
+{"document_id": "history-011-private", "history_id": "history-011", "split": "test", "text": "subject-011's private value was recorded as value-011-f."}
+{"document_id": "history-011-replaceable", "history_id": "history-011", "split": "test", "text": "replacement-011 was tentatively recorded as preferring value-011-i."}
+{"document_id": "history-011-scope-leakage", "history_id": "history-011", "split": "test", "text": "subject-011 preferred value-011-l only in leakage-scope-011 during mid-August 2025."}
+{"document_id": "history-011-scoped", "history_id": "history-011", "split": "test", "text": "subject-011 preferred value-011-c in scope-011 during early August 2025."}
+{"document_id": "history-011-stale", "history_id": "history-011", "split": "test", "text": "subject-011 preferred value-011-a from July 2025 onward."}
+{"document_id": "history-012-accepted", "history_id": "history-012", "split": "test", "text": "candidate-012 preferred value-012-g."}
+{"document_id": "history-012-ambiguity", "history_id": "history-012", "split": "test", "text": "subject-012 gave conflicting statements about value-012-e."}
+{"document_id": "history-012-ambiguity-resolution", "history_id": "history-012", "split": "test", "text": "subject-012 directly resolved the scoped ambiguity to value-012-n."}
+{"document_id": "history-012-backdated", "history_id": "history-012", "split": "test", "text": "A correction records that subject-012 preferred value-012-h during spring 2025."}
+{"document_id": "history-012-conflict-left", "history_id": "history-012", "split": "test", "text": "While planning a long project, LaurelArcGuild account preferred a quiet private studio."}
+{"document_id": "history-012-conflict-resolution", "history_id": "history-012", "split": "test", "text": "After reviewing both incompatible requests, LaurelArcGuild account directly chose a window desk for the project."}
+{"document_id": "history-012-conflict-right", "history_id": "history-012", "split": "test", "text": "Weeks later, the LaurelArc instead requested an open team lounge for the same project."}
+{"document_id": "history-012-constraint", "history_id": "history-012", "split": "test", "text": "subject-012 must avoid value-012-d."}
+{"document_id": "history-012-current", "history_id": "history-012", "split": "test", "text": "subject-012 preferred value-012-b from July through September 2025."}
+{"document_id": "history-012-direct-conflict-no-supersession", "history_id": "history-012", "split": "test", "text": "subject-012 directly requested value-012-m from October 2025 onward."}
+{"document_id": "history-012-direct-correction", "history_id": "history-012", "split": "test", "text": "subject-012 directly corrected the record to value-012-k from October 2025 onward."}
+{"document_id": "history-012-equal-evidence-conflict", "history_id": "history-012", "split": "test", "text": "subject-012 preferred value-012-a from July 2025 onward."}
+{"document_id": "history-012-hard-constraint-violation", "history_id": "history-012", "split": "test", "text": "subject-012 requested value-012-d despite the standing constraint."}
+{"document_id": "history-012-indirect-source", "history_id": "history-012", "split": "test", "text": "An inferred record says subject-012 preferred value-012-i from October 2025 onward."}
+{"document_id": "history-012-initial", "history_id": "history-012", "split": "test", "text": "subject-012 preferred value-012-a through June 2025."}
+{"document_id": "history-012-lineage-alias", "history_id": "history-012", "split": "test", "text": "LaurelArcGuild account and the LaurelArc refer to the same account. The standing preference history belongs to the LaurelArc."}
+{"document_id": "history-012-lineage-copy-1", "history_id": "history-012", "split": "test", "text": "The private note for LaurelArc was delivered again as \"cedar glass 012\"."}
+{"document_id": "history-012-lineage-copy-2", "history_id": "history-012", "split": "test", "text": "A later delivery repeated LaurelArcGuild account's private note, \"cedar glass 012\"."}
+{"document_id": "history-012-lineage-negative-1", "history_id": "history-012", "split": "test", "text": "A planning card for LaurelArc quoted \"cedar glass 012\" beside a private-note heading."}
+{"document_id": "history-012-lineage-negative-2", "history_id": "history-012", "split": "test", "text": "LaurelArcGuild account compared the labels \"cedar glass 012\" and \"ember field\" in meeting notes."}
+{"document_id": "history-012-lineage-negative-3", "history_id": "history-012", "split": "test", "text": "A reminder sent to LaurelArc repeated \"cedar glass 012\" while discussing account settings."}
+{"document_id": "history-012-lineage-root", "history_id": "history-012", "split": "test", "text": "LaurelArcGuild account asked that \"cedar glass 012\" be retained as a private note."}
+{"document_id": "history-012-overlap-replacement", "history_id": "history-012", "split": "test", "text": "Corroborating records establish that replacement-012 preferred value-012-j."}
+{"document_id": "history-012-preference-change-probe", "history_id": "history-012", "split": "test", "text": "Much later, LaurelArc reviewed unrelated calendar and account settings."}
+{"document_id": "history-012-preference-incongruity-probe", "history_id": "history-012", "split": "test", "text": "During a later account review, LaurelArcGuild account revisited the long-running record."}
+{"document_id": "history-012-private", "history_id": "history-012", "split": "test", "text": "subject-012's private value was recorded as value-012-f."}
+{"document_id": "history-012-replaceable", "history_id": "history-012", "split": "test", "text": "replacement-012 was tentatively recorded as preferring value-012-i."}
+{"document_id": "history-012-scope-leakage", "history_id": "history-012", "split": "test", "text": "subject-012 preferred value-012-l only in leakage-scope-012 during mid-August 2025."}
+{"document_id": "history-012-scoped", "history_id": "history-012", "split": "test", "text": "subject-012 preferred value-012-c in scope-012 during early August 2025."}
+{"document_id": "history-012-stale", "history_id": "history-012", "split": "test", "text": "subject-012 preferred value-012-a from July 2025 onward."}
+{"document_id": "history-013-accepted", "history_id": "history-013", "split": "test", "text": "candidate-013 preferred value-013-g."}
+{"document_id": "history-013-ambiguity", "history_id": "history-013", "split": "test", "text": "subject-013 gave conflicting statements about value-013-e."}
+{"document_id": "history-013-ambiguity-resolution", "history_id": "history-013", "split": "test", "text": "subject-013 directly resolved the scoped ambiguity to value-013-n."}
+{"document_id": "history-013-backdated", "history_id": "history-013", "split": "test", "text": "A correction records that subject-013 preferred value-013-h during spring 2025."}
+{"document_id": "history-013-conflict-left", "history_id": "history-013", "split": "test", "text": "While planning a long project, MapleArc preferred a quiet private studio."}
+{"document_id": "history-013-conflict-resolution", "history_id": "history-013", "split": "test", "text": "After reviewing both incompatible requests, MapleArc directly chose a window desk for the project."}
+{"document_id": "history-013-conflict-right", "history_id": "history-013", "split": "test", "text": "Weeks later, the MapleArcGuild account instead requested an open team lounge for the same project."}
+{"document_id": "history-013-constraint", "history_id": "history-013", "split": "test", "text": "subject-013 must avoid value-013-d."}
+{"document_id": "history-013-current", "history_id": "history-013", "split": "test", "text": "subject-013 preferred value-013-b from July through September 2025."}
+{"document_id": "history-013-direct-conflict-no-supersession", "history_id": "history-013", "split": "test", "text": "subject-013 directly requested value-013-m from October 2025 onward."}
+{"document_id": "history-013-direct-correction", "history_id": "history-013", "split": "test", "text": "subject-013 directly corrected the record to value-013-k from October 2025 onward."}
+{"document_id": "history-013-equal-evidence-conflict", "history_id": "history-013", "split": "test", "text": "subject-013 preferred value-013-a from July 2025 onward."}
+{"document_id": "history-013-hard-constraint-violation", "history_id": "history-013", "split": "test", "text": "subject-013 requested value-013-d despite the standing constraint."}
+{"document_id": "history-013-indirect-source", "history_id": "history-013", "split": "test", "text": "An inferred record says subject-013 preferred value-013-i from October 2025 onward."}
+{"document_id": "history-013-initial", "history_id": "history-013", "split": "test", "text": "subject-013 preferred value-013-a through June 2025."}
+{"document_id": "history-013-lineage-alias", "history_id": "history-013", "split": "test", "text": "MapleArc and the MapleArcGuild account refer to the same account. The standing preference history belongs to the MapleArcGuild account."}
+{"document_id": "history-013-lineage-copy-1", "history_id": "history-013", "split": "test", "text": "The private note for MapleArcGuild account was delivered again as \"cedar glass 013\"."}
+{"document_id": "history-013-lineage-copy-2", "history_id": "history-013", "split": "test", "text": "A later delivery repeated MapleArc's private note, \"cedar glass 013\"."}
+{"document_id": "history-013-lineage-negative-1", "history_id": "history-013", "split": "test", "text": "A planning card for MapleArcGuild account quoted \"cedar glass 013\" beside a private-note heading."}
+{"document_id": "history-013-lineage-negative-2", "history_id": "history-013", "split": "test", "text": "MapleArc compared the labels \"cedar glass 013\" and \"ember field\" in meeting notes."}
+{"document_id": "history-013-lineage-negative-3", "history_id": "history-013", "split": "test", "text": "A reminder sent to MapleArcGuild account repeated \"cedar glass 013\" while discussing account settings."}
+{"document_id": "history-013-lineage-root", "history_id": "history-013", "split": "test", "text": "MapleArc asked that \"cedar glass 013\" be retained as a private note."}
+{"document_id": "history-013-overlap-replacement", "history_id": "history-013", "split": "test", "text": "Corroborating records establish that replacement-013 preferred value-013-j."}
+{"document_id": "history-013-preference-change-probe", "history_id": "history-013", "split": "test", "text": "Much later, MapleArcGuild account reviewed unrelated calendar and account settings."}
+{"document_id": "history-013-preference-incongruity-probe", "history_id": "history-013", "split": "test", "text": "During a later account review, MapleArc revisited the long-running record."}
+{"document_id": "history-013-private", "history_id": "history-013", "split": "test", "text": "subject-013's private value was recorded as value-013-f."}
+{"document_id": "history-013-replaceable", "history_id": "history-013", "split": "test", "text": "replacement-013 was tentatively recorded as preferring value-013-i."}
+{"document_id": "history-013-scope-leakage", "history_id": "history-013", "split": "test", "text": "subject-013 preferred value-013-l only in leakage-scope-013 during mid-August 2025."}
+{"document_id": "history-013-scoped", "history_id": "history-013", "split": "test", "text": "subject-013 preferred value-013-c in scope-013 during early August 2025."}
+{"document_id": "history-013-stale", "history_id": "history-013", "split": "test", "text": "subject-013 preferred value-013-a from July 2025 onward."}
+{"document_id": "history-014-accepted", "history_id": "history-014", "split": "test", "text": "candidate-014 preferred value-014-g."}
+{"document_id": "history-014-ambiguity", "history_id": "history-014", "split": "test", "text": "subject-014 gave conflicting statements about value-014-e."}
+{"document_id": "history-014-ambiguity-resolution", "history_id": "history-014", "split": "test", "text": "subject-014 directly resolved the scoped ambiguity to value-014-n."}
+{"document_id": "history-014-backdated", "history_id": "history-014", "split": "test", "text": "A correction records that subject-014 preferred value-014-h during spring 2025."}
+{"document_id": "history-014-conflict-left", "history_id": "history-014", "split": "test", "text": "While planning a long project, NettleArc preferred a quiet private studio."}
+{"document_id": "history-014-conflict-resolution", "history_id": "history-014", "split": "test", "text": "After reviewing both incompatible requests, NettleArc directly chose a window desk for the project."}
+{"document_id": "history-014-conflict-right", "history_id": "history-014", "split": "test", "text": "Weeks later, the NettleArcGuild account instead requested an open team lounge for the same project."}
+{"document_id": "history-014-constraint", "history_id": "history-014", "split": "test", "text": "subject-014 must avoid value-014-d."}
+{"document_id": "history-014-current", "history_id": "history-014", "split": "test", "text": "subject-014 preferred value-014-b from July through September 2025."}
+{"document_id": "history-014-direct-conflict-no-supersession", "history_id": "history-014", "split": "test", "text": "subject-014 directly requested value-014-m from October 2025 onward."}
+{"document_id": "history-014-direct-correction", "history_id": "history-014", "split": "test", "text": "subject-014 directly corrected the record to value-014-k from October 2025 onward."}
+{"document_id": "history-014-equal-evidence-conflict", "history_id": "history-014", "split": "test", "text": "subject-014 preferred value-014-a from July 2025 onward."}
+{"document_id": "history-014-hard-constraint-violation", "history_id": "history-014", "split": "test", "text": "subject-014 requested value-014-d despite the standing constraint."}
+{"document_id": "history-014-indirect-source", "history_id": "history-014", "split": "test", "text": "An inferred record says subject-014 preferred value-014-i from October 2025 onward."}
+{"document_id": "history-014-initial", "history_id": "history-014", "split": "test", "text": "subject-014 preferred value-014-a through June 2025."}
+{"document_id": "history-014-lineage-alias", "history_id": "history-014", "split": "test", "text": "NettleArc and the NettleArcGuild account refer to the same account. The standing preference history belongs to the NettleArcGuild account."}
+{"document_id": "history-014-lineage-copy-1", "history_id": "history-014", "split": "test", "text": "The private note for NettleArcGuild account was delivered again as \"cedar glass 014\"."}
+{"document_id": "history-014-lineage-copy-2", "history_id": "history-014", "split": "test", "text": "A later delivery repeated NettleArc's private note, \"cedar glass 014\"."}
+{"document_id": "history-014-lineage-negative-1", "history_id": "history-014", "split": "test", "text": "NettleArcGuild account discussed \"cedar glass 014\" during a conversation about private notes."}
+{"document_id": "history-014-lineage-negative-2", "history_id": "history-014", "split": "test", "text": "A message to NettleArcGuild account asked whether \"cedar glass 014\" should replace an existing note."}
+{"document_id": "history-014-lineage-negative-3", "history_id": "history-014", "split": "test", "text": "NettleArc's travel profile used \"cedar glass 014\" as a temporary label."}
+{"document_id": "history-014-lineage-root", "history_id": "history-014", "split": "test", "text": "NettleArc asked that \"cedar glass 014\" be retained as a private note."}
+{"document_id": "history-014-overlap-replacement", "history_id": "history-014", "split": "test", "text": "Corroborating records establish that replacement-014 preferred value-014-j."}
+{"document_id": "history-014-preference-change-probe", "history_id": "history-014", "split": "test", "text": "Much later, NettleArcGuild account reviewed unrelated calendar and account settings."}
+{"document_id": "history-014-preference-incongruity-probe", "history_id": "history-014", "split": "test", "text": "During a later account review, NettleArc revisited the long-running record."}
+{"document_id": "history-014-private", "history_id": "history-014", "split": "test", "text": "subject-014's private value was recorded as value-014-f."}
+{"document_id": "history-014-replaceable", "history_id": "history-014", "split": "test", "text": "replacement-014 was tentatively recorded as preferring value-014-i."}
+{"document_id": "history-014-scope-leakage", "history_id": "history-014", "split": "test", "text": "subject-014 preferred value-014-l only in leakage-scope-014 during mid-August 2025."}
+{"document_id": "history-014-scoped", "history_id": "history-014", "split": "test", "text": "subject-014 preferred value-014-c in scope-014 during early August 2025."}
+{"document_id": "history-014-stale", "history_id": "history-014", "split": "test", "text": "subject-014 preferred value-014-a from July 2025 onward."}
+{"document_id": "history-015-accepted", "history_id": "history-015", "split": "test", "text": "candidate-015 preferred value-015-g."}
+{"document_id": "history-015-ambiguity", "history_id": "history-015", "split": "test", "text": "subject-015 gave conflicting statements about value-015-e."}
+{"document_id": "history-015-ambiguity-resolution", "history_id": "history-015", "split": "test", "text": "subject-015 directly resolved the scoped ambiguity to value-015-n."}
+{"document_id": "history-015-backdated", "history_id": "history-015", "split": "test", "text": "A correction records that subject-015 preferred value-015-h during spring 2025."}
+{"document_id": "history-015-conflict-left", "history_id": "history-015", "split": "test", "text": "While planning a long project, OliveArcGuild account preferred a quiet private studio."}
+{"document_id": "history-015-conflict-resolution", "history_id": "history-015", "split": "test", "text": "After reviewing both incompatible requests, OliveArcGuild account directly chose a window desk for the project."}
+{"document_id": "history-015-conflict-right", "history_id": "history-015", "split": "test", "text": "Weeks later, the OliveArc instead requested an open team lounge for the same project."}
+{"document_id": "history-015-constraint", "history_id": "history-015", "split": "test", "text": "subject-015 must avoid value-015-d."}
+{"document_id": "history-015-current", "history_id": "history-015", "split": "test", "text": "subject-015 preferred value-015-b from July through September 2025."}
+{"document_id": "history-015-direct-conflict-no-supersession", "history_id": "history-015", "split": "test", "text": "subject-015 directly requested value-015-m from October 2025 onward."}
+{"document_id": "history-015-direct-correction", "history_id": "history-015", "split": "test", "text": "subject-015 directly corrected the record to value-015-k from October 2025 onward."}
+{"document_id": "history-015-equal-evidence-conflict", "history_id": "history-015", "split": "test", "text": "subject-015 preferred value-015-a from July 2025 onward."}
+{"document_id": "history-015-hard-constraint-violation", "history_id": "history-015", "split": "test", "text": "subject-015 requested value-015-d despite the standing constraint."}
+{"document_id": "history-015-indirect-source", "history_id": "history-015", "split": "test", "text": "An inferred record says subject-015 preferred value-015-i from October 2025 onward."}
+{"document_id": "history-015-initial", "history_id": "history-015", "split": "test", "text": "subject-015 preferred value-015-a through June 2025."}
+{"document_id": "history-015-lineage-alias", "history_id": "history-015", "split": "test", "text": "OliveArcGuild account and the OliveArc refer to the same account. The standing preference history belongs to the OliveArc."}
+{"document_id": "history-015-lineage-copy-1", "history_id": "history-015", "split": "test", "text": "The private note for OliveArc was delivered again as \"cedar glass 015\"."}
+{"document_id": "history-015-lineage-copy-2", "history_id": "history-015", "split": "test", "text": "A later delivery repeated OliveArcGuild account's private note, \"cedar glass 015\"."}
+{"document_id": "history-015-lineage-negative-1", "history_id": "history-015", "split": "test", "text": "OliveArc discussed \"cedar glass 015\" during a conversation about private notes."}
+{"document_id": "history-015-lineage-negative-2", "history_id": "history-015", "split": "test", "text": "A message to OliveArc asked whether \"cedar glass 015\" should replace an existing note."}
+{"document_id": "history-015-lineage-negative-3", "history_id": "history-015", "split": "test", "text": "OliveArcGuild account's travel profile used \"cedar glass 015\" as a temporary label."}
+{"document_id": "history-015-lineage-root", "history_id": "history-015", "split": "test", "text": "OliveArcGuild account asked that \"cedar glass 015\" be retained as a private note."}
+{"document_id": "history-015-overlap-replacement", "history_id": "history-015", "split": "test", "text": "Corroborating records establish that replacement-015 preferred value-015-j."}
+{"document_id": "history-015-preference-change-probe", "history_id": "history-015", "split": "test", "text": "Much later, OliveArc reviewed unrelated calendar and account settings."}
+{"document_id": "history-015-preference-incongruity-probe", "history_id": "history-015", "split": "test", "text": "During a later account review, OliveArcGuild account revisited the long-running record."}
+{"document_id": "history-015-private", "history_id": "history-015", "split": "test", "text": "subject-015's private value was recorded as value-015-f."}
+{"document_id": "history-015-replaceable", "history_id": "history-015", "split": "test", "text": "replacement-015 was tentatively recorded as preferring value-015-i."}
+{"document_id": "history-015-scope-leakage", "history_id": "history-015", "split": "test", "text": "subject-015 preferred value-015-l only in leakage-scope-015 during mid-August 2025."}
+{"document_id": "history-015-scoped", "history_id": "history-015", "split": "test", "text": "subject-015 preferred value-015-c in scope-015 during early August 2025."}
+{"document_id": "history-015-stale", "history_id": "history-015", "split": "test", "text": "subject-015 preferred value-015-a from July 2025 onward."}
+{"document_id": "history-016-accepted", "history_id": "history-016", "split": "test", "text": "candidate-016 preferred value-016-g."}
+{"document_id": "history-016-ambiguity", "history_id": "history-016", "split": "test", "text": "subject-016 gave conflicting statements about value-016-e."}
+{"document_id": "history-016-ambiguity-resolution", "history_id": "history-016", "split": "test", "text": "subject-016 directly resolved the scoped ambiguity to value-016-n."}
+{"document_id": "history-016-backdated", "history_id": "history-016", "split": "test", "text": "A correction records that subject-016 preferred value-016-h during spring 2025."}
+{"document_id": "history-016-conflict-left", "history_id": "history-016", "split": "test", "text": "While planning a long project, PineArcGuild account preferred a quiet private studio."}
+{"document_id": "history-016-conflict-resolution", "history_id": "history-016", "split": "test", "text": "After reviewing both incompatible requests, PineArcGuild account directly chose a window desk for the project."}
+{"document_id": "history-016-conflict-right", "history_id": "history-016", "split": "test", "text": "Weeks later, the PineArc instead requested an open team lounge for the same project."}
+{"document_id": "history-016-constraint", "history_id": "history-016", "split": "test", "text": "subject-016 must avoid value-016-d."}
+{"document_id": "history-016-current", "history_id": "history-016", "split": "test", "text": "subject-016 preferred value-016-b from July through September 2025."}
+{"document_id": "history-016-direct-conflict-no-supersession", "history_id": "history-016", "split": "test", "text": "subject-016 directly requested value-016-m from October 2025 onward."}
+{"document_id": "history-016-direct-correction", "history_id": "history-016", "split": "test", "text": "subject-016 directly corrected the record to value-016-k from October 2025 onward."}
+{"document_id": "history-016-equal-evidence-conflict", "history_id": "history-016", "split": "test", "text": "subject-016 preferred value-016-a from July 2025 onward."}
+{"document_id": "history-016-hard-constraint-violation", "history_id": "history-016", "split": "test", "text": "subject-016 requested value-016-d despite the standing constraint."}
+{"document_id": "history-016-indirect-source", "history_id": "history-016", "split": "test", "text": "An inferred record says subject-016 preferred value-016-i from October 2025 onward."}
+{"document_id": "history-016-initial", "history_id": "history-016", "split": "test", "text": "subject-016 preferred value-016-a through June 2025."}
+{"document_id": "history-016-lineage-alias", "history_id": "history-016", "split": "test", "text": "PineArcGuild account and the PineArc refer to the same account. The standing preference history belongs to the PineArc."}
+{"document_id": "history-016-lineage-copy-1", "history_id": "history-016", "split": "test", "text": "The private note for PineArc was delivered again as \"cedar glass 016\"."}
+{"document_id": "history-016-lineage-copy-2", "history_id": "history-016", "split": "test", "text": "A later delivery repeated PineArcGuild account's private note, \"cedar glass 016\"."}
+{"document_id": "history-016-lineage-negative-1", "history_id": "history-016", "split": "test", "text": "A planning card for PineArc quoted \"cedar glass 016\" beside a private-note heading."}
+{"document_id": "history-016-lineage-negative-2", "history_id": "history-016", "split": "test", "text": "PineArcGuild account compared the labels \"cedar glass 016\" and \"ember field\" in meeting notes."}
+{"document_id": "history-016-lineage-negative-3", "history_id": "history-016", "split": "test", "text": "A reminder sent to PineArc repeated \"cedar glass 016\" while discussing account settings."}
+{"document_id": "history-016-lineage-root", "history_id": "history-016", "split": "test", "text": "PineArcGuild account asked that \"cedar glass 016\" be retained as a private note."}
+{"document_id": "history-016-overlap-replacement", "history_id": "history-016", "split": "test", "text": "Corroborating records establish that replacement-016 preferred value-016-j."}
+{"document_id": "history-016-preference-change-probe", "history_id": "history-016", "split": "test", "text": "Much later, PineArc reviewed unrelated calendar and account settings."}
+{"document_id": "history-016-preference-incongruity-probe", "history_id": "history-016", "split": "test", "text": "During a later account review, PineArcGuild account revisited the long-running record."}
+{"document_id": "history-016-private", "history_id": "history-016", "split": "test", "text": "subject-016's private value was recorded as value-016-f."}
+{"document_id": "history-016-replaceable", "history_id": "history-016", "split": "test", "text": "replacement-016 was tentatively recorded as preferring value-016-i."}
+{"document_id": "history-016-scope-leakage", "history_id": "history-016", "split": "test", "text": "subject-016 preferred value-016-l only in leakage-scope-016 during mid-August 2025."}
+{"document_id": "history-016-scoped", "history_id": "history-016", "split": "test", "text": "subject-016 preferred value-016-c in scope-016 during early August 2025."}
+{"document_id": "history-016-stale", "history_id": "history-016", "split": "test", "text": "subject-016 preferred value-016-a from July 2025 onward."}

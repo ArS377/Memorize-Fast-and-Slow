@@ -923,7 +923,7 @@ def _load_source_and_rebuild(
     """Authenticate source artifacts and independently verify the rebuilt schedule."""
     adapter = _ScheduleTokenizerAdapter(tokenizer, config.model_id, config.model_path)
     scheduled = build_evaluation_schedule(config.dataset_dir, adapter, config.schedule)
-    provenance, artifacts = _authenticate_dataset(
+    provenance, artifacts, _ = _authenticate_dataset(
         config.dataset_dir, config.schedule.source_manifest_sha256
     )
     events = [
