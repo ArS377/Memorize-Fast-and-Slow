@@ -442,7 +442,7 @@ def test_pair_generation_config_resolves_all_runtime_and_provider_values_from_en
     assert config.events_per_request == 2
     assert config.max_validation_attempts == 3
     assert config.dialogue_max_tokens == 16384
-    assert config.mapping_max_tokens == 32768
+    assert config.mapping_max_tokens == 8192
     assert config.timeout_seconds == 600.0
     assert config.resume_existing is True
     assert config.mapping_histories_per_request == 1
@@ -1022,6 +1022,66 @@ class FinalPairCollisionClient(FakeKimiClient):
         delivery["target_phrase"] = (
             "afternoon delivery" if assignment == "A" else "midafternoon delivery"
         )
+        return LLMResponse(
+            content=json.dumps({"mapping": mapping}),
+            finish_reason=response.finish_reason,
+            model=response.model,
+            usage=response.usage,
+        )
+
+
+class Pk5InternalServerClient(FakeKimiClient):
+    """Raise real OpenAI 502 errors for B history-012 and record live calls."""
+
+    def __init__(self, fail: bool) -> None:
+        self.fail = fail
+        self.calls: list[tuple[dict[str, object], int, list[dict[str, str]]]] = []
+
+    def complete(self, **kwargs: object) -> LLMResponse:
+        messages = kwargs["messages"]
+        payload = json.loads(messages[-1]["content"])
+        self.calls.append((payload, int(kwargs["seed"]), messages))
+        if (
+            self.fail
+            and "mapping" in payload
+            and "surface-b" in str(payload["realization_id"])
+            and payload["history_ids"] == ["history-012"]
+        ):
+            import httpx
+            from openai import InternalServerError
+
+            response = httpx.Response(
+                502,
+                request=httpx.Request(
+                    "POST", "https://unused.invalid/chat/completions"
+                ),
+            )
+            raise InternalServerError(
+                "Error code: 502 - internal server error",
+                response=response,
+                body=None,
+            )
+        return super().complete(**kwargs)
+
+
+class ValidationExhaustionClient(FakeKimiClient):
+    """Return a schema-valid but category-invalid B history-012 mapping forever."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[dict[str, object], int]] = []
+
+    def complete(self, **kwargs: object) -> LLMResponse:
+        payload = json.loads(kwargs["messages"][-1]["content"])
+        self.calls.append((payload, int(kwargs["seed"])))
+        response = super().complete(**kwargs)
+        if (
+            "mapping" not in payload
+            or "surface-b" not in str(payload["realization_id"])
+            or payload["history_ids"] != ["history-012"]
+        ):
+            return response
+        mapping = json.loads(response.content)["mapping"]
+        mapping[0]["target_phrase"] = "invalid infusion"
         return LLMResponse(
             content=json.dumps({"mapping": mapping}),
             finish_reason=response.finish_reason,
@@ -1676,6 +1736,146 @@ def test_arbitrary_failed_value_error_is_not_resumable(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="recognized mapping/pair validation"):
         generate_surface_pair(config, resumed)
     assert resumed.calls == []
+
+
+def _rewrite_as_prefeature_epoch_zero(output: Path) -> None:
+    """Remove retry metadata while preserving authenticated pre-feature journal hashes."""
+    request_path = output / "requests.jsonl"
+    response_path = output / "raw_responses.jsonl"
+    requests = [json.loads(line) for line in request_path.read_text().splitlines()]
+    responses = [json.loads(line) for line in response_path.read_text().splitlines()]
+    for row in [*requests, *responses]:
+        row.pop("retry_epoch", None)
+        row.pop("epoch_attempt_index", None)
+        if "provider_error" in row:
+            row["error_record_sha256"] = _stable_hash(
+                {
+                    key: value
+                    for key, value in row.items()
+                    if key != "error_record_sha256"
+                }
+            )
+    request_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in requests)
+    )
+    response_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in responses)
+    )
+    manifest_path = output / "generation_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    for field in (
+        "retry_epoch",
+        "epoch_attempt_index",
+        "retry_epochs",
+        "transient_retry_epoch",
+    ):
+        manifest.pop(field, None)
+    hashes = {
+        "requests.jsonl": hashlib.sha256(request_path.read_bytes()).hexdigest(),
+        "raw_responses.jsonl": hashlib.sha256(response_path.read_bytes()).hexdigest(),
+    }
+    manifest["provenance_artifact_sha256"] = hashes
+    manifest["artifact_sha256"].update(hashes)
+    manifest["response_sha256"] = [
+        row.get("response_sha256", row.get("error_record_sha256"))
+        for row in responses
+    ]
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+
+
+def test_pk5_exhausted_502_epoch_resume_starts_at_attempt_three_only(
+    tmp_path: Path,
+) -> None:
+    config = replace(_launch_order_fixture(tmp_path, attempts=3), resume_existing=True)
+    initial = Pk5InternalServerClient(True)
+    with pytest.raises(ValueError, match="failed after 3 attempts.*failed transiently"):
+        generate_surface_pair(config, initial)
+    for output in (config.output_a, config.output_b):
+        _rewrite_as_prefeature_epoch_zero(output)
+
+    resumed = Pk5InternalServerClient(False)
+    generate_surface_pair(config, resumed)
+    mapping_calls = [call for call in resumed.calls if "mapping" in call[0]]
+    first_payload, first_seed, first_messages = mapping_calls[0]
+    assert first_payload["history_ids"] == ["history-012"]
+    assert "surface-b" in str(first_payload["realization_id"])
+    assert first_seed == 911 + 11_000 + 3
+    assert not any(
+        "surface-a" in str(payload.get("realization_id"))
+        or payload.get("history_ids", [""])[0] < "history-012"
+        for payload, _, _ in mapping_calls
+    )
+    target_calls = [
+        call for call in mapping_calls if call[0]["history_ids"] == ["history-012"]
+    ]
+    assert len(target_calls) == 1
+    assert any(
+        "failed transiently" in message["content"]
+        and "InternalServerError" in message["content"]
+        for message in first_messages
+        if message["role"] == "system"
+    )
+    rows = [
+        json.loads(line)
+        for line in (config.output_b / "requests.jsonl").read_text().splitlines()
+        if json.loads(line).get("history_ids") == ["history-012"]
+    ]
+    assert [row["attempt_index"] for row in rows] == [0, 1, 2, 3]
+    assert rows[-1]["retry_epoch"] == 1
+    assert rows[-1]["epoch_attempt_index"] == 0
+    manifest = json.loads(
+        (config.output_b / "generation_manifest.json").read_text()
+    )
+    assert manifest["retry_epoch"] == 1
+    assert manifest["retry_epochs"]["mapping:11"] == 1
+    assert config.gate_path.exists()
+
+
+def test_transient_manual_retry_epochs_stop_at_squared_attempt_cap(
+    tmp_path: Path,
+) -> None:
+    config = replace(_launch_order_fixture(tmp_path, attempts=3), resume_existing=True)
+    clients = []
+    for _epoch in range(3):
+        client = Pk5InternalServerClient(True)
+        clients.append(client)
+        with pytest.raises(ValueError, match="failed after 3 attempts"):
+            generate_surface_pair(config, client)
+    capped = Pk5InternalServerClient(True)
+    with pytest.raises(ValueError, match="failed after 3 attempts"):
+        generate_surface_pair(config, capped)
+    assert capped.calls == []
+    target_calls = [
+        call
+        for client in clients
+        for call in client.calls
+        if call[0].get("history_ids") == ["history-012"]
+        and "surface-b" in str(call[0].get("realization_id"))
+    ]
+    assert len(target_calls) == 9
+    attempts = [
+        json.loads(line)["attempt_index"]
+        for line in (config.output_b / "requests.jsonl").read_text().splitlines()
+        if json.loads(line).get("history_ids") == ["history-012"]
+    ]
+    assert attempts == list(range(9))
+
+
+def test_validation_exhaustion_does_not_open_manual_retry_epoch(
+    tmp_path: Path,
+) -> None:
+    config = replace(_launch_order_fixture(tmp_path, attempts=3), resume_existing=True)
+    initial = ValidationExhaustionClient()
+    with pytest.raises(ValueError, match="failed after 3 attempts"):
+        generate_surface_pair(config, initial)
+    resumed = Pk5InternalServerClient(False)
+    with pytest.raises(ValueError, match="failed after 3 attempts"):
+        generate_surface_pair(config, resumed)
+    assert resumed.calls == []
+    manifest = json.loads(
+        (config.output_b / "generation_manifest.json").read_text()
+    )
+    assert "transient_retry_epoch" not in manifest
 
 
 @pytest.mark.parametrize(

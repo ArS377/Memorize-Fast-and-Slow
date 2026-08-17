@@ -201,6 +201,8 @@ _RESPONSE_METADATA_FIELDS = (
     "history_ids",
     "event_ids",
     "attempt_index",
+    "retry_epoch",
+    "epoch_attempt_index",
     "seed",
     "requested_model",
     "max_tokens",
@@ -390,6 +392,84 @@ def _raw_provenance_hash(row: Mapping[str, Any]) -> str:
     return response_hash
 
 
+def _normalize_retry_epoch_metadata(
+    rows: Sequence[dict[str, Any]], max_attempts: int
+) -> None:
+    """Authenticate or infer bounded retry-epoch metadata on provenance rows."""
+    for row in rows:
+        attempt = row.get("attempt_index")
+        if isinstance(attempt, bool) or not isinstance(attempt, int) or attempt < 0:
+            raise CacheIntegrityError("provenance row has invalid attempt_index")
+        if attempt >= max_attempts * max_attempts:
+            raise CacheIntegrityError("provenance row exceeds bounded retry epochs")
+        expected_epoch, expected_epoch_attempt = divmod(attempt, max_attempts)
+        fields_present = (
+            "retry_epoch" in row,
+            "epoch_attempt_index" in row,
+        )
+        if fields_present[0] != fields_present[1]:
+            raise CacheIntegrityError("provenance row has partial retry-epoch metadata")
+        legacy_error_row = "provider_error" in row and not fields_present[0]
+        if legacy_error_row:
+            try:
+                _validate_provider_error_row(row)
+            except ValueError as error:
+                raise CacheIntegrityError(
+                    f"legacy provider error row failed authentication: {error}"
+                ) from error
+        for field, expected in (
+            ("retry_epoch", expected_epoch),
+            ("epoch_attempt_index", expected_epoch_attempt),
+        ):
+            recorded = row.get(field)
+            if recorded is None:
+                row[field] = expected
+            elif recorded != expected:
+                raise CacheIntegrityError(
+                    f"provenance row has invalid {field} for attempt {attempt}"
+                )
+        if legacy_error_row:
+            canonical = {
+                key: value for key, value in row.items() if key != "error_record_sha256"
+            }
+            row["error_record_sha256"] = _stable_hash(canonical)
+
+
+def _retry_epoch_summary(
+    request_rows: Sequence[Mapping[str, Any]], max_attempts: int
+) -> tuple[int | None, int | None, dict[str, int]]:
+    """Summarize disclosed retry epochs by logical stage/request key."""
+    if not request_rows:
+        return None, None, {}
+    epochs: dict[str, int] = {}
+    max_epoch = 0
+    max_epoch_attempt = 0
+    for row in request_rows:
+        attempt = int(row["attempt_index"])
+        retry_epoch, epoch_attempt = divmod(attempt, max_attempts)
+        key = f"{row.get('stage')}:{int(row.get('request_index', -1))}"
+        epochs[key] = max(epochs.get(key, 0), retry_epoch)
+        if retry_epoch > max_epoch or (
+            retry_epoch == max_epoch and epoch_attempt > max_epoch_attempt
+        ):
+            max_epoch = retry_epoch
+            max_epoch_attempt = epoch_attempt
+    return max_epoch, max_epoch_attempt, dict(sorted(epochs.items()))
+
+
+def _validate_monotonic_attempts(rows: Sequence[Mapping[str, Any]]) -> None:
+    """Require globally increasing contiguous attempt indices per logical request."""
+    attempts_by_request: dict[tuple[str, int], list[int]] = {}
+    for row in rows:
+        key = (str(row.get("stage")), int(row.get("request_index", -1)))
+        attempts_by_request.setdefault(key, []).append(int(row.get("attempt_index", -1)))
+    for key, attempts in attempts_by_request.items():
+        if attempts != list(range(len(attempts))):
+            raise CacheIntegrityError(
+                f"provenance attempts are not contiguous and monotonic for {key}"
+            )
+
+
 def _is_recognized_mapping_failure(error: Any) -> bool:
     """Recognize only persisted mapping/pair ValueErrors that are safe to revalidate."""
     if not isinstance(error, Mapping) or error.get("type") != "ValueError":
@@ -404,6 +484,67 @@ def _is_recognized_mapping_failure(error: Any) -> bool:
             "whole mapping ",
         )
     )
+
+
+def _next_transient_retry_epoch(
+    manifest: Mapping[str, Any],
+    requests: Sequence[Mapping[str, Any]],
+    responses: Sequence[Mapping[str, Any]],
+    max_attempts: int,
+) -> dict[str, int] | None:
+    """Authorize one bounded manual epoch for a terminal all-transient mapping batch."""
+    error = manifest.get("error")
+    if not _is_recognized_mapping_failure(error):
+        return None
+    message = str(error["message"])
+    expected_prefix = f"mapping request failed after {max_attempts} attempts: "
+    if not message.startswith(expected_prefix) or "failed transiently" not in message:
+        return None
+    if not requests:
+        return None
+    terminal = requests[-1]
+    if terminal.get("stage") != "mapping":
+        return None
+    request_index = int(terminal.get("request_index", -1))
+    terminal_attempt = int(terminal.get("attempt_index", -1))
+    terminal_epoch, terminal_epoch_attempt = divmod(terminal_attempt, max_attempts)
+    if terminal_epoch_attempt != max_attempts - 1 or terminal_epoch >= max_attempts - 1:
+        return None
+    epoch_start = terminal_epoch * max_attempts
+    expected_attempts = list(range(epoch_start, epoch_start + max_attempts))
+    epoch_requests = [
+        row
+        for row in requests
+        if row.get("stage") == "mapping"
+        and int(row.get("request_index", -1)) == request_index
+        and int(row.get("retry_epoch", -1)) == terminal_epoch
+    ]
+    epoch_responses = [
+        row
+        for row in responses
+        if row.get("stage") == "mapping"
+        and int(row.get("request_index", -1)) == request_index
+        and int(row.get("retry_epoch", -1)) == terminal_epoch
+    ]
+    if [int(row.get("attempt_index", -1)) for row in epoch_requests] != expected_attempts:
+        return None
+    if [int(row.get("attempt_index", -1)) for row in epoch_responses] != expected_attempts:
+        return None
+    if any("provider_error" not in row for row in epoch_responses):
+        return None
+    for row in epoch_responses:
+        _validate_provider_error_row(row)
+    latest_error = epoch_responses[-1]["provider_error"]
+    if (
+        str(latest_error["type"]) not in message
+        or str(latest_error["message"]) not in message
+    ):
+        return None
+    return {
+        "stage": "mapping",
+        "request_index": request_index,
+        "retry_epoch": terminal_epoch + 1,
+    }
 
 
 def _generation_controls(config: SurfacePairConfig) -> dict[str, Any]:
@@ -1086,7 +1227,35 @@ def _complete_with_validation(
     validation_error: ValueError | None = None
     transient_error: dict[str, str] | None = None
     last_failure: str | None = None
-    for attempt in range(attempt_limit):
+    authorization = running_manifest.get("transient_retry_epoch")
+    authorized_epoch = 0
+    if (
+        isinstance(authorization, Mapping)
+        and authorization.get("stage") == request_context.get("stage")
+        and authorization.get("request_index") == request_context.get("request_index")
+    ):
+        authorized_epoch = int(authorization.get("retry_epoch", 0))
+        if authorized_epoch < 1 or authorized_epoch >= attempt_limit:
+            raise CacheIntegrityError("manual transient retry epoch exceeds bounded epochs")
+        prior_attempt = authorized_epoch * attempt_limit - 1
+        prior_errors = [
+            row
+            for row in raw_rows
+            if row.get("stage") == request_context.get("stage")
+            and row.get("request_index") == request_context.get("request_index")
+            and row.get("attempt_index") == prior_attempt
+            and "provider_error" in row
+        ]
+        if len(prior_errors) != 1:
+            raise CacheIntegrityError(
+                "manual transient retry epoch lacks one authenticated prior error"
+            )
+        _validate_provider_error_row(prior_errors[0])
+        transient_error = dict(prior_errors[0]["provider_error"])
+        last_failure = _transient_retry_instruction(transient_error)
+    attempt_start = authorized_epoch * attempt_limit
+    for attempt in range(attempt_start, attempt_start + attempt_limit):
+        retry_epoch, epoch_attempt_index = divmod(attempt, attempt_limit)
         attempt_messages = list(messages)
         if validation_error is not None:
             attempt_messages.insert(
@@ -1109,6 +1278,8 @@ def _complete_with_validation(
         expected_request = {
             **dict(request_context),
             "attempt_index": attempt,
+            "retry_epoch": retry_epoch,
+            "epoch_attempt_index": epoch_attempt_index,
             "seed": attempt_seed,
             "requested_model": config.model,
             "max_tokens": max_tokens,
@@ -1175,6 +1346,8 @@ def _complete_with_validation(
             expected_response_metadata = {
                 **dict(request_context),
                 "attempt_index": attempt,
+                "retry_epoch": retry_epoch,
+                "epoch_attempt_index": epoch_attempt_index,
                 "seed": attempt_seed,
                 "requested_model": config.model,
                 "max_tokens": max_tokens,
@@ -1243,6 +1416,8 @@ def _complete_with_validation(
             response_row = {
                 **dict(request_context),
                 "attempt_index": attempt,
+                "retry_epoch": retry_epoch,
+                "epoch_attempt_index": epoch_attempt_index,
                 "seed": attempt_seed,
                 "requested_model": config.model,
                 "max_tokens": max_tokens,
@@ -1400,6 +1575,11 @@ def _persist_generation_state(
     raw_rows: Sequence[Mapping[str, Any]],
 ) -> None:
     """Atomically persist logs and their running-manifest provenance."""
+    controls = running_manifest.get("generation_controls", {})
+    max_attempts = int(controls.get("max_validation_attempts", 1))
+    retry_epoch, epoch_attempt_index, retry_epochs = _retry_epoch_summary(
+        request_rows, max_attempts
+    )
     requests_payload = _jsonl_bytes(request_rows)
     responses_payload = _jsonl_bytes(raw_rows)
     _atomic_write_bytes(output_dir / "requests.jsonl", requests_payload)
@@ -1410,6 +1590,9 @@ def _persist_generation_state(
             "completion_status": "running",
             "request_count": len(request_rows),
             "response_count": len(raw_rows),
+            "retry_epoch": retry_epoch,
+            "epoch_attempt_index": epoch_attempt_index,
+            "retry_epochs": retry_epochs,
             "prompt_sha256": [
                 str(row["prompt_sha256"]) for row in request_rows
             ],
@@ -1705,6 +1888,14 @@ def _validate_fresh_provenance(
     responses = _load_jsonl(
         artifacts["raw_responses.jsonl"], f"{assignment} raw_responses.jsonl"
     )
+    response_hashes_before_epoch_inference = [
+        _raw_provenance_hash(row) for row in responses
+    ]
+    max_attempts = int(manifest["generation_controls"]["max_validation_attempts"])
+    _normalize_retry_epoch_metadata(requests, max_attempts)
+    _normalize_retry_epoch_metadata(responses, max_attempts)
+    _validate_monotonic_attempts(requests)
+    _validate_monotonic_attempts(responses)
     if len(requests) != len(responses) or not requests:
         raise ValueError(f"{assignment} request/response coverage differs")
     def provenance_key(row: Mapping[str, Any]) -> tuple[str, int, int]:
@@ -1733,6 +1924,8 @@ def _validate_fresh_provenance(
             "assignment",
             "request_index",
             "attempt_index",
+            "retry_epoch",
+            "epoch_attempt_index",
             "seed",
             "requested_model",
             "max_tokens",
@@ -1837,10 +2030,20 @@ def _validate_fresh_provenance(
         raise ValueError(f"{assignment} fresh dialogue responses do not cover parent event order")
     if manifest.get("prompt_sha256") != [row["prompt_sha256"] for row in requests]:
         raise ValueError(f"{assignment} manifest prompt hashes differ from requests")
-    if manifest.get("response_sha256") != [
-        _raw_provenance_hash(row) for row in responses
-    ]:
+    if manifest.get("response_sha256") != response_hashes_before_epoch_inference:
         raise ValueError(f"{assignment} manifest response hashes differ from logs")
+    retry_epoch, epoch_attempt_index, retry_epochs = _retry_epoch_summary(
+        requests, max_attempts
+    )
+    disclosed_retry_epochs = manifest.get("retry_epochs")
+    if retry_epoch and disclosed_retry_epochs is None:
+        raise ValueError(f"{assignment} manifest omits transient retry epochs")
+    if disclosed_retry_epochs is not None and (
+        manifest.get("retry_epoch") != retry_epoch
+        or manifest.get("epoch_attempt_index") != epoch_attempt_index
+        or disclosed_retry_epochs != retry_epochs
+    ):
+        raise ValueError(f"{assignment} manifest retry epoch disclosure differs")
     return response_hashes
 
 
@@ -2085,6 +2288,8 @@ def _validate_resumable_log_prefixes(
             "stage",
             "request_index",
             "attempt_index",
+            "retry_epoch",
+            "epoch_attempt_index",
             "seed",
             "requested_model",
             "max_tokens",
@@ -2192,6 +2397,9 @@ def _load_or_initialize_assignment_state(
         raise CacheIntegrityError("cached manifest parent identity mismatch")
     requests = _load_jsonl_file(requests_path)
     responses = _load_jsonl_file(responses_path)
+    max_attempts = config.max_validation_attempts
+    _normalize_retry_epoch_metadata(requests, max_attempts)
+    _normalize_retry_epoch_metadata(responses, max_attempts)
     recorded = manifest.get("provenance_artifact_sha256")
     completed = manifest.get("status") == "completed"
     if not completed:
@@ -2267,7 +2475,16 @@ def _load_or_initialize_assignment_state(
             raise CacheIntegrityError("cached response log hash mismatch")
     else:
         _validate_resumable_log_prefixes(assignment, requests, responses)
+        _validate_monotonic_attempts(requests)
+        _validate_monotonic_attempts(responses)
     if not completed:
+        if manifest.get("status") == "failed":
+            manifest.pop("transient_retry_epoch", None)
+            retry_authorization = _next_transient_retry_epoch(
+                manifest, requests, responses, max_attempts
+            )
+            if retry_authorization is not None:
+                manifest["transient_retry_epoch"] = retry_authorization
         manifest["status"] = "running"
         manifest["completion_status"] = "running"
         manifest.pop("failed_at", None)
