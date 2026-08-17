@@ -51,6 +51,7 @@ class ScheduleConfig:
     query_suffixes: tuple[str, ...]
     token_distance_thresholds: tuple[int, ...]
     minimum_stream_tokens: int = 0
+    preserve_generated_dialogue: bool = False
 
     def __post_init__(self) -> None:
         """Reject incomplete or silently clamped scheduling requests."""
@@ -79,6 +80,8 @@ class ScheduleConfig:
                 raise ValueError(f"{name} must be an integer")
         if self.minimum_stream_tokens < 0:
             raise ValueError("minimum_stream_tokens must be non-negative")
+        if not isinstance(self.preserve_generated_dialogue, bool):
+            raise ValueError("preserve_generated_dialogue must be a boolean")
         if self.concurrent_accounts < 2:
             raise ValueError("concurrent_accounts must be at least two")
         if self.min_segment_events < 1 or self.max_segment_events < self.min_segment_events:
@@ -557,8 +560,12 @@ def build_evaluation_schedule(
             raise ValueError(
                 "derived query gold or causal contract differs from authenticated parent"
             )
+    scheduled_events = [
+        {**event, "preserve_model_text": config.preserve_generated_dialogue}
+        for event in events
+    ]
     schedule = build_interleaved_schedule(
-        events,
+        scheduled_events,
         tokenizer=tokenizer,
         seed=config.seed,
         concurrent_accounts=config.concurrent_accounts,
@@ -568,8 +575,12 @@ def build_evaluation_schedule(
     turns = list(schedule["turns"])
     checkpoint_turns = turns
     if parent_events is not None:
+        scheduled_parent_events = [
+            {**event, "preserve_model_text": config.preserve_generated_dialogue}
+            for event in parent_events
+        ]
         parent_schedule = build_interleaved_schedule(
-            parent_events,
+            scheduled_parent_events,
             tokenizer=tokenizer,
             seed=config.seed,
             concurrent_accounts=config.concurrent_accounts,
@@ -818,6 +829,8 @@ def _load_cli_config(path: Path) -> tuple[ScheduleConfig, TokenizerConfig]:
         for value in schedule["token_distance_thresholds"]
     ):
         raise ValueError("schedule.token_distance_thresholds elements must be integers")
+    if not isinstance(schedule.get("preserve_generated_dialogue"), bool):
+        raise ValueError("schedule.preserve_generated_dialogue must be a boolean")
     integer_fields = (
         "seed",
         "concurrent_accounts",
@@ -848,6 +861,7 @@ def _load_cli_config(path: Path) -> tuple[ScheduleConfig, TokenizerConfig]:
                 int(value) for value in schedule.get("token_distance_thresholds", [])
             ),
             minimum_stream_tokens=schedule.get("minimum_stream_tokens", 0),
+            preserve_generated_dialogue=schedule["preserve_generated_dialogue"],
         ),
         TokenizerConfig(
             name=str(tokenizer.get("name", "")),

@@ -25,7 +25,7 @@ def _rank(seed: int, *parts: object) -> bytes:
 def _conversation_text(event: Mapping[str, Any]) -> str:
     """Render one semantic update as a substantial human-like task resumption."""
     text = str(event.get("model_text") or event["fact"]["support_text"])
-    if event.get("dialogue_speaker"):
+    if event.get("preserve_model_text"):
         return text
     if event.get("hardness_profile") != "anti_shortcut_interleaved_v3":
         return text

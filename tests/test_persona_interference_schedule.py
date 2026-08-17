@@ -55,6 +55,7 @@ def _config(
         ),
         token_distance_thresholds=token_distances,
         minimum_stream_tokens=minimum_stream_tokens,
+        preserve_generated_dialogue=True,
     )
 
 
@@ -225,6 +226,7 @@ def test_checked_in_schedule_config_declares_stream_minimum() -> None:
     schedule, _ = _load_cli_config(config_path)
 
     assert schedule.minimum_stream_tokens == 0
+    assert schedule.preserve_generated_dialogue is False
 
 
 def test_schedule_rejects_unreachable_token_distance() -> None:
