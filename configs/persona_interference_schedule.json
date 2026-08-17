@@ -7,6 +7,7 @@
     "concurrent_accounts": 8,
     "min_segment_events": 4,
     "max_segment_events": 8,
+    "minimum_stream_tokens": 0,
     "query_suffixes": [
       "-preference-change-delayed",
       "-preference-incongruity-delayed"

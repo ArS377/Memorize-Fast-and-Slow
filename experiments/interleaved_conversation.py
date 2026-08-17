@@ -25,6 +25,8 @@ def _rank(seed: int, *parts: object) -> bytes:
 def _conversation_text(event: Mapping[str, Any]) -> str:
     """Render one semantic update as a substantial human-like task resumption."""
     text = str(event.get("model_text") or event["fact"]["support_text"])
+    if event.get("dialogue_speaker"):
+        return text
     if event.get("hardness_profile") != "anti_shortcut_interleaved_v3":
         return text
     value = str(event.get("surface_object") or "the current choice")
@@ -290,6 +292,9 @@ def schedule_metrics(schedule: Mapping[str, Any]) -> dict[str, Any]:
         "account_count": len(segment_positions),
         "segment_count": len(segments),
         "turn_count": len(turns),
+        "stream_token_count": sum(
+            int(turn["serialized_token_count"]) for turn in turns
+        ),
         "resume_count": sum(max(0, len(positions) - 1) for positions in segment_positions.values()),
         "adjacent_same_account_segments": adjacent,
         "causal_order_violations": causal_violations,

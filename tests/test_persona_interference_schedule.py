@@ -37,6 +37,7 @@ def _config(
     *,
     token_distances: tuple[int, ...] = (100, 500),
     manifest_sha256: str | None = None,
+    minimum_stream_tokens: int = 0,
 ) -> ScheduleConfig:
     """Return a compact production-corpus scheduling fixture."""
     return ScheduleConfig(
@@ -53,6 +54,7 @@ def _config(
             "-preference-incongruity-delayed",
         ),
         token_distance_thresholds=token_distances,
+        minimum_stream_tokens=minimum_stream_tokens,
     )
 
 
@@ -100,6 +102,9 @@ def test_phase_and_distance_schedule_is_causal_complete_and_immutable(tmp_path: 
     manifest = json.loads((tmp_path / "scheduled" / "schedule_manifest.json").read_text())
     assert manifest["status"] == "completed"
     assert manifest["input_count"] == len(result["inputs"])
+    assert result["schedule_metrics"]["stream_token_count"] == sum(
+        turn["serialized_token_count"] for turn in result["turns"]
+    )
     written_turns = [
         json.loads(line)
         for line in (tmp_path / "scheduled" / "scheduled_turns.jsonl").read_text().splitlines()
@@ -107,6 +112,21 @@ def test_phase_and_distance_schedule_is_causal_complete_and_immutable(tmp_path: 
     assert written_turns
     assert all("stream_event" not in turn for turn in written_turns)
     assert all("fact" not in turn for turn in written_turns)
+    assert all("value-" not in turn["text"] for turn in written_turns)
+    source_events_by_history: dict[str, list[dict]] = {}
+    for event in (
+        json.loads(line) for line in (dataset / "events.jsonl").read_text().splitlines()
+    ):
+        if (
+            event["split"] == "test"
+            and event["hardness_profile"] == "anti_shortcut_interleaved_v3"
+        ):
+            source_events_by_history.setdefault(event["history_id"], []).append(event)
+    assert all(
+        turn["text"]
+        == source_events_by_history[turn["history_id"]][turn["account_event_index"]]["model_text"]
+        for turn in written_turns
+    )
     model_inputs = [
         json.loads(line)
         for line in (tmp_path / "scheduled" / "model_inputs.jsonl").read_text().splitlines()
@@ -199,12 +219,29 @@ def test_cli_config_rejects_string_arrays_and_boolean_strings(tmp_path: Path) ->
         _load_cli_config(config_path)
 
 
+def test_checked_in_schedule_config_declares_stream_minimum() -> None:
+    config_path = Path(__file__).parents[1] / "configs" / "persona_interference_schedule.json"
+
+    schedule, _ = _load_cli_config(config_path)
+
+    assert schedule.minimum_stream_tokens == 0
+
+
 def test_schedule_rejects_unreachable_token_distance() -> None:
     with pytest.raises(ValueError, match="cannot reach token distance 1000000000"):
         build_evaluation_schedule(
             _dataset(),
             WhitespaceTokenizer(),
             _config(token_distances=(1_000_000_000,)),
+        )
+
+
+def test_schedule_rejects_stream_at_or_below_required_length() -> None:
+    with pytest.raises(ValueError, match="must exceed 1000000000 tokens"):
+        build_evaluation_schedule(
+            _dataset(),
+            WhitespaceTokenizer(),
+            _config(minimum_stream_tokens=1_000_000_000),
         )
 
 

@@ -50,6 +50,7 @@ class ScheduleConfig:
     max_segment_events: int
     query_suffixes: tuple[str, ...]
     token_distance_thresholds: tuple[int, ...]
+    minimum_stream_tokens: int = 0
 
     def __post_init__(self) -> None:
         """Reject incomplete or silently clamped scheduling requests."""
@@ -71,10 +72,13 @@ class ScheduleConfig:
             "concurrent_accounts": self.concurrent_accounts,
             "min_segment_events": self.min_segment_events,
             "max_segment_events": self.max_segment_events,
+            "minimum_stream_tokens": self.minimum_stream_tokens,
         }
         for name, value in integer_values.items():
             if isinstance(value, bool) or not isinstance(value, int):
                 raise ValueError(f"{name} must be an integer")
+        if self.minimum_stream_tokens < 0:
+            raise ValueError("minimum_stream_tokens must be non-negative")
         if self.concurrent_accounts < 2:
             raise ValueError("concurrent_accounts must be at least two")
         if self.min_segment_events < 1 or self.max_segment_events < self.min_segment_events:
@@ -591,6 +595,12 @@ def build_evaluation_schedule(
         ]
         if turn_identity != parent_turn_identity:
             raise ValueError("derived interleaving differs from authenticated parent")
+    metrics = schedule_metrics(schedule)
+    if metrics["stream_token_count"] <= config.minimum_stream_tokens:
+        raise ValueError(
+            f"scheduled stream has {metrics['stream_token_count']} tokens; "
+            f"must exceed {config.minimum_stream_tokens} tokens"
+        )
     event_turn = {
         str(turn["stream_event"]["event_id"]): index for index, turn in enumerate(turns)
     }
@@ -718,7 +728,7 @@ def build_evaluation_schedule(
         "config": asdict(config),
         "dataset": provenance,
         "tokenizer": dict(tokenizer.metadata()),
-        "schedule_metrics": schedule_metrics(schedule),
+        "schedule_metrics": metrics,
         "turns": safe_turns,
         "inputs": inputs,
         "model_inputs": model_inputs,
@@ -809,10 +819,15 @@ def _load_cli_config(path: Path) -> tuple[ScheduleConfig, TokenizerConfig]:
     ):
         raise ValueError("schedule.token_distance_thresholds elements must be integers")
     integer_fields = (
-        "seed", "concurrent_accounts", "min_segment_events", "max_segment_events"
+        "seed",
+        "concurrent_accounts",
+        "min_segment_events",
+        "max_segment_events",
+        "minimum_stream_tokens",
     )
     for field in integer_fields:
-        if isinstance(schedule.get(field), bool) or not isinstance(schedule.get(field), int):
+        value = schedule.get(field)
+        if isinstance(value, bool) or not isinstance(value, int):
             raise ValueError(f"schedule.{field} must be an integer")
     if not isinstance(tokenizer.get("local_files_only"), bool):
         raise ValueError("tokenizer.local_files_only must be a boolean")
@@ -832,6 +847,7 @@ def _load_cli_config(path: Path) -> tuple[ScheduleConfig, TokenizerConfig]:
             token_distance_thresholds=tuple(
                 int(value) for value in schedule.get("token_distance_thresholds", [])
             ),
+            minimum_stream_tokens=schedule.get("minimum_stream_tokens", 0),
         ),
         TokenizerConfig(
             name=str(tokenizer.get("name", "")),
