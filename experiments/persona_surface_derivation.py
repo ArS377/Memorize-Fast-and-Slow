@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -11,7 +12,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from experiments.persona_conversation_generator import (
     CompletionClient,
@@ -164,6 +165,7 @@ class SurfacePairConfig:
     mapping_max_tokens: int
     dialogue_max_tokens: int
     mapping_histories_per_request: int
+    dialogue_assignment_concurrency: int
     events_per_request: int
     turn_pairs_per_event: int
     minimum_words_per_turn: int
@@ -200,6 +202,12 @@ class SurfacePairConfig:
             raise ValueError("enable_thinking must be a boolean")
         if not isinstance(self.resume_existing, bool):
             raise ValueError("resume_existing must be a boolean")
+        if (
+            isinstance(self.dialogue_assignment_concurrency, bool)
+            or not isinstance(self.dialogue_assignment_concurrency, int)
+            or self.dialogue_assignment_concurrency not in {1, 2}
+        ):
+            raise ValueError("dialogue_assignment_concurrency must be 1 or 2")
 
 
 def _sha256_bytes(payload: bytes) -> str:
@@ -222,6 +230,7 @@ def _generation_controls(config: SurfacePairConfig) -> dict[str, Any]:
         "mapping_max_tokens": config.mapping_max_tokens,
         "dialogue_max_tokens": config.dialogue_max_tokens,
         "mapping_histories_per_request": config.mapping_histories_per_request,
+        "dialogue_assignment_concurrency": config.dialogue_assignment_concurrency,
         "events_per_request": config.events_per_request,
         "turn_pairs_per_event": config.turn_pairs_per_event,
         "minimum_words_per_turn": config.minimum_words_per_turn,
@@ -243,6 +252,7 @@ def _request_parameters(config: SurfacePairConfig) -> dict[str, Any]:
         "mapping_max_tokens": config.mapping_max_tokens,
         "dialogue_max_tokens": config.dialogue_max_tokens,
         "mapping_histories_per_request": config.mapping_histories_per_request,
+        "dialogue_assignment_concurrency": config.dialogue_assignment_concurrency,
         "events_per_request": config.events_per_request,
         "turn_pairs_per_event": config.turn_pairs_per_event,
         "minimum_words_per_turn": config.minimum_words_per_turn,
@@ -1224,6 +1234,7 @@ def _read_completed_variant(
                 "mapping_max_tokens",
                 "dialogue_max_tokens",
                 "mapping_histories_per_request",
+                "dialogue_assignment_concurrency",
                 "events_per_request",
                 "turn_pairs_per_event",
                 "minimum_words_per_turn",
@@ -1748,7 +1759,10 @@ def _load_or_initialize_assignment_state(
 
 
 def generate_surface_pair(
-    config: SurfacePairConfig, client: CompletionClient
+    config: SurfacePairConfig,
+    client: CompletionClient,
+    *,
+    dialogue_client_factory: Callable[[str], CompletionClient] | None = None,
 ) -> dict[str, Any]:
     """Map both assignments first, then realize dialogue and gate the completed pair."""
     if config.resume_existing and config.gate_path.parent.exists():
@@ -1821,6 +1835,10 @@ def generate_surface_pair(
             assignment=assignment,
             config=config,
             parent_manifest_hash=parent_manifest_hash,
+        )
+    if config.dialogue_assignment_concurrency == 2 and dialogue_client_factory is None:
+        raise ValueError(
+            "dialogue_client_factory is required when dialogue_assignment_concurrency is 2"
         )
 
     expected_rows = expected_surface_mapping_rows(history_ids)
@@ -1929,8 +1947,13 @@ def generate_surface_pair(
             )
         raise failure
 
-    manifests = {}
+    manifests: dict[str, dict[str, Any]] = {}
     try:
+        incomplete_assignments = [
+            assignment
+            for assignment in ("A", "B")
+            if not completed_assignments[assignment]
+        ]
         for assignment in ("A", "B"):
             if completed_assignments[assignment]:
                 completed_manifest, _, completed_mapping, _ = _read_completed_variant(
@@ -1941,12 +1964,31 @@ def generate_surface_pair(
                         f"completed {assignment} mapping differs from resumed pair mapping"
                     )
                 manifests[assignment] = completed_manifest
-                continue
-            manifests[assignment] = _generate_assignment(
+
+        assignment_clients = {
+            assignment: (
+                dialogue_client_factory(assignment)
+                if dialogue_client_factory is not None
+                else client
+            )
+            for assignment in incomplete_assignments
+        }
+        if (
+            config.dialogue_assignment_concurrency == 2
+            and len(assignment_clients) == 2
+            and assignment_clients["A"] is assignment_clients["B"]
+        ):
+            raise ValueError(
+                "dialogue_client_factory must return distinct assignment-local clients"
+            )
+
+        def materialize(assignment: str) -> dict[str, Any]:
+            """Materialize one assignment using only its client and output journal."""
+            return _generate_assignment(
                 output_paths[assignment],
                 assignment,
                 config,
-                client,
+                assignment_clients[assignment],
                 parent_dir=config.parent_dir,
                 parent_manifest=parent_manifest,
                 parent_manifest_hash=parent_manifest_hash,
@@ -1958,6 +2000,35 @@ def generate_surface_pair(
                 mapping_raw_rows=raw_rows[assignment],
                 running_manifest=running_manifests[assignment],
             )
+
+        if config.dialogue_assignment_concurrency == 1:
+            for assignment in incomplete_assignments:
+                manifests[assignment] = materialize(assignment)
+        else:
+            worker_failure: BaseException | None = None
+            with ThreadPoolExecutor(
+                max_workers=2, thread_name_prefix="persona-surface-dialogue"
+            ) as executor:
+                futures = {
+                    assignment: executor.submit(materialize, assignment)
+                    for assignment in incomplete_assignments
+                }
+                done, pending = wait(futures.values(), return_when=FIRST_EXCEPTION)
+                failed = [
+                    future
+                    for future in done
+                    if not future.cancelled() and future.exception() is not None
+                ]
+                if failed:
+                    worker_failure = failed[0].exception()
+                    for future in pending:
+                        future.cancel()
+            for assignment in incomplete_assignments:
+                future = futures[assignment]
+                if not future.cancelled() and future.exception() is None:
+                    manifests[assignment] = future.result()
+            if worker_failure is not None:
+                raise worker_failure
     except Exception as error:
         for assignment, output_dir in output_paths.items():
             manifest_path = output_dir / "generation_manifest.json"
@@ -2027,6 +2098,7 @@ def load_surface_pair_config(
         "mapping_max_tokens",
         "dialogue_max_tokens",
         "mapping_histories_per_request",
+        "dialogue_assignment_concurrency",
         "events_per_request",
         "turn_pairs_per_event",
         "minimum_words_per_turn",
@@ -2065,6 +2137,7 @@ def load_surface_pair_config(
         mapping_max_tokens=raw["mapping_max_tokens"],
         dialogue_max_tokens=raw["dialogue_max_tokens"],
         mapping_histories_per_request=raw["mapping_histories_per_request"],
+        dialogue_assignment_concurrency=raw["dialogue_assignment_concurrency"],
         events_per_request=raw["events_per_request"],
         turn_pairs_per_event=raw["turn_pairs_per_event"],
         minimum_words_per_turn=raw["minimum_words_per_turn"],
@@ -2080,15 +2153,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, required=True)
     args = parser.parse_args(argv)
     config = load_surface_pair_config(args.config)
-    generate_surface_pair(
-        config,
-        OpenAICompletionClient(
+    def client_factory(_assignment: str) -> CompletionClient:
+        """Create one isolated OpenAI SDK client for a generation stream."""
+        return OpenAICompletionClient(
             config.endpoint,
             config.api_key,
             config.timeout_seconds,
             json_mode=True,
             enable_thinking=config.enable_thinking,
-        ),
+        )
+
+    generate_surface_pair(
+        config,
+        client_factory("mapping"),
+        dialogue_client_factory=client_factory,
     )
     return 0
 

@@ -5,6 +5,8 @@ import json
 from dataclasses import replace
 from pathlib import Path
 import shutil
+import threading
+import time
 
 import pytest
 
@@ -77,6 +79,7 @@ def generated_pair(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path
         mapping_max_tokens=1,
         dialogue_max_tokens=1,
         mapping_histories_per_request=1,
+        dialogue_assignment_concurrency=1,
         events_per_request=416,
         turn_pairs_per_event=1,
         minimum_words_per_turn=1,
@@ -274,6 +277,7 @@ def test_pair_generation_config_resolves_all_runtime_and_provider_values_from_en
     assert config.timeout_seconds == 600.0
     assert config.resume_existing is True
     assert config.mapping_histories_per_request == 1
+    assert config.dialogue_assignment_concurrency == 2
 
 
 def test_pair_generation_config_strictly_validates_mapping_batch_size(
@@ -295,6 +299,29 @@ def test_pair_generation_config_strictly_validates_mapping_batch_size(
         "KIMI_MODEL": "kimi-k3",
     }
     with pytest.raises(ValueError, match="mapping_histories_per_request"):
+        load_surface_pair_config(path, environ=environ)
+
+
+@pytest.mark.parametrize("invalid", (0, 3, True))
+def test_pair_generation_config_rejects_invalid_dialogue_concurrency(
+    tmp_path: Path, invalid: object
+) -> None:
+    payload = json.loads(
+        (_root() / "configs" / "persona_surface_pair_generation.json").read_text()
+    )
+    payload["generation"]["dialogue_assignment_concurrency"] = invalid
+    path = tmp_path / "invalid-concurrency.json"
+    path.write_text(json.dumps(payload))
+    environ = {
+        "PERSONA_SURFACE_PARENT_DIR": "/runtime/parent",
+        "PERSONA_SURFACE_A_OUTPUT_DIR": "/runtime/a",
+        "PERSONA_SURFACE_B_OUTPUT_DIR": "/runtime/b",
+        "PERSONA_SURFACE_PAIR_GATE_PATH": "/runtime/pair-gate.json",
+        "KIMI_BASE_URL": "https://unused.invalid",
+        "KIMI_API_KEY": "fixture",
+        "KIMI_MODEL": "kimi-k3",
+    }
+    with pytest.raises(ValueError, match="dialogue_assignment_concurrency"):
         load_surface_pair_config(path, environ=environ)
 
 
@@ -645,6 +672,59 @@ class MappingInterruptClient(FakeKimiClient):
         return super().complete(**kwargs)
 
 
+class OverlapDialogueClient(FakeKimiClient):
+    """Expose dialogue overlap while keeping mutable provider state assignment-local."""
+
+    def __init__(
+        self,
+        assignment: str,
+        barrier: threading.Barrier,
+        observations: dict[str, object],
+        observation_lock: threading.Lock,
+    ) -> None:
+        self.assignment = assignment
+        self.barrier = barrier
+        self.observations = observations
+        self.observation_lock = observation_lock
+        self.first_dialogue = True
+
+    def complete(self, **kwargs: object) -> LLMResponse:
+        payload = json.loads(kwargs["messages"][-1]["content"])
+        if "mapping" in payload:
+            raise AssertionError("assignment-local dialogue client received mapping work")
+        with self.observation_lock:
+            self.observations["active"] = int(self.observations["active"]) + 1
+            self.observations["maximum_active"] = max(
+                int(self.observations["maximum_active"]),
+                int(self.observations["active"]),
+            )
+        try:
+            if self.first_dialogue:
+                self.first_dialogue = False
+                self.barrier.wait(timeout=5)
+            time.sleep(0.005)
+            return super().complete(**kwargs)
+        finally:
+            with self.observation_lock:
+                self.observations["active"] = int(self.observations["active"]) - 1
+
+
+class FailingDialogueClient(FakeKimiClient):
+    """Fail one assignment's first dialogue request."""
+
+    def __init__(self, should_fail: bool) -> None:
+        self.should_fail = should_fail
+
+    def complete(self, **kwargs: object) -> LLMResponse:
+        payload = json.loads(kwargs["messages"][-1]["content"])
+        if "mapping" in payload:
+            raise AssertionError("assignment-local dialogue client received mapping work")
+        if self.should_fail:
+            self.should_fail = False
+            raise RuntimeError("simulated assignment dialogue failure")
+        return super().complete(**kwargs)
+
+
 def _launch_order_fixture(
     tmp_path: Path, *, attempts: int
 ) -> SurfacePairConfig:
@@ -662,6 +742,7 @@ def _launch_order_fixture(
         mapping_max_tokens=1,
         dialogue_max_tokens=1,
         mapping_histories_per_request=1,
+        dialogue_assignment_concurrency=1,
         events_per_request=416,
         turn_pairs_per_event=1,
         minimum_words_per_turn=1,
@@ -940,6 +1021,78 @@ def test_resume_reconstructs_prior_target_prompt_after_mapping_interruption(
     assert resumed.mapping_calls == 26
 
 
+def test_post_mapping_assignments_overlap_with_sequential_local_journals(
+    tmp_path: Path,
+) -> None:
+    config = replace(
+        _launch_order_fixture(tmp_path, attempts=1),
+        dialogue_assignment_concurrency=2,
+        events_per_request=100,
+    )
+    observations: dict[str, object] = {"active": 0, "maximum_active": 0}
+    lock = threading.Lock()
+    barrier = threading.Barrier(2)
+    created: dict[str, OverlapDialogueClient] = {}
+
+    def factory(assignment: str) -> OverlapDialogueClient:
+        client = OverlapDialogueClient(assignment, barrier, observations, lock)
+        created[assignment] = client
+        return client
+
+    generate_surface_pair(
+        config,
+        FakeKimiClient(),
+        dialogue_client_factory=factory,
+    )
+    assert set(created) == {"A", "B"}
+    assert created["A"] is not created["B"]
+    assert observations["maximum_active"] == 2
+    for output in (config.output_a, config.output_b):
+        dialogue_requests = [
+            json.loads(line)
+            for line in (output / "requests.jsonl").read_text().splitlines()
+            if json.loads(line)["stage"] == "dialogue"
+        ]
+        assert [row["request_index"] for row in dialogue_requests] == [1, 2, 3, 4, 5]
+
+
+def test_concurrent_worker_failure_leaves_resumable_journals_and_no_gate(
+    tmp_path: Path,
+) -> None:
+    config = replace(
+        _launch_order_fixture(tmp_path, attempts=1),
+        dialogue_assignment_concurrency=2,
+        events_per_request=100,
+        resume_existing=True,
+    )
+    with pytest.raises(RuntimeError, match="simulated assignment dialogue failure"):
+        generate_surface_pair(
+            config,
+            FakeKimiClient(),
+            dialogue_client_factory=lambda assignment: FailingDialogueClient(
+                assignment == "B"
+            ),
+        )
+    assert not config.gate_path.exists()
+    for output in (config.output_a, config.output_b):
+        manifest = json.loads((output / "generation_manifest.json").read_text())
+        assert manifest["status"] in {"completed", "failed"}
+        assert (output / "requests.jsonl").exists()
+        assert (output / "raw_responses.jsonl").exists()
+
+    generate_surface_pair(
+        config,
+        FakeKimiClient(),
+        dialogue_client_factory=lambda _assignment: FakeKimiClient(),
+    )
+    assert config.gate_path.exists()
+    assert all(
+        json.loads((output / "generation_manifest.json").read_text())["status"]
+        == "completed"
+        for output in (config.output_a, config.output_b)
+    )
+
+
 @pytest.mark.parametrize(
     ("field", "replacement"),
     (
@@ -948,6 +1101,7 @@ def test_resume_reconstructs_prior_target_prompt_after_mapping_interruption(
         ("mapping_max_tokens", 2),
         ("dialogue_max_tokens", 2),
         ("mapping_histories_per_request", 2),
+        ("dialogue_assignment_concurrency", 2),
         ("events_per_request", 17),
         ("turn_pairs_per_event", 2),
         ("minimum_words_per_turn", 2),
@@ -980,6 +1134,7 @@ def test_completed_manifests_disclose_canonical_generation_controls(
     for output in (output_a, output_b):
         manifest = json.loads((output / "generation_manifest.json").read_text())
         assert manifest["generation_controls"]["mapping_histories_per_request"] == 1
+        assert manifest["generation_controls"]["dialogue_assignment_concurrency"] == 1
         assert manifest["request_parameters"]["mapping_histories_per_request"] == 1
         assert "api_key" not in json.dumps(manifest["generation_controls"]).casefold()
         assert "https://unused.invalid" not in json.dumps(manifest["generation_controls"])
@@ -1115,6 +1270,7 @@ def test_partial_b_failure_leaves_no_completed_pair_gate(tmp_path: Path) -> None
         mapping_max_tokens=1,
         dialogue_max_tokens=1,
         mapping_histories_per_request=1,
+        dialogue_assignment_concurrency=1,
         events_per_request=416,
         turn_pairs_per_event=1,
         minimum_words_per_turn=1,

@@ -11,6 +11,7 @@
     "mapping_max_tokens": 32768,
     "dialogue_max_tokens": 16384,
     "mapping_histories_per_request": 1,
+    "dialogue_assignment_concurrency": 2,
     "events_per_request": 2,
     "turn_pairs_per_event": 1,
     "minimum_words_per_turn": 12,

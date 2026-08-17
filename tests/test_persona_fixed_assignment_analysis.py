@@ -56,6 +56,7 @@ def _kimi_pair_corpora(
             mapping_max_tokens=1,
             dialogue_max_tokens=1,
             mapping_histories_per_request=1,
+            dialogue_assignment_concurrency=1,
             events_per_request=416,
             turn_pairs_per_event=1,
             minimum_words_per_turn=1,
