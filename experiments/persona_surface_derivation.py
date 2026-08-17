@@ -1,4 +1,4 @@
-"""Generate and authenticate independent Kimi A/B surface corpora from one parent."""
+"""Generate and authenticate pair-conditioned Kimi A/B surfaces from one parent."""
 
 from __future__ import annotations
 
@@ -33,9 +33,9 @@ from experiments.persona_conversation_generator import (
 )
 
 
-DERIVATION_METHOD = "kimi-independent-surface-and-dialogue.v1"
-PAIR_GATE_VERSION = "persona-surface-pair-gate.v1"
-PROMPT_SCHEMA_VERSION = "persona-independent-surface.v2"
+DERIVATION_METHOD = "kimi-pair-conditioned-surface-and-dialogue.v2"
+PAIR_GATE_VERSION = "persona-surface-pair-gate.v2"
+PROMPT_SCHEMA_VERSION = "persona-pair-conditioned-surface.v3"
 SURFACE_ASSIGNMENT_SEEDS = {"A": 137, "B": 911}
 EXPECTED_MODEL = "kimi-k3"
 EXPECTED_EVENT_COUNT = 416
@@ -43,7 +43,7 @@ MAX_PHRASE_WORDS = 5
 MAX_PHRASE_CHARACTERS = 64
 
 # These are prompt-only naturalness guides, not hidden validation rules. A and
-# B receive different real-world pools in every round without sibling targets.
+# B receive different real-world pools; only B receives A's flat avoid-list.
 MAPPING_LEXICAL_DIRECTIVES = (
     (
         "Use established botanical, culinary, and traditional options: named tea or herbal "
@@ -182,6 +182,7 @@ GATE_ASSURANCES = {
         "parent_and_sibling_hash_binding",
         "latent_causal_preservation",
         "cross_assignment_surface_disjointness",
+        "a_to_b_flat_target_conditioning",
         "fresh_kimi_response_provenance",
         "dialogue_semantic_validation",
     ],
@@ -377,7 +378,7 @@ def validate_kimi_model_identity(requested: str, returned: str) -> None:
 
 
 def expected_surface_mapping_rows(history_ids: Sequence[str]) -> list[dict[str, str]]:
-    """Return the exact ordered mapping keys required from one independent request."""
+    """Return the exact ordered mapping keys required from one mapping request."""
     return [
         {
             "history_id": history_id,
@@ -441,6 +442,20 @@ def _parent_phrase_collision(target: str, parent_phrases: set[str]) -> str | Non
     return None
 
 
+def _forbidden_target_collision(
+    target: str, forbidden_targets: Sequence[str]
+) -> str | None:
+    """Return the first forbidden target with bidirectional token containment."""
+    normalized_target = _normalize_phrase(target)
+    for forbidden in forbidden_targets:
+        normalized_forbidden = _normalize_phrase(forbidden)
+        if _contains_token_sequence(
+            normalized_target, normalized_forbidden
+        ) or _contains_token_sequence(normalized_forbidden, normalized_target):
+            return forbidden
+    return None
+
+
 def _validate_lexical_plausibility(category: str, phrase: str) -> None:
     """Reject finite cross-category vocabulary and robust synthetic stacking patterns."""
     tokens = _normalize_phrase(phrase).split()
@@ -464,6 +479,7 @@ def validate_surface_mapping_response(
     expected_rows: Sequence[Mapping[str, str]],
     parent_phrases: set[str],
     forbidden_targets: Sequence[str] = (),
+    cross_assignment_forbidden_targets: Sequence[str] = (),
 ) -> list[dict[str, str]]:
     """Validate exact mapping coverage/order and all lexical anti-leakage contracts."""
     try:
@@ -482,7 +498,6 @@ def validate_surface_mapping_response(
     expected_keys = [dict(row) for row in expected_rows]
     actual_keys = []
     targets = []
-    normalized_forbidden = {_normalize_phrase(value) for value in forbidden_targets}
     for index, row in enumerate(rows):
         if not isinstance(row, dict) or set(row) != {
             "history_id",
@@ -509,8 +524,21 @@ def validate_surface_mapping_response(
                 f"mapping row {index} has parent collision with {parent_collision!r}: "
                 f"{target!r} has normalized token-sequence equality or containment"
             )
-        if normalized in normalized_forbidden:
-            raise ValueError(f"mapping row {index} reuses a prior assignment target")
+        prior_collision = _forbidden_target_collision(target, forbidden_targets)
+        if prior_collision is not None:
+            raise ValueError(
+                f"mapping row {index} has prior-target collision with {prior_collision!r}: "
+                f"{target!r} has normalized token-sequence equality or containment"
+            )
+        cross_collision = _forbidden_target_collision(
+            target, cross_assignment_forbidden_targets
+        )
+        if cross_collision is not None:
+            raise ValueError(
+                f"mapping row {index} has cross-assignment collision with "
+                f"{cross_collision!r}: {target!r} has normalized token-sequence "
+                "equality or containment"
+            )
         targets.append(normalized)
     if actual_keys != expected_keys:
         if set(map(_stable_hash, actual_keys)) == set(map(_stable_hash, expected_keys)):
@@ -695,24 +723,29 @@ def _validate_no_stale_parent_phrases(
 def _mapping_messages(
     expected_rows: Sequence[Mapping[str, str]],
     assignment: str,
-    mapping_round: int,
     request_index: int,
     history_ids: Sequence[str],
     forbidden_targets: Sequence[str],
+    cross_assignment_forbidden_targets: Sequence[str] | None,
 ) -> list[dict[str, str]]:
-    """Build one assignment-local mapping prompt with no sibling information."""
+    """Build one fixed-assignment prompt with only the permitted conditioning data."""
     if assignment not in SURFACE_ASSIGNMENT_SEEDS:
         raise ValueError(f"unsupported surface assignment {assignment!r}")
-    if isinstance(mapping_round, bool) or not isinstance(mapping_round, int) or mapping_round < 0:
-        raise ValueError("mapping_round must be a non-negative integer")
-    realization_id = (
-        f"surface-{assignment.lower()}-{SURFACE_ASSIGNMENT_SEEDS[assignment]}-"
-        f"round-{mapping_round}"
+    if assignment == "A" and cross_assignment_forbidden_targets is not None:
+        raise ValueError("assignment A must not receive cross-assignment targets")
+    if assignment == "B" and cross_assignment_forbidden_targets is None:
+        raise ValueError("assignment B requires a flat cross-assignment target avoid-list")
+    realization_id = f"surface-{assignment.lower()}-{SURFACE_ASSIGNMENT_SEEDS[assignment]}"
+    lexical_directive = MAPPING_LEXICAL_DIRECTIVES[0 if assignment == "A" else 1]
+    conditioning_instruction = (
+        "No sibling mapping information is supplied to assignment A."
+        if assignment == "A"
+        else (
+            "For assignment B, avoid every normalized phrase in the flat "
+            "cross_assignment_forbidden_targets list. That list exposes no sibling history, "
+            "category, source, or mapping association."
+        )
     )
-    directive_index = mapping_round * 2 + (0 if assignment == "A" else 1)
-    lexical_directive = MAPPING_LEXICAL_DIRECTIVES[
-        directive_index % len(MAPPING_LEXICAL_DIRECTIVES)
-    ]
     return [
         {
             "role": "system",
@@ -731,7 +764,8 @@ def _mapping_messages(
                 "terms used outside a conventional category meaning. "
                 "Make every target unique across the complete assignment, "
                 "including other history batches. Do not reuse any normalized phrase listed in "
-                "forbidden_targets. Follow lexical_directive as style guidance; it does not alter "
+                "forbidden_targets by equality or token-sequence containment. "
+                f"{conditioning_instruction} Follow lexical_directive as style guidance; it does not alter "
                 "the schema or category contracts. The "
                 "realization_id identifies only this request; do not infer or discuss other assignments."
             ),
@@ -751,6 +785,15 @@ def _mapping_messages(
                         "private_lineage_final_nouns": sorted(_PRIVATE_LINEAGE_NOUNS),
                     },
                     "mapping": list(expected_rows),
+                    **(
+                        {
+                            "cross_assignment_forbidden_targets": list(
+                                cross_assignment_forbidden_targets
+                            )
+                        }
+                        if cross_assignment_forbidden_targets is not None
+                        else {}
+                    ),
                 },
                 sort_keys=True,
             ),
@@ -1030,9 +1073,9 @@ def _request_mapping_candidate(
     output_dir: Path,
     running_manifest: dict[str, Any],
     assignment: str,
-    mapping_round: int,
     expected_rows: Sequence[Mapping[str, str]],
     parent_phrases: set[str],
+    cross_assignment_forbidden_targets: Sequence[str] | None,
     config: SurfacePairConfig,
     request_rows: list[dict[str, Any]],
     raw_rows: list[dict[str, Any]],
@@ -1057,26 +1100,24 @@ def _request_mapping_candidate(
         ]
         if len(batch_rows) != rows_per_history * len(batch_history_ids):
             raise ValueError("mapping batch has incomplete history row coverage")
-        request_index = mapping_round * len(batches) + batch_index
+        request_index = batch_index
         seed = (
             SURFACE_ASSIGNMENT_SEEDS[assignment]
-            + mapping_round * 100_000
             + batch_index * 1_000
         )
         messages = _mapping_messages(
             batch_rows,
             assignment,
-            mapping_round,
             request_index,
             batch_history_ids,
             prior_targets,
+            cross_assignment_forbidden_targets,
         )
         context = {
             "stage": "mapping",
             "assignment": assignment,
             "request_index": request_index,
             "mapping_request_index": request_index,
-            "mapping_round": mapping_round,
             "history_ids": batch_history_ids,
         }
         accepted_batch = _complete_with_validation(
@@ -1090,7 +1131,11 @@ def _request_mapping_candidate(
             validator=lambda content, expected=batch_rows, forbidden=tuple(
                 prior_targets
             ): validate_surface_mapping_response(
-                content, expected, parent_phrases, forbidden
+                content,
+                expected,
+                parent_phrases,
+                forbidden,
+                cross_assignment_forbidden_targets or (),
             ),
             request_context=context,
             request_rows=request_rows,
@@ -1103,7 +1148,11 @@ def _request_mapping_candidate(
             _normalize_phrase(str(row["target_phrase"])) for row in accepted_batch
         )
     return validate_surface_mapping_response(
-        json.dumps({"mapping": mapping}), expected_rows, parent_phrases
+        json.dumps({"mapping": mapping}),
+        expected_rows,
+        parent_phrases,
+        (),
+        cross_assignment_forbidden_targets or (),
     )
 
 
@@ -1267,7 +1316,7 @@ def _generate_assignment(
             "model_identity": EXPECTED_MODEL,
             "returned_model": EXPECTED_MODEL,
             "prompt_schema_version": PROMPT_SCHEMA_VERSION,
-            "generator_role": "Kimi K3 independent surface mapping and dialogue realization",
+            "generator_role": "Separately Kimi-authored pair-conditioned surface mapping and dialogue realization",
             "provider_identity_assurance": "endpoint-self-reported; artifact hashes are cryptographic",
             "parent": {
                 "corpus_name": parent_dir.name,
@@ -1451,7 +1500,6 @@ def _validate_fresh_provenance(
             "requested_model",
             "max_tokens",
             "enable_thinking",
-            "mapping_round",
             "mapping_request_index",
             "history_ids",
             "event_ids",
@@ -1612,7 +1660,12 @@ def _validate_materialized_variants(
         if expected_bindings is not None and expected_bindings.get(assignment) != binding:
             raise ValueError(f"pair gate sibling binding differs for {assignment}")
         bindings[assignment] = binding
-        variants[assignment] = {"manifest": manifest, "mapping": mapping, "path": path}
+        variants[assignment] = {
+            "manifest": manifest,
+            "mapping": mapping,
+            "path": path,
+            "artifacts": artifacts,
+        }
     if (
         variants["A"]["manifest"]["generation_controls_sha256"]
         != variants["B"]["manifest"]["generation_controls_sha256"]
@@ -1621,6 +1674,29 @@ def _validate_materialized_variants(
     validate_paired_surface_mappings(
         variants["A"]["mapping"], variants["B"]["mapping"]
     )
+    expected_b_forbidden = sorted(
+        {
+            _normalize_phrase(str(row["target_phrase"]))
+            for row in variants["A"]["mapping"]
+        }
+    )
+    for assignment in ("A", "B"):
+        requests = _load_jsonl(
+            variants[assignment]["artifacts"]["requests.jsonl"],
+            f"{assignment} requests.jsonl",
+        )
+        for request in requests:
+            if request.get("stage") != "mapping":
+                continue
+            messages = request.get("messages")
+            if not isinstance(messages, list) or not messages:
+                raise ValueError(f"{assignment} mapping request lacks messages")
+            payload = json.loads(str(messages[-1]["content"]))
+            cross_forbidden = payload.get("cross_assignment_forbidden_targets")
+            if assignment == "A" and cross_forbidden is not None:
+                raise ValueError("A mapping request improperly exposes sibling targets")
+            if assignment == "B" and cross_forbidden != expected_b_forbidden:
+                raise ValueError("B mapping request has invalid flat A target conditioning")
     if response_hashes["A"] & response_hashes["B"]:
         raise ValueError("A/B accepted Kimi response logs overlap")
     return bindings
@@ -1633,7 +1709,7 @@ def authenticate_pair_gate(
     dataset_dir: Path | None = None,
     expected_assignment: str | None = None,
 ) -> dict[str, Any]:
-    """Authenticate the gate and independently re-prove parent/A/B pair contracts."""
+    """Authenticate the gate and re-prove parent/A/B pair contracts from artifacts."""
     gate_path = Path(gate_path)
     try:
         gate_bytes = gate_path.read_bytes()
@@ -1769,7 +1845,6 @@ def _validate_resumable_log_prefixes(
             "requested_model",
             "max_tokens",
             "enable_thinking",
-            "mapping_round",
             "mapping_request_index",
             "history_ids",
             "event_ids",
@@ -1962,87 +2037,43 @@ def generate_surface_pair(
 
     expected_rows = expected_surface_mapping_rows(history_ids)
     parent_phrases = _parent_surface_phrases(parent_events, parent_queries)
-    mappings: dict[str, list[dict[str, str]]] | None = None
-    mapping_error: Exception | None = None
-    for mapping_round in range(config.max_validation_attempts):
-        candidates: dict[str, list[dict[str, str]]] = {}
-        round_errors = []
-        for assignment in ("A", "B"):
-            try:
-                candidates[assignment] = _request_mapping_candidate(
-                    client,
-                    output_dir=output_paths[assignment],
-                    running_manifest=running_manifests[assignment],
-                    assignment=assignment,
-                    mapping_round=mapping_round,
-                    expected_rows=expected_rows,
-                    parent_phrases=parent_phrases,
-                    config=config,
-                    request_rows=request_rows[assignment],
-                    raw_rows=raw_rows[assignment],
-                    read_only_cache=completed_assignments[assignment],
-                )
-            except CacheIntegrityError:
-                raise
-            except Exception as error:
-                round_errors.append(error)
-        if not round_errors:
-            try:
-                for assignment in ("A", "B"):
-                    validate_whole_mapping_naturalness(
-                        candidates[assignment], parent_phrases
-                    )
-                validate_paired_surface_mappings(candidates["A"], candidates["B"])
-            except ValueError as error:
-                round_errors.append(error)
-        if round_errors:
-            mapping_error = round_errors[-1]
-            for assignment in ("A", "B"):
-                if completed_assignments[assignment]:
-                    continue
-                for row in request_rows[assignment]:
-                    if row.get("stage") == "mapping" and row.get(
-                        "mapping_round"
-                    ) == mapping_round:
-                        row["accepted"] = False
-                        row["superseded"] = True
-                for row in raw_rows[assignment]:
-                    if row.get("stage") == "mapping" and row.get(
-                        "mapping_round"
-                    ) == mapping_round:
-                        row["accepted"] = False
-                        row["superseded"] = True
-                _persist_generation_state(
-                    output_paths[assignment],
-                    running_manifests[assignment],
-                    request_rows[assignment],
-                    raw_rows[assignment],
-                )
-            continue
-        mappings = candidates
-        for assignment in ("A", "B"):
-            if completed_assignments[assignment]:
-                continue
-            for row in request_rows[assignment]:
-                if row.get("stage") == "mapping" and row.get(
-                    "mapping_round"
-                ) == mapping_round:
-                    row["accepted"] = not bool(row.get("superseded"))
-            for row in raw_rows[assignment]:
-                if row.get("stage") == "mapping" and row.get(
-                    "mapping_round"
-                ) == mapping_round:
-                    row["accepted"] = not bool(row.get("superseded"))
-            _persist_generation_state(
-                output_paths[assignment],
-                running_manifests[assignment],
-                request_rows[assignment],
-                raw_rows[assignment],
-            )
-        break
-
-    if mappings is None:
-        failure = mapping_error or ValueError("paired mapping generation failed")
+    mappings: dict[str, list[dict[str, str]]] = {}
+    try:
+        mappings["A"] = _request_mapping_candidate(
+            client,
+            output_dir=output_paths["A"],
+            running_manifest=running_manifests["A"],
+            assignment="A",
+            expected_rows=expected_rows,
+            parent_phrases=parent_phrases,
+            cross_assignment_forbidden_targets=None,
+            config=config,
+            request_rows=request_rows["A"],
+            raw_rows=raw_rows["A"],
+            read_only_cache=completed_assignments["A"],
+        )
+        validate_whole_mapping_naturalness(mappings["A"], parent_phrases)
+        a_forbidden_targets = sorted(
+            {_normalize_phrase(str(row["target_phrase"])) for row in mappings["A"]}
+        )
+        mappings["B"] = _request_mapping_candidate(
+            client,
+            output_dir=output_paths["B"],
+            running_manifest=running_manifests["B"],
+            assignment="B",
+            expected_rows=expected_rows,
+            parent_phrases=parent_phrases,
+            cross_assignment_forbidden_targets=a_forbidden_targets,
+            config=config,
+            request_rows=request_rows["B"],
+            raw_rows=raw_rows["B"],
+            read_only_cache=completed_assignments["B"],
+        )
+        validate_whole_mapping_naturalness(mappings["B"], parent_phrases)
+        validate_paired_surface_mappings(mappings["A"], mappings["B"])
+    except CacheIntegrityError:
+        raise
+    except Exception as failure:
         for assignment, output_dir in output_paths.items():
             failed_manifest = {
                 **running_manifests[assignment],
@@ -2069,6 +2100,22 @@ def generate_surface_pair(
                 output_dir / "generation_manifest.json", _json_bytes(failed_manifest)
             )
         raise failure
+
+    for assignment in ("A", "B"):
+        if completed_assignments[assignment]:
+            continue
+        for row in request_rows[assignment]:
+            if row.get("stage") == "mapping":
+                row["accepted"] = not bool(row.get("superseded"))
+        for row in raw_rows[assignment]:
+            if row.get("stage") == "mapping":
+                row["accepted"] = not bool(row.get("superseded"))
+        _persist_generation_state(
+            output_paths[assignment],
+            running_manifests[assignment],
+            request_rows[assignment],
+            raw_rows[assignment],
+        )
 
     manifests: dict[str, dict[str, Any]] = {}
     try:
@@ -2271,7 +2318,7 @@ def load_surface_pair_config(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run configured Kimi-independent paired surface generation."""
+    """Run configured Kimi pair-conditioned fixed-assignment generation."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     args = parser.parse_args(argv)

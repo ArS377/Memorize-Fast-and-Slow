@@ -276,6 +276,17 @@ def test_mapping_targets_must_be_unique() -> None:
         validate_surface_mapping_response(content, expected, set())
 
 
+def test_prior_target_exclusion_rejects_bidirectional_containment() -> None:
+    content = _content(("chamomile lavender tea", "garden seating"))
+    with pytest.raises(ValueError, match="prior-target collision with 'lavender tea'"):
+        validate_surface_mapping_response(
+            content,
+            EXPECTED,
+            set(),
+            forbidden_targets=("lavender tea",),
+        )
+
+
 @pytest.mark.parametrize(
     "b_targets",
     (
@@ -462,7 +473,7 @@ def test_parent_backed_pair_has_fresh_provenance_and_exact_manifest_contracts(
     assert len(parent_events) == 416
     for assignment, output in (("A", output_a), ("B", output_b)):
         manifest = json.loads((output / "generation_manifest.json").read_text())
-        assert manifest["method"] == "kimi-independent-surface-and-dialogue.v1"
+        assert manifest["method"] == "kimi-pair-conditioned-surface-and-dialogue.v2"
         assert manifest["assignment"] == assignment
         assert manifest["seed"] == {"A": 137, "B": 911}[assignment]
         assert manifest["requested_model"] == manifest["returned_model"] == "kimi-k3"
@@ -473,6 +484,34 @@ def test_parent_backed_pair_has_fresh_provenance_and_exact_manifest_contracts(
         ).read_bytes()
         for name in ("facts.jsonl", "examples.jsonl", "candidate_updates.jsonl"):
             assert (output / name).read_bytes() == (parent / name).read_bytes()
+
+
+def test_accepted_a_b_response_logs_are_disjoint(
+    generated_pair: tuple[Path, Path, Path, Path]
+) -> None:
+    _, output_a, output_b, _ = generated_pair
+
+    def accepted_hashes(output: Path) -> set[str]:
+        return {
+            row["response_sha256"]
+            for row in (
+                json.loads(line)
+                for line in (output / "raw_responses.jsonl").read_text().splitlines()
+            )
+            if row["accepted"]
+        }
+
+    assert accepted_hashes(output_a).isdisjoint(accepted_hashes(output_b))
+
+
+def test_pipeline_docs_limit_pair_conditioned_statistical_claims() -> None:
+    documentation = (
+        _root() / "docs" / "persona_kimi_scallop_pipeline.md"
+    ).read_text()
+    assert "pair-conditioned fixed-assignment" in documentation
+    assert "bootstrap unit is the base history" in documentation
+    assert "not statistically independent mapping replicates" in documentation
+    assert "B receives only a flat normalized list of A target phrases" in documentation
 
 
 def test_mapping_prompts_are_assignment_local_before_any_response(
@@ -591,7 +630,6 @@ def test_prior_targets_prevent_assignment_local_reuse_without_pair_retry(
             if row["stage"] == "mapping" and row["attempt_index"] == 0
         ]
         assert len(mapping_requests) == 16
-        assert {row["mapping_round"] for row in mapping_requests} == {0}
         payloads = [json.loads(row["messages"][-1]["content"]) for row in mapping_requests]
         assert [len(payload["forbidden_targets"]) for payload in payloads] == [
             index * 11 for index in range(16)
@@ -611,7 +649,7 @@ def test_prior_targets_prevent_assignment_local_reuse_without_pair_retry(
     )
 
 
-def test_mapping_prompts_bind_distinct_assignment_round_directives(
+def test_mapping_prompts_bind_distinct_fixed_assignment_directives(
     generated_pair: tuple[Path, Path, Path, Path]
 ) -> None:
     _, output_a, output_b, _ = generated_pair
@@ -626,7 +664,7 @@ def test_mapping_prompts_bind_distinct_assignment_round_directives(
         payloads[assignment] = json.loads(request["messages"][-1]["content"])
         system_prompts[assignment] = request["messages"][0]["content"]
         assert payloads[assignment]["lexical_directive"]
-        assert payloads[assignment]["schema_version"] == "persona-independent-surface.v2"
+        assert payloads[assignment]["schema_version"] == "persona-pair-conditioned-surface.v3"
         assert "conventional real-world" in system_prompts[assignment]
         assert "arbitrary adjective stacking" in system_prompts[assignment]
         assert "fabric, mineral, or gemstone" in system_prompts[assignment]
@@ -716,11 +754,12 @@ def test_mapping_repair_prompt_names_parent_containment_collision(
 
 
 class RecordingPairClient(FakeKimiClient):
-    """Record mapping/dialogue order and optionally force cross-assignment overlap."""
+    """Record stage order and inject a repairable or persistent B collision."""
 
-    def __init__(self, overlap_rounds: set[int]) -> None:
-        self.overlap_rounds = overlap_rounds
+    def __init__(self, collision_mode: str | None = None) -> None:
+        self.collision_mode = collision_mode
         self.calls: list[tuple[str, str, int]] = []
+        self.b_attempts: dict[int, int] = {}
 
     def complete(self, **kwargs: object) -> LLMResponse:
         messages = kwargs["messages"]
@@ -730,23 +769,19 @@ class RecordingPairClient(FakeKimiClient):
             return super().complete(**kwargs)
         realization_id = str(payload["realization_id"])
         assignment = "A" if "surface-a" in realization_id else "B"
-        mapping_round = int(realization_id.rsplit("round-", 1)[1])
-        self.calls.append(("mapping", assignment, mapping_round))
+        request_index = int(payload["mapping_request_index"])
+        attempt = self.b_attempts.get(request_index, 0) if assignment == "B" else 0
+        self.calls.append(("mapping", assignment, attempt))
         response = super().complete(**kwargs)
-        if mapping_round not in self.overlap_rounds:
-            return response
         mapping = json.loads(response.content)["mapping"]
-        for index, row in enumerate(mapping):
-            history_token = str(row["history_id"]).rsplit("-", 1)[-1]
-            stem = f"shared{history_token}{index}"
-            row["target_phrase"] = {
-                "tea": f"{stem} tea",
-                "seating": f"{stem} seating",
-                "food": f"{stem} curry",
-                "delivery": f"{stem} delivery",
-                "receipt": f"{stem} receipts",
-                "private_lineage": f"{stem} token",
-            }[row["category"]]
+        if assignment == "A" and request_index == 0:
+            mapping[0]["target_phrase"] = "lavender tea"
+        if assignment == "B":
+            self.b_attempts[request_index] = attempt + 1
+            if self.collision_mode == "persistent" and request_index == 0:
+                mapping[0]["target_phrase"] = "lavender tea"
+            elif self.collision_mode == "repair" and request_index == 0 and attempt == 0:
+                mapping[0]["target_phrase"] = "chamomile lavender tea"
         return LLMResponse(
             content=json.dumps({"mapping": mapping}),
             finish_reason=response.finish_reason,
@@ -882,53 +917,73 @@ def _launch_order_fixture(
 
 
 def test_cross_pair_validation_precedes_every_dialogue_call(tmp_path: Path) -> None:
-    client = RecordingPairClient({0})
+    client = RecordingPairClient("repair")
     config = _launch_order_fixture(tmp_path, attempts=2)
 
     generate_surface_pair(config, client)
 
     assert client.calls[:16] == [("mapping", "A", 0)] * 16
-    assert client.calls[16:32] == [("mapping", "B", 0)] * 16
-    assert client.calls[32:48] == [("mapping", "A", 1)] * 16
-    assert client.calls[48:64] == [("mapping", "B", 1)] * 16
-    assert client.calls[64][0] == "dialogue"
+    assert client.calls[16:18] == [("mapping", "B", 0), ("mapping", "B", 1)]
+    assert client.calls[18:33] == [("mapping", "B", 0)] * 15
+    assert client.calls[33][0] == "dialogue"
 
 
-def test_overlap_round_retries_both_independently_with_fresh_prompts(
+def test_b_receives_only_flat_a_targets_and_repairs_without_repeating_a(
     tmp_path: Path,
 ) -> None:
-    client = RecordingPairClient({0})
+    client = RecordingPairClient("repair")
     config = _launch_order_fixture(tmp_path, attempts=2)
     generate_surface_pair(config, client)
 
-    by_assignment = {}
-    for assignment, output in (("A", config.output_a), ("B", config.output_b)):
-        rows = [
-            json.loads(line)
-            for line in (output / "requests.jsonl").read_text().splitlines()
-            if json.loads(line)["stage"] == "mapping"
-        ]
-        by_assignment[assignment] = rows
-        assert [row["mapping_round"] for row in rows] == [0] * 16 + [1] * 16
-        assert [row["accepted"] for row in rows] == [False] * 16 + [True] * 16
-        assert [row["superseded"] for row in rows] == [True] * 16 + [False] * 16
-        assert len({row["prompt_sha256"] for row in rows}) == 32
-        sibling = "surface-b" if assignment == "A" else "surface-a"
-        assert all(sibling not in json.dumps(row["messages"]) for row in rows)
-    assert by_assignment["A"][16]["prompt_sha256"] != by_assignment["B"][16][
-        "prompt_sha256"
+    a_requests = [
+        json.loads(line)
+        for line in (config.output_a / "requests.jsonl").read_text().splitlines()
+        if json.loads(line)["stage"] == "mapping"
     ]
+    b_requests = [
+        json.loads(line)
+        for line in (config.output_b / "requests.jsonl").read_text().splitlines()
+        if json.loads(line)["stage"] == "mapping"
+    ]
+    assert len(a_requests) == 16
+    assert len(b_requests) == 17
+    assert all(
+        "cross_assignment_forbidden_targets"
+        not in json.loads(row["messages"][-1]["content"])
+        for row in a_requests
+    )
+    a_manifest = json.loads(
+        (config.output_a / "generation_manifest.json").read_text()
+    )
+    expected_flat = sorted(
+        row["target_phrase"].casefold() for row in a_manifest["surface_mapping"]
+    )
+    for request in b_requests:
+        payload = json.loads(request["messages"][-1]["content"])
+        supplied = payload["cross_assignment_forbidden_targets"]
+        assert supplied == expected_flat
+        assert all(isinstance(value, str) for value in supplied)
+        assert not any(isinstance(value, dict) for value in supplied)
+    repair_text = " ".join(
+        message["content"]
+        for message in b_requests[1]["messages"]
+        if message["role"] == "system"
+    )
+    assert "cross-assignment collision with 'lavender tea'" in repair_text
+    assert "chamomile lavender tea" in repair_text
 
 
 def test_persistent_mapping_overlap_fails_without_dialogue_or_gate(
     tmp_path: Path,
 ) -> None:
-    client = RecordingPairClient({0, 1})
+    client = RecordingPairClient("persistent")
     config = _launch_order_fixture(tmp_path, attempts=2)
 
     with pytest.raises(ValueError, match="cross-assignment"):
         generate_surface_pair(config, client)
 
+    assert client.calls[:16] == [("mapping", "A", 0)] * 16
+    assert client.calls[16:] == [("mapping", "B", 0), ("mapping", "B", 1)]
     assert all(stage == "mapping" for stage, _, _ in client.calls)
     assert not config.gate_path.exists()
     for output in (config.output_a, config.output_b):
@@ -942,7 +997,7 @@ def test_persistent_mapping_overlap_fails_without_dialogue_or_gate(
             json.loads(line) for line in (output / "requests.jsonl").read_text().splitlines()
         ]
         assert requests and all(row["stage"] == "mapping" for row in requests)
-        assert all(not row["accepted"] and row["superseded"] for row in requests)
+        assert all(not row["accepted"] for row in requests)
 
 
 def test_whole_mapping_naturalness_audit_precedes_dialogue(
@@ -964,7 +1019,7 @@ def test_whole_mapping_naturalness_audit_precedes_dialogue(
         return mapping
 
     monkeypatch.setattr(derivation, "_request_mapping_candidate", inject_artificial_mapping)
-    client = RecordingPairClient(set())
+    client = RecordingPairClient()
     config = _launch_order_fixture(tmp_path, attempts=1)
     with pytest.raises(ValueError, match="cross-category|synthetic"):
         generate_surface_pair(config, client)
@@ -973,7 +1028,7 @@ def test_whole_mapping_naturalness_audit_precedes_dialogue(
 
 
 def test_successful_mapping_pair_then_realizes_all_parent_events(tmp_path: Path) -> None:
-    client = RecordingPairClient(set())
+    client = RecordingPairClient()
     config = _launch_order_fixture(tmp_path, attempts=1)
 
     generate_surface_pair(config, client)
@@ -993,7 +1048,7 @@ def test_generation_authenticates_parent_exactly_once(
 ) -> None:
     import experiments.persona_surface_derivation as derivation
 
-    client = RecordingPairClient(set())
+    client = RecordingPairClient()
     config = _launch_order_fixture(tmp_path, attempts=1)
     original = derivation._authenticate_parent
     calls = 0
@@ -1020,11 +1075,21 @@ def test_resume_after_mapping_reuses_both_mappings_without_duplicate_calls(
     with pytest.raises(SimulatedInterruption):
         generate_surface_pair(config, interrupted)
     assert [stage for stage, _ in interrupted.calls] == ["mapping"] * 32
+    b_prompt_hashes = [
+        json.loads(line)["prompt_sha256"]
+        for line in (config.output_b / "requests.jsonl").read_text().splitlines()
+        if json.loads(line)["stage"] == "mapping"
+    ]
 
     resumed = InterruptingDurableClient(None)
     generate_surface_pair(config, resumed)
     assert all(stage == "dialogue" for stage, _ in resumed.calls)
     assert len(resumed.calls) == 10
+    assert [
+        json.loads(line)["prompt_sha256"]
+        for line in (config.output_b / "requests.jsonl").read_text().splitlines()
+        if json.loads(line)["stage"] == "mapping"
+    ] == b_prompt_hashes
 
 
 def test_resume_mid_dialogue_skips_all_validated_external_calls(tmp_path: Path) -> None:
@@ -1282,7 +1347,7 @@ def test_resume_rejects_generation_control_drift_before_provider_call(
     assert client.calls == []
 
 
-def test_resume_rejects_v1_prompt_schema_before_provider_call(tmp_path: Path) -> None:
+def test_resume_rejects_old_v2_prompt_schema_before_provider_call(tmp_path: Path) -> None:
     config = replace(
         _launch_order_fixture(tmp_path, attempts=1),
         events_per_request=100,
@@ -1294,7 +1359,7 @@ def test_resume_rejects_v1_prompt_schema_before_provider_call(tmp_path: Path) ->
     manifest = json.loads(manifest_path.read_text())
     manifest["generation_controls"][
         "prompt_schema_version"
-    ] = "persona-independent-surface.v1"
+    ] = "persona-independent-surface.v2"
     manifest["generation_controls_sha256"] = _stable_hash(
         manifest["generation_controls"]
     )

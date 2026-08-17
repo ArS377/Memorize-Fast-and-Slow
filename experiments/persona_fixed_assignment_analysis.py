@@ -1113,7 +1113,7 @@ def analyze_sources(
                 }
             )
         warning = (
-            "CONTAMINATION WARNING: A and B use independently Kimi-generated surfaces and dialogue "
+            "CONTAMINATION WARNING: A and B use separately Kimi-generated, pair-conditioned surfaces and dialogue "
             "over the same v1 histories, facts, and evaluation structure, not independent latent "
             "replications. These "
             "difference-in-paired-differences estimates are descriptive only and do not support "

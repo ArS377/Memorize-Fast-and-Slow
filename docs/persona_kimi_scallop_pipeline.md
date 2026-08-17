@@ -2,10 +2,10 @@
 
 ## Status and scope
 
-This document describes the current-branch pipeline from deterministic latent benchmark construction through independent Kimi A/B realization, Scallop source selection, five-arm Qwen evaluation, and fixed-assignment bootstrap analysis (`experiments/synthetic_temporal_preferences.py:580-933`; `experiments/persona_surface_derivation.py:1750-1995`; `experiments/persona_end_to_end_benchmark.py:1183-1418`; `experiments/persona_fixed_assignment_analysis.py:1020-1119`).
+This document describes the current-branch pipeline from deterministic latent benchmark construction through pair-conditioned fixed-assignment Kimi A/B realization, Scallop source selection, five-arm Qwen evaluation, and fixed-assignment bootstrap analysis (`experiments/synthetic_temporal_preferences.py:580-933`; `experiments/persona_surface_derivation.py:1750-1995`; `experiments/persona_end_to_end_benchmark.py:1183-1418`; `experiments/persona_fixed_assignment_analysis.py:1020-1119`).
 
-The new independent Kimi A/B run is **not claimed complete here**.
-The only committed A/B corpora and pooled A/B results currently under `results/` are the older deterministic surface derivations and their Qwen evaluations; they remain historical evidence and become superseded only after both independent Kimi replacements, their pair gate, both replacement Qwen runs, and replacement pooled analysis complete and authenticate successfully (`results/persona_conflict_conversations_surface_a/generation_manifest.json:24-59`; `results/persona_conflict_conversations_surface_b/generation_manifest.json:24-59`; `results/persona_surface_generalization_v1/analysis.md:141-173`; `experiments/persona_surface_derivation.py:1980-1995`).
+The new pair-conditioned Kimi A/B run is **not claimed complete here**.
+The only committed A/B corpora and pooled A/B results currently under `results/` are the older deterministic surface derivations and their Qwen evaluations; they remain historical evidence and become superseded only after both pair-conditioned Kimi replacements, their pair gate, both replacement Qwen runs, and replacement pooled analysis complete and authenticate successfully (`results/persona_conflict_conversations_surface_a/generation_manifest.json:24-59`; `results/persona_conflict_conversations_surface_b/generation_manifest.json:24-59`; `results/persona_surface_generalization_v1/analysis.md:141-173`; `experiments/persona_surface_derivation.py:1980-1995`).
 
 ## 1. Deterministic latent benchmark
 
@@ -62,7 +62,7 @@ The 210 raw responses report 193,917 prompt tokens, 380,726 completion tokens, 3
 Provider provenance is bounded: exact artifact and prompt/response hashes authenticate the bytes, but the model identity is only what the endpoint self-reported.
 The manifests do not provide hostile provider-origin attestation (`results/persona_conflict_conversations_v1/generation_manifest.json:35-41,255`; `results/persona_surface_generalization_v1/analysis.md:166-173`).
 
-## 3. Independent Kimi A/B replacement
+## 3. Pair-conditioned fixed-assignment Kimi A/B replacement
 
 The replacement entry point is `experiments/persona_surface_derivation.py`, configured by `configs/persona_surface_pair_generation.json`.
 Runtime paths and credentials come from `PERSONA_SURFACE_PARENT_DIR`, `PERSONA_SURFACE_A_OUTPUT_DIR`, `PERSONA_SURFACE_B_OUTPUT_DIR`, `PERSONA_SURFACE_PAIR_GATE_PATH`, `KIMI_BASE_URL`, `KIMI_API_KEY`, and `KIMI_MODEL` (`configs/persona_surface_pair_generation.json:2-19`; `experiments/persona_surface_derivation.py:2006-2074`).
@@ -70,8 +70,8 @@ Runtime paths and credentials come from `PERSONA_SURFACE_PARENT_DIR`, `PERSONA_S
 The stage order is deliberate:
 
 1. Authenticate the completed parent manifest and every declared parent artifact by SHA-256 (`experiments/persona_surface_derivation.py:435-465`).
-2. Generate assignment-local mappings for A and B first. Each request sees only its own assignment, history batch, prior targets from that assignment, and a distinct lexical directive; it never sees sibling targets (`experiments/persona_surface_derivation.py:571-629`; `experiments/persona_surface_derivation.py:898-978`).
-3. Validate exact mapping row coverage/order, category shape, global uniqueness, no parent-phrase reuse, no latent IDs, and no cross-assignment normalized equality or containment (`experiments/persona_surface_derivation.py:322-432`).
+2. Generate the complete fixed A mapping first through fresh Kimi calls. Then generate fixed B through separate fresh Kimi calls; B receives only a flat normalized list of A target phrases to avoid, never A history IDs, categories, source phrases, or mapping associations. A receives no B information (`experiments/persona_surface_derivation.py:571-629`; `experiments/persona_surface_derivation.py:898-978`).
+3. Validate exact mapping row coverage/order, category shape and naturalness, global uniqueness, no parent-phrase reuse, no latent IDs, and equality or bidirectional token-sequence containment against prior same-assignment and A-to-B forbidden targets. The final pair validator remains a defense-in-depth check (`experiments/persona_surface_derivation.py:322-432`).
 4. For each accepted mapping, issue fresh Kimi dialogue calls over all 416 parent events, validate every response against the existing semantic dialogue contract, and rebuild only visible event text, dialogue, visible query text, and visible gold (`experiments/persona_surface_derivation.py:1015-1129`).
 5. Preserve byte-identical parent artifacts outside the explicitly rebuilt set; write fresh request/response journals and a completed child manifest only after all checks pass (`experiments/persona_surface_derivation.py:62-70`; `experiments/persona_surface_derivation.py:1117-1169`).
 6. Validate both completed children together, reject parent provenance reuse or A/B accepted-response overlap, then atomically write the pair gate (`experiments/persona_surface_derivation.py:1276-1496`; `experiments/persona_surface_derivation.py:1563-1590`; `experiments/persona_surface_derivation.py:1980-1995`).
@@ -116,25 +116,27 @@ The first non-empty generated line is normalized as the short answer and scored 
 Per-arm summaries report row count, history-cluster count, mean exact match, and mean F1 (`experiments/persona_end_to_end_benchmark.py:680-696`).
 Arm contrasts are paired on identical evaluation inputs and use a nonparametric percentile bootstrap that resamples whole base-history clusters, preserving all rows within each sampled history (`experiments/persona_end_to_end_benchmark.py:699-748`).
 
-The final A/B analysis independently re-hashes corpus and benchmark artifacts, recomputes canonical scores, requires all five arms and complete counts, requires distinct A/B datasets and predictions under one parent and pair gate, and validates assignment golds against the authenticated parent oracle (`experiments/persona_fixed_assignment_analysis.py:70-134`; `experiments/persona_fixed_assignment_analysis.py:580-685`; `experiments/persona_fixed_assignment_analysis.py:1063-1091`).
+The final A/B analysis re-hashes corpus and benchmark artifacts from source, recomputes canonical scores, requires all five arms and complete counts, requires distinct A/B datasets and predictions under one parent and pair gate, and validates assignment golds against the authenticated parent oracle (`experiments/persona_fixed_assignment_analysis.py:70-134`; `experiments/persona_fixed_assignment_analysis.py:580-685`; `experiments/persona_fixed_assignment_analysis.py:1063-1091`).
 Pooled A+B uncertainty uses 12 `base_history_id` clusters and keeps each history's A and B replicas together (`experiments/persona_fixed_assignment_analysis.py:1020-1050`).
+The bootstrap unit is the base history, not the fixed surface assignment.
+A and B share one parent and B is explicitly conditioned on A for lexical disjointness, so they are not statistically independent mapping replicates; assignment-level differences and difference-in-paired-differences remain descriptive for these two fixed assignments.
 
 ## 8. Superseded-on-replacement deterministic results
 
-The current committed pooled report is from deterministic category-preserving A/B derivations, not the new independent Kimi A/B pipeline (`results/persona_conflict_conversations_surface_a/generation_manifest.json:24-36`; `results/persona_conflict_conversations_surface_b/generation_manifest.json:24-36`; `results/persona_surface_generalization_v1/analysis.md:141-173`).
+The current committed pooled report is from deterministic category-preserving A/B derivations, not the new pair-conditioned Kimi A/B pipeline (`results/persona_conflict_conversations_surface_a/generation_manifest.json:24-36`; `results/persona_conflict_conversations_surface_b/generation_manifest.json:24-36`; `results/persona_surface_generalization_v1/analysis.md:141-173`).
 Its pooled exact-match scores are 0.350 for sliding 4K, 0.617 for sliding 16K, 0.679 for structured 4K, 0.713 for structured 16K, and 0.721 for full context (`results/persona_surface_generalization_v1/analysis.md:7-15`).
 Its pooled structured-minus-sliding exact-match deltas are 0.329 at 4K and 0.096 at 16K, with the report's history-clustered 95% intervals (`results/persona_surface_generalization_v1/analysis.md:37-48`).
 
 Those numbers are **old deterministic results, pending supersession**.
-They must not be presented as evidence from independent Kimi surfaces, because the committed report explicitly says A and B are deterministic derivations of the same visible parent material and limits difference-in-paired-differences claims to descriptive analysis (`results/persona_surface_generalization_v1/analysis.md:141-173`).
-They become superseded only when completed independent Kimi child manifests, the authenticated pair gate, completed five-arm A and B benchmark manifests, and replacement pooled analysis artifacts all exist and pass the code gates above (`experiments/persona_surface_derivation.py:1190-1590`; `experiments/persona_end_to_end_benchmark.py:1390-1418`; `experiments/persona_fixed_assignment_analysis.py:630-689,1020-1095`).
+They must not be presented as evidence from statistically independent Kimi surfaces, because the committed report explicitly says A and B are deterministic derivations of the same visible parent material and limits difference-in-paired-differences claims to descriptive analysis (`results/persona_surface_generalization_v1/analysis.md:141-173`).
+They become superseded only when completed pair-conditioned Kimi child manifests, the authenticated pair gate, completed five-arm A and B benchmark manifests, and replacement pooled analysis artifacts all exist and pass the code gates above (`experiments/persona_surface_derivation.py:1190-1590`; `experiments/persona_end_to_end_benchmark.py:1390-1418`; `experiments/persona_fixed_assignment_analysis.py:630-689,1020-1095`).
 
 ## Operational map
 
 | Stage | Configuration / code | Artifacts and completion gate |
 |---|---|---|
 | Parent corpus | `configs/persona_conflict_generation.json`; `experiments/persona_conversation_generator.py` | `results/persona_conflict_conversations_v1/`; completed Kimi manifest plus every declared SHA-256 (`results/persona_conflict_conversations_v1/generation_manifest.json:13-25,493-505`). |
-| Independent A/B | `configs/persona_surface_pair_generation.json`; `experiments/persona_surface_derivation.py` | Env-selected A and B directories; each requires a completed `kimi-k3` child manifest, fresh requests/responses, complete mapping/dialogue coverage, and artifact hashes (`experiments/persona_surface_derivation.py:1133-1169,1190-1422`). |
+| Pair-conditioned fixed A/B | `configs/persona_surface_pair_generation.json`; `experiments/persona_surface_derivation.py` | Env-selected A and B directories; each requires a completed `kimi-k3` child manifest, fresh requests/responses, complete mapping/dialogue coverage, and artifact hashes (`experiments/persona_surface_derivation.py:1133-1169,1190-1422`). |
 | Pair gate | `PERSONA_SURFACE_PAIR_GATE_PATH` and `PERSONA_SURFACE_PAIR_GATE_SHA256` | Env-selected gate JSON; must bind and re-prove parent, A, B, controls, mappings, artifacts, and paths (`experiments/persona_surface_derivation.py:1499-1590`). |
 | Scheduling / Qwen A | `configs/persona_end_to_end_benchmark_surface_a.json` | `PERSONA_SURFACE_A_BENCHMARK_OUTPUT_DIR`; gate authentication occurs before tokenizer/model load (`configs/persona_end_to_end_benchmark_surface_a.json:2-25`; `experiments/persona_end_to_end_benchmark.py:1171-1205`). |
 | Scheduling / Qwen B | `configs/persona_end_to_end_benchmark_surface_b.json` | `PERSONA_SURFACE_B_BENCHMARK_OUTPUT_DIR`; same gate, assignment B, and source manifest hash from env (`configs/persona_end_to_end_benchmark_surface_b.json:2-25`). |
