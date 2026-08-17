@@ -14,6 +14,13 @@ import re
 import tempfile
 from typing import Any, Callable, Mapping, Sequence
 
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
+
 from experiments.persona_conversation_generator import (
     CompletionClient,
     OpenAICompletionClient,
@@ -171,6 +178,34 @@ _CONVENTIONAL_CROSS_CATEGORY_PHRASES = {
     ("seating", "velvet seating"),
     ("tea", "cotton candy tea"),
 }
+_TRANSIENT_PROVIDER_ERROR_TYPES = (
+    APITimeoutError,
+    APIConnectionError,
+    RateLimitError,
+    InternalServerError,
+    TimeoutError,
+    ConnectionError,
+    BrokenPipeError,
+    ConnectionAbortedError,
+    ConnectionRefusedError,
+    ConnectionResetError,
+)
+_TRANSIENT_PROVIDER_ERROR_NAMES = {
+    error_type.__name__ for error_type in _TRANSIENT_PROVIDER_ERROR_TYPES
+}
+_RESPONSE_METADATA_FIELDS = (
+    "stage",
+    "assignment",
+    "request_index",
+    "mapping_request_index",
+    "history_ids",
+    "event_ids",
+    "attempt_index",
+    "seed",
+    "requested_model",
+    "max_tokens",
+    "enable_thinking",
+)
 
 
 class CacheIntegrityError(ValueError):
@@ -267,6 +302,92 @@ def _stable_hash(value: Any) -> str:
     """Hash one JSON value with canonical serialization."""
     payload = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
     return _sha256_bytes(payload.encode("utf-8"))
+
+
+def _transient_retry_instruction(provider_error: Mapping[str, str]) -> str:
+    """Return deterministic retry feedback derived only from persisted error data."""
+    return (
+        "The prior provider call failed transiently with "
+        f"{provider_error['type']}: {provider_error['message']}. "
+        "Retry with the changed seed and return a concise complete response."
+    )
+
+
+def _provider_error_row(
+    request_row: Mapping[str, Any],
+    provider_error: Mapping[str, str],
+    *,
+    reconciled_from_failed_manifest: bool = False,
+) -> dict[str, Any]:
+    """Build one canonical response-side provenance record for a provider failure."""
+    row = {
+        field: request_row[field]
+        for field in _RESPONSE_METADATA_FIELDS
+        if field in request_row
+    }
+    row.update(
+        {
+            "model": None,
+            "returned_model": None,
+            "accepted": False,
+            "provider_error": dict(provider_error),
+            **(
+                {"superseded": True}
+                if request_row.get("stage") == "mapping"
+                else {}
+            ),
+            **(
+                {"reconciled_from_failed_manifest": True}
+                if reconciled_from_failed_manifest
+                else {}
+            ),
+        }
+    )
+    row["error_record_sha256"] = _stable_hash(row)
+    return row
+
+
+def _validate_provider_error_row(row: Mapping[str, Any]) -> None:
+    """Authenticate one transient provider-error record and reject response masquerading."""
+    provider_error = row.get("provider_error")
+    if (
+        not isinstance(provider_error, Mapping)
+        or set(provider_error) != {"type", "message"}
+        or not isinstance(provider_error.get("type"), str)
+        or provider_error.get("type") not in _TRANSIENT_PROVIDER_ERROR_NAMES
+        or not isinstance(provider_error.get("message"), str)
+    ):
+        raise ValueError("provider error row has an invalid transient error classification")
+    if row.get("accepted") is not False:
+        raise ValueError("provider error row cannot be accepted")
+    if row.get("model") is not None or row.get("returned_model") is not None:
+        raise ValueError("provider error row cannot claim a returned model")
+    if any(
+        field in row
+        for field in ("content", "response_sha256", "finish_reason", "usage")
+    ):
+        raise ValueError("provider error row cannot contain fabricated response data")
+    if row.get("stage") == "mapping" and row.get("superseded") is not True:
+        raise ValueError("mapping provider error row must be superseded")
+    if "reconciled_from_failed_manifest" in row and row.get(
+        "reconciled_from_failed_manifest"
+    ) is not True:
+        raise ValueError("provider error reconciliation marker must be true")
+    recorded_hash = row.get("error_record_sha256")
+    canonical = {key: value for key, value in row.items() if key != "error_record_sha256"}
+    if recorded_hash != _stable_hash(canonical):
+        raise ValueError("provider error record hash mismatch")
+
+
+def _raw_provenance_hash(row: Mapping[str, Any]) -> str:
+    """Return the authenticated hash for a model response or provider-error record."""
+    if "provider_error" in row:
+        _validate_provider_error_row(row)
+        return str(row["error_record_sha256"])
+    response_hash = row.get("response_sha256")
+    if not isinstance(response_hash, str):
+        raise ValueError("raw response row lacks response_sha256")
+    return response_hash
 
 
 def _generation_controls(config: SurfacePairConfig) -> dict[str, Any]:
@@ -902,6 +1023,8 @@ def _complete_with_validation(
     """Reuse exact validated responses or durably issue changed attempts."""
     attempt_limit = config.max_validation_attempts if max_attempts is None else max_attempts
     validation_error: ValueError | None = None
+    transient_error: dict[str, str] | None = None
+    last_failure: str | None = None
     for attempt in range(attempt_limit):
         attempt_messages = list(messages)
         if validation_error is not None:
@@ -910,6 +1033,14 @@ def _complete_with_validation(
                 {
                     "role": "system",
                     "content": f"Repair this validation failure and return the complete response: {validation_error}",
+                },
+            )
+        elif transient_error is not None:
+            attempt_messages.insert(
+                -1,
+                {
+                    "role": "system",
+                    "content": _transient_retry_instruction(transient_error),
                 },
             )
         prompt_hash = _stable_hash(attempt_messages)
@@ -993,6 +1124,27 @@ def _complete_with_validation(
                     raise CacheIntegrityError(
                         f"cached response mismatch for {key} on {field}"
                     )
+            if "provider_error" in response_row:
+                try:
+                    _validate_provider_error_row(response_row)
+                except ValueError as error:
+                    raise CacheIntegrityError(
+                        f"cached provider error mismatch for {key}: {error}"
+                    ) from error
+                if request_row.get("accepted") is not False:
+                    raise CacheIntegrityError(
+                        f"cached provider error request is accepted for {key}"
+                    )
+                if request_context.get("stage") == "mapping" and request_row.get(
+                    "superseded"
+                ) is not True:
+                    raise CacheIntegrityError(
+                        f"cached provider error request is not superseded for {key}"
+                    )
+                transient_error = dict(response_row["provider_error"])
+                validation_error = None
+                last_failure = _transient_retry_instruction(transient_error)
+                continue
             content = response_row.get("content")
             if not isinstance(content, str) or response_row.get(
                 "response_sha256"
@@ -1001,13 +1153,32 @@ def _complete_with_validation(
         else:
             if read_only_cache:
                 raise CacheIntegrityError(f"completed assignment lacks cached response {key}")
-            response = client.complete(
-                messages=attempt_messages,
-                model=config.model,
-                timeout=config.timeout_seconds,
-                seed=attempt_seed,
-                max_tokens=max_tokens,
-            )
+            try:
+                response = client.complete(
+                    messages=attempt_messages,
+                    model=config.model,
+                    timeout=config.timeout_seconds,
+                    seed=attempt_seed,
+                    max_tokens=max_tokens,
+                )
+            except Exception as error:
+                if type(error) not in _TRANSIENT_PROVIDER_ERROR_TYPES:
+                    raise
+                transient_error = {
+                    "type": type(error).__name__,
+                    "message": str(error),
+                }
+                validation_error = None
+                request_row["accepted"] = False
+                if request_context.get("stage") == "mapping":
+                    request_row["superseded"] = True
+                response_row = _provider_error_row(request_row, transient_error)
+                raw_rows.append(response_row)
+                _persist_generation_state(
+                    output_dir, running_manifest, request_rows, raw_rows
+                )
+                last_failure = _transient_retry_instruction(transient_error)
+                continue
             response_row = {
                 **dict(request_context),
                 "attempt_index": attempt,
@@ -1061,9 +1232,11 @@ def _complete_with_validation(
                     output_dir, running_manifest, request_rows, raw_rows
                 )
             validation_error = error
+            transient_error = None
+            last_failure = str(error)
     raise ValueError(
         f"{request_context.get('stage')} request failed after "
-        f"{attempt_limit} attempts: {validation_error}"
+        f"{attempt_limit} attempts: {last_failure}"
     )
 
 
@@ -1177,7 +1350,7 @@ def _persist_generation_state(
                 str(row["prompt_sha256"]) for row in request_rows
             ],
             "response_sha256": [
-                str(row["response_sha256"]) for row in raw_rows
+                _raw_provenance_hash(row) for row in raw_rows
             ],
             "provenance_artifact_sha256": {
                 "requests.jsonl": _sha256_bytes(requests_payload),
@@ -1329,7 +1502,7 @@ def _generate_assignment(
             "request_count": len(request_rows),
             "response_count": len(raw_rows),
             "prompt_sha256": [row["prompt_sha256"] for row in request_rows],
-            "response_sha256": [row["response_sha256"] for row in raw_rows],
+            "response_sha256": [_raw_provenance_hash(row) for row in raw_rows],
             "effective_generation": _usage_token_totals(raw_rows),
             "artifact_roles": {
                 **dict(parent_manifest.get("artifact_roles", {})),
@@ -1521,12 +1694,6 @@ def _validate_fresh_provenance(
             raise ValueError(f"{assignment} request differs from generation controls")
         if request.get("prompt_sha256") != _stable_hash(request.get("messages")):
             raise ValueError(f"{assignment} prompt hash mismatch")
-        content = response.get("content")
-        if not isinstance(content, str) or response.get("response_sha256") != _sha256_bytes(
-            content.encode("utf-8")
-        ):
-            raise ValueError(f"{assignment} response hash mismatch")
-        validate_kimi_model_identity(EXPECTED_MODEL, str(response.get("model")))
         if request.get("accepted") != response.get("accepted") or not isinstance(
             request.get("accepted"), bool
         ):
@@ -1542,6 +1709,17 @@ def _validate_fresh_provenance(
                 raise ValueError(
                     f"{assignment} mapping response must be exactly accepted or superseded"
                 )
+        if "provider_error" in response:
+            _validate_provider_error_row(response)
+            if request.get("accepted") is not False:
+                raise ValueError(f"{assignment} provider error request cannot be accepted")
+            continue
+        content = response.get("content")
+        if not isinstance(content, str) or response.get("response_sha256") != _sha256_bytes(
+            content.encode("utf-8")
+        ):
+            raise ValueError(f"{assignment} response hash mismatch")
+        validate_kimi_model_identity(EXPECTED_MODEL, str(response.get("model")))
         if not request["accepted"]:
             continue
         response_hashes.add(str(response["response_sha256"]))
@@ -1595,7 +1773,9 @@ def _validate_fresh_provenance(
         raise ValueError(f"{assignment} fresh dialogue responses do not cover parent event order")
     if manifest.get("prompt_sha256") != [row["prompt_sha256"] for row in requests]:
         raise ValueError(f"{assignment} manifest prompt hashes differ from requests")
-    if manifest.get("response_sha256") != [row["response_sha256"] for row in responses]:
+    if manifest.get("response_sha256") != [
+        _raw_provenance_hash(row) for row in responses
+    ]:
         raise ValueError(f"{assignment} manifest response hashes differ from logs")
     return response_hashes
 
@@ -1853,6 +2033,24 @@ def _validate_resumable_log_prefixes(
                 raise CacheIntegrityError(
                     f"cached response {row_key} differs from request on {field}"
                 )
+        if "provider_error" in row:
+            try:
+                _validate_provider_error_row(row)
+            except ValueError as error:
+                raise CacheIntegrityError(
+                    f"cached provider error mismatch for {row_key}: {error}"
+                ) from error
+            if request.get("accepted") is not False:
+                raise CacheIntegrityError(
+                    f"cached provider error request is accepted for {row_key}"
+                )
+            if request.get("stage") == "mapping" and request.get(
+                "superseded"
+            ) is not True:
+                raise CacheIntegrityError(
+                    f"cached provider error request is not superseded for {row_key}"
+                )
+            continue
         content = row.get("content")
         if not isinstance(content, str) or row.get("response_sha256") != _sha256_bytes(
             content.encode("utf-8")
@@ -1932,6 +2130,58 @@ def _load_or_initialize_assignment_state(
     responses = _load_jsonl_file(responses_path)
     recorded = manifest.get("provenance_artifact_sha256")
     completed = manifest.get("status") == "completed"
+    if not completed:
+        def provenance_key(row: Mapping[str, Any]) -> tuple[str, int, int]:
+            return (
+                str(row.get("stage")),
+                int(row.get("request_index", -1)),
+                int(row.get("attempt_index", -1)),
+            )
+
+        response_keys = {provenance_key(row) for row in responses}
+        dangling = [row for row in requests if provenance_key(row) not in response_keys]
+        if manifest.get("status") == "failed" and dangling:
+            error = manifest.get("error")
+            transient_type = error.get("type") if isinstance(error, Mapping) else None
+            exact_trailing_dangling = (
+                len(dangling) == 1
+                and len(requests) == len(responses) + 1
+                and dangling[0] is requests[-1]
+            )
+            actual_hashes = {
+                "requests.jsonl": _sha256_bytes(requests_path.read_bytes()),
+                "raw_responses.jsonl": _sha256_bytes(responses_path.read_bytes()),
+            }
+            artifact_hashes = manifest.get("artifact_sha256")
+            hashes_match = (
+                isinstance(recorded, Mapping)
+                and all(recorded.get(name) == digest for name, digest in actual_hashes.items())
+                and isinstance(artifact_hashes, Mapping)
+                and all(
+                    artifact_hashes.get(name) == digest
+                    for name, digest in actual_hashes.items()
+                )
+            )
+            if (
+                transient_type not in _TRANSIENT_PROVIDER_ERROR_NAMES
+                or not exact_trailing_dangling
+                or not hashes_match
+                or not isinstance(error.get("message"), str)
+            ):
+                raise CacheIntegrityError(
+                    "failed manifest dangling request is not an exact transient trailing call"
+                )
+            dangling_request = dangling[0]
+            dangling_request["accepted"] = False
+            if dangling_request.get("stage") == "mapping":
+                dangling_request["superseded"] = True
+            responses.append(
+                _provider_error_row(
+                    dangling_request,
+                    {"type": str(transient_type), "message": str(error["message"])},
+                    reconciled_from_failed_manifest=True,
+                )
+            )
     if completed:
         if not isinstance(recorded, Mapping):
             raise CacheIntegrityError("completed manifest lacks provenance artifact hashes")
@@ -2085,7 +2335,7 @@ def generate_surface_pair(
                     row["prompt_sha256"] for row in request_rows[assignment]
                 ],
                 "response_sha256": [
-                    row["response_sha256"] for row in raw_rows[assignment]
+                    _raw_provenance_hash(row) for row in raw_rows[assignment]
                 ],
                 "artifact_sha256": {
                     "requests.jsonl": _sha256_bytes(

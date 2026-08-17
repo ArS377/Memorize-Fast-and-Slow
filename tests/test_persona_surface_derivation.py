@@ -885,8 +885,62 @@ class FailingDialogueClient(FakeKimiClient):
             raise AssertionError("assignment-local dialogue client received mapping work")
         if self.should_fail:
             self.should_fail = False
-            raise RuntimeError("simulated assignment dialogue failure")
+            raise SimulatedInterruption()
         return super().complete(**kwargs)
+
+
+class TransientBMappingClient(FakeKimiClient):
+    """Inject provider failures at B history-005 and record actual calls."""
+
+    def __init__(self, mode: str) -> None:
+        self.mode = mode
+        self.failure_count = 0
+        self.calls: list[tuple[dict[str, object], int, list[dict[str, str]]]] = []
+
+    def complete(self, **kwargs: object) -> LLMResponse:
+        messages = kwargs["messages"]
+        payload = json.loads(messages[-1]["content"])
+        self.calls.append((payload, int(kwargs["seed"]), messages))
+        is_target = (
+            "mapping" in payload
+            and "surface-b" in str(payload["realization_id"])
+            and payload["history_ids"] == ["history-005"]
+        )
+        if is_target and self.mode != "never" and (
+            self.mode == "persistent" or self.failure_count == 0
+        ):
+            self.failure_count += 1
+            if self.mode == "non-transient":
+                raise RuntimeError("programming contract failure")
+            if self.mode == "openai-timeout":
+                import httpx
+                from openai import APITimeoutError as OpenAIAPITimeoutError
+
+                raise OpenAIAPITimeoutError(
+                    httpx.Request("POST", "https://unused.invalid/chat/completions")
+                )
+            raise TimeoutError("provider timed out")
+        return super().complete(**kwargs)
+
+
+class APITimeoutError(Exception):
+    """Simulate the exact persisted pre-fix OpenAI error type without classification."""
+
+
+class LegacyDanglingTimeoutClient(TransientBMappingClient):
+    """Leave the observed pre-fix B history-005 dangling request."""
+
+    def complete(self, **kwargs: object) -> LLMResponse:
+        messages = kwargs["messages"]
+        payload = json.loads(messages[-1]["content"])
+        self.calls.append((payload, int(kwargs["seed"]), messages))
+        if (
+            "mapping" in payload
+            and "surface-b" in str(payload["realization_id"])
+            and payload["history_ids"] == ["history-005"]
+        ):
+            raise APITimeoutError("Request timed out.")
+        return FakeKimiClient.complete(self, **kwargs)
 
 
 def _launch_order_fixture(
@@ -1286,7 +1340,7 @@ def test_concurrent_worker_failure_leaves_resumable_journals_and_no_gate(
         events_per_request=100,
         resume_existing=True,
     )
-    with pytest.raises(RuntimeError, match="simulated assignment dialogue failure"):
+    with pytest.raises(SimulatedInterruption):
         generate_surface_pair(
             config,
             FakeKimiClient(),
@@ -1297,7 +1351,7 @@ def test_concurrent_worker_failure_leaves_resumable_journals_and_no_gate(
     assert not config.gate_path.exists()
     for output in (config.output_a, config.output_b):
         manifest = json.loads((output / "generation_manifest.json").read_text())
-        assert manifest["status"] in {"completed", "failed"}
+        assert manifest["status"] in {"completed", "running"}
         assert (output / "requests.jsonl").exists()
         assert (output / "raw_responses.jsonl").exists()
 
@@ -1312,6 +1366,136 @@ def test_concurrent_worker_failure_leaves_resumable_journals_and_no_gate(
         == "completed"
         for output in (config.output_a, config.output_b)
     )
+
+
+def test_transient_b_timeout_persists_error_then_repairs_with_changed_call(
+    tmp_path: Path,
+) -> None:
+    config = _launch_order_fixture(tmp_path, attempts=2)
+    client = TransientBMappingClient("openai-timeout")
+    generate_surface_pair(config, client)
+    requests = [
+        json.loads(line)
+        for line in (config.output_b / "requests.jsonl").read_text().splitlines()
+        if json.loads(line)["stage"] == "mapping"
+        and json.loads(line)["history_ids"] == ["history-005"]
+    ]
+    responses = [
+        json.loads(line)
+        for line in (config.output_b / "raw_responses.jsonl").read_text().splitlines()
+        if json.loads(line)["stage"] == "mapping"
+        and json.loads(line)["history_ids"] == ["history-005"]
+    ]
+    assert [row["attempt_index"] for row in requests] == [0, 1]
+    assert [row["seed"] for row in requests] == [requests[0]["seed"], requests[0]["seed"] + 1]
+    error_row = responses[0]
+    assert error_row["accepted"] is False
+    assert error_row["returned_model"] is None
+    assert error_row["provider_error"] == {
+        "type": "APITimeoutError",
+        "message": "Request timed out.",
+    }
+    assert "content" not in error_row
+    assert error_row["error_record_sha256"]
+    retry_text = " ".join(
+        message["content"]
+        for message in requests[1]["messages"]
+        if message["role"] == "system"
+    )
+    assert "failed transiently" in retry_text
+    assert "concise complete response" in retry_text
+    assert responses[1]["accepted"] is True
+
+
+def test_persistent_transient_timeout_exhausts_attempts_without_gate(
+    tmp_path: Path,
+) -> None:
+    config = _launch_order_fixture(tmp_path, attempts=2)
+    client = TransientBMappingClient("persistent")
+    with pytest.raises(ValueError, match="failed after 2 attempts"):
+        generate_surface_pair(config, client)
+    assert not config.gate_path.exists()
+    error_rows = [
+        json.loads(line)
+        for line in (config.output_b / "raw_responses.jsonl").read_text().splitlines()
+        if "provider_error" in json.loads(line)
+    ]
+    assert len(error_rows) == 2
+    assert all(row["provider_error"]["type"] == "TimeoutError" for row in error_rows)
+    assert not any("events" in payload for payload, _, _ in client.calls)
+
+
+def test_non_transient_provider_exception_propagates_without_retry_or_error_row(
+    tmp_path: Path,
+) -> None:
+    config = _launch_order_fixture(tmp_path, attempts=3)
+    client = TransientBMappingClient("non-transient")
+    with pytest.raises(RuntimeError, match="programming contract failure"):
+        generate_surface_pair(config, client)
+    target_calls = [
+        call
+        for call in client.calls
+        if call[0].get("history_ids") == ["history-005"]
+        and "surface-b" in str(call[0].get("realization_id"))
+    ]
+    assert len(target_calls) == 1
+    assert not any(
+        "provider_error" in json.loads(line)
+        for line in (config.output_b / "raw_responses.jsonl").read_text().splitlines()
+    )
+    assert not config.gate_path.exists()
+
+
+def test_provider_error_record_hash_rejects_tampering(tmp_path: Path) -> None:
+    import experiments.persona_surface_derivation as derivation
+
+    config = _launch_order_fixture(tmp_path, attempts=2)
+    generate_surface_pair(config, TransientBMappingClient("once"))
+    error_row = next(
+        json.loads(line)
+        for line in (config.output_b / "raw_responses.jsonl").read_text().splitlines()
+        if "provider_error" in json.loads(line)
+    )
+    error_row["provider_error"]["message"] = "tampered"
+    with pytest.raises(ValueError, match="error record hash"):
+        derivation._validate_provider_error_row(error_row)
+
+
+def test_pk4_failed_dangling_timeout_resume_starts_at_changed_attempt_one(
+    tmp_path: Path,
+) -> None:
+    config = replace(_launch_order_fixture(tmp_path, attempts=2), resume_existing=True)
+    legacy = LegacyDanglingTimeoutClient("legacy")
+    with pytest.raises(APITimeoutError, match="Request timed out"):
+        generate_surface_pair(config, legacy)
+    failed_manifest = json.loads(
+        (config.output_b / "generation_manifest.json").read_text()
+    )
+    assert failed_manifest["status"] == "failed"
+    assert failed_manifest["error"]["type"] == "APITimeoutError"
+    assert len(
+        (config.output_b / "requests.jsonl").read_text().splitlines()
+    ) == len((config.output_b / "raw_responses.jsonl").read_text().splitlines()) + 1
+
+    resumed = TransientBMappingClient("never")
+    generate_surface_pair(config, resumed)
+    first_payload, first_seed, first_messages = resumed.calls[0]
+    assert first_payload["history_ids"] == ["history-005"]
+    assert "surface-b" in str(first_payload["realization_id"])
+    assert first_seed == 911 + 4_000 + 1
+    assert any(
+        "failed transiently" in message["content"]
+        for message in first_messages
+        if message["role"] == "system"
+    )
+    reconciled = next(
+        json.loads(line)
+        for line in (config.output_b / "raw_responses.jsonl").read_text().splitlines()
+        if json.loads(line).get("reconciled_from_failed_manifest")
+    )
+    assert reconciled["attempt_index"] == 0
+    assert reconciled["provider_error"]["type"] == "APITimeoutError"
+    assert config.gate_path.exists()
 
 
 @pytest.mark.parametrize(
