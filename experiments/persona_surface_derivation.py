@@ -35,20 +35,34 @@ from experiments.persona_conversation_generator import (
 
 DERIVATION_METHOD = "kimi-independent-surface-and-dialogue.v1"
 PAIR_GATE_VERSION = "persona-surface-pair-gate.v1"
-PROMPT_SCHEMA_VERSION = "persona-independent-surface.v1"
+PROMPT_SCHEMA_VERSION = "persona-independent-surface.v2"
 SURFACE_ASSIGNMENT_SEEDS = {"A": 137, "B": 911}
 EXPECTED_MODEL = "kimi-k3"
 EXPECTED_EVENT_COUNT = 416
 MAX_PHRASE_WORDS = 5
 MAX_PHRASE_CHARACTERS = 64
 
-# These are prompt-only style guides, not validation rules. A and B receive
-# different directives in every round without seeing each other's targets.
+# These are prompt-only naturalness guides, not hidden validation rules. A and
+# B receive different real-world pools in every round without sibling targets.
 MAPPING_LEXICAL_DIRECTIVES = (
-    "Prefer botanical and landscape modifiers while preserving the required category noun.",
-    "Prefer mineral and textile modifiers while preserving the required category noun.",
-    "Prefer weather and astronomy modifiers while preserving the required category noun.",
-    "Prefer architectural and craft modifiers while preserving the required category noun.",
+    (
+        "Use established botanical, culinary, and traditional options: named tea or herbal "
+        "blends, familiar seating positions, recognizable dishes, ordinary delivery windows, "
+        "standard receipt formats, and plausible physical keepsakes."
+    ),
+    (
+        "Use established regional, modern, and practical options: recognizable teas, useful "
+        "seating positions or types, familiar dishes, real delivery methods or times, standard "
+        "receipt formats, and plausible physical keepsakes."
+    ),
+    (
+        "Use conventional cafe, household, and culinary options that a person could naturally "
+        "request, prefer, receive, eat, or keep; every phrase must name a real-world value."
+    ),
+    (
+        "Use conventional contemporary service options and recognizable regional foods or teas; "
+        "prefer plain practical names that people use in ordinary conversation."
+    ),
 )
 
 CATEGORY_SOURCE_PHRASES = {
@@ -116,6 +130,7 @@ _PRIVATE_LINEAGE_NOUNS = {
     "keepsake",
     "key",
     "lantern",
+    "locket",
     "marker",
     "medallion",
     "pebble",
@@ -123,6 +138,38 @@ _PRIVATE_LINEAGE_NOUNS = {
     "ribbon",
     "seal",
     "token",
+}
+_PUBLIC_PREFERENCE_CATEGORIES = {"tea", "seating", "food", "delivery", "receipt"}
+_CROSS_CATEGORY_MODIFIERS = {
+    "amethyst",
+    "azurite",
+    "basalt",
+    "cotton",
+    "denim",
+    "emerald",
+    "flannel",
+    "granite",
+    "jade",
+    "linen",
+    "marble",
+    "nylon",
+    "obsidian",
+    "opal",
+    "organza",
+    "polyester",
+    "quartz",
+    "ruby",
+    "sapphire",
+    "satin",
+    "tweed",
+    "turquoise",
+    "velvet",
+    "wool",
+}
+_CONVENTIONAL_CROSS_CATEGORY_PHRASES = {
+    ("seating", "linen seating"),
+    ("seating", "velvet seating"),
+    ("tea", "cotton candy tea"),
 }
 
 
@@ -370,6 +417,48 @@ def _validate_category_shape(category: str, phrase: str) -> None:
         raise ValueError(f"target phrase has invalid private_lineage category shape: {phrase!r}")
 
 
+def _contains_token_sequence(container: str, candidate: str) -> bool:
+    """Return whether normalized candidate tokens occur contiguously in container."""
+    container_tokens = container.split()
+    candidate_tokens = candidate.split()
+    if not candidate_tokens or len(candidate_tokens) > len(container_tokens):
+        return False
+    return any(
+        container_tokens[index : index + len(candidate_tokens)] == candidate_tokens
+        for index in range(len(container_tokens) - len(candidate_tokens) + 1)
+    )
+
+
+def _parent_phrase_collision(target: str, parent_phrases: set[str]) -> str | None:
+    """Return the first parent phrase with equal or bidirectional token containment."""
+    normalized_target = _normalize_phrase(target)
+    for parent in sorted(parent_phrases):
+        normalized_parent = _normalize_phrase(parent)
+        if _contains_token_sequence(normalized_target, normalized_parent) or _contains_token_sequence(
+            normalized_parent, normalized_target
+        ):
+            return parent
+    return None
+
+
+def _validate_lexical_plausibility(category: str, phrase: str) -> None:
+    """Reject finite cross-category vocabulary and robust synthetic stacking patterns."""
+    tokens = _normalize_phrase(phrase).split()
+    modifiers = tokens[:-1]
+    if len(modifiers) != len(set(modifiers)):
+        raise ValueError(f"target phrase uses repeated synthetic modifiers: {phrase!r}")
+    blocked = sorted(set(tokens) & _CROSS_CATEGORY_MODIFIERS)
+    if (
+        category in _PUBLIC_PREFERENCE_CATEGORIES
+        and blocked
+        and (category, " ".join(tokens)) not in _CONVENTIONAL_CROSS_CATEGORY_PHRASES
+    ):
+        raise ValueError(
+            f"target phrase uses cross-category fabric, mineral, or gemstone terms "
+            f"{blocked}: {phrase!r}"
+        )
+
+
 def validate_surface_mapping_response(
     content: str,
     expected_rows: Sequence[Mapping[str, str]],
@@ -393,7 +482,6 @@ def validate_surface_mapping_response(
     expected_keys = [dict(row) for row in expected_rows]
     actual_keys = []
     targets = []
-    normalized_parent = {_normalize_phrase(value) for value in parent_phrases}
     normalized_forbidden = {_normalize_phrase(value) for value in forbidden_targets}
     for index, row in enumerate(rows):
         if not isinstance(row, dict) or set(row) != {
@@ -413,9 +501,14 @@ def validate_surface_mapping_response(
         if _LATENT_ID.search(target):
             raise ValueError(f"mapping row {index} target contains a latent ID")
         _validate_category_shape(str(row["category"]), target)
+        _validate_lexical_plausibility(str(row["category"]), target)
         normalized = _normalize_phrase(target)
-        if normalized in normalized_parent:
-            raise ValueError(f"mapping row {index} reuses a normalized parent phrase")
+        parent_collision = _parent_phrase_collision(target, parent_phrases)
+        if parent_collision is not None:
+            raise ValueError(
+                f"mapping row {index} has parent collision with {parent_collision!r}: "
+                f"{target!r} has normalized token-sequence equality or containment"
+            )
         if normalized in normalized_forbidden:
             raise ValueError(f"mapping row {index} reuses a prior assignment target")
         targets.append(normalized)
@@ -426,6 +519,27 @@ def validate_surface_mapping_response(
     if len(set(targets)) != len(targets):
         raise ValueError("mapping target phrases must be globally unique")
     return [{name: str(row[name]) for name in row} for row in rows]
+
+
+def validate_whole_mapping_naturalness(
+    mapping: Sequence[Mapping[str, str]], parent_phrases: set[str]
+) -> None:
+    """Recheck complete mapping lexical naturalness before any dialogue starts."""
+    normalized_targets = []
+    for index, row in enumerate(mapping):
+        category = str(row.get("category", ""))
+        target = str(row.get("target_phrase", ""))
+        _validate_category_shape(category, target)
+        _validate_lexical_plausibility(category, target)
+        parent_collision = _parent_phrase_collision(target, parent_phrases)
+        if parent_collision is not None:
+            raise ValueError(
+                f"whole mapping row {index} has parent collision with {parent_collision!r}: "
+                f"{target!r} has normalized token-sequence equality or containment"
+            )
+        normalized_targets.append(_normalize_phrase(target))
+    if len(set(normalized_targets)) != len(normalized_targets):
+        raise ValueError("whole mapping target phrases must be globally unique")
 
 
 def validate_paired_surface_mappings(
@@ -610,7 +724,12 @@ def _mapping_messages(
                 "'seating'; delivery targets must end with 'delivery'; receipt targets must end with "
                 "the plural 'receipts'. Obey the supplied finite final-noun contracts for food and "
                 "private_lineage. Use no latent or benchmark IDs, and do not reuse any normalized "
-                "parent surface phrase. Make every target unique across the complete assignment, "
+                "parent surface phrase by equality or token-sequence containment. Every target must "
+                "be a conventional real-world option a person could naturally prefer, request, eat, "
+                "receive, or keep. Forbid arbitrary adjective stacking and synthetic code-like labels. "
+                "Forbid cross-category material combinations, including fabric, mineral, or gemstone "
+                "terms used outside a conventional category meaning. "
+                "Make every target unique across the complete assignment, "
                 "including other history batches. Do not reuse any normalized phrase listed in "
                 "forbidden_targets. Follow lexical_directive as style guidance; it does not alter "
                 "the schema or category contracts. The "
@@ -1869,6 +1988,10 @@ def generate_surface_pair(
                 round_errors.append(error)
         if not round_errors:
             try:
+                for assignment in ("A", "B"):
+                    validate_whole_mapping_naturalness(
+                        candidates[assignment], parent_phrases
+                    )
                 validate_paired_surface_mappings(candidates["A"], candidates["B"])
             except ValueError as error:
                 round_errors.append(error)

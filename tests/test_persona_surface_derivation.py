@@ -4,6 +4,7 @@ import hashlib
 import json
 from dataclasses import replace
 from pathlib import Path
+import re
 import shutil
 import threading
 import time
@@ -153,6 +154,106 @@ def test_mapping_validation_accepts_exact_complete_category_shaped_response() ->
         "jasmine tea",
         "garden seating",
     ]
+
+
+@pytest.mark.parametrize(
+    ("target", "parent"),
+    (
+        ("river mint tea", "mint tea"),
+        ("orchid oolong tea", "oolong tea"),
+        ("herbed vegetable ramen", "vegetable ramen"),
+        ("mint tea", "iced mint tea"),
+    ),
+)
+def test_mapping_validation_rejects_parent_token_sequence_containment(
+    target: str, parent: str
+) -> None:
+    category = "food" if parent.endswith("ramen") else "tea"
+    expected = [
+        {
+            "history_id": "history-001",
+            "category": category,
+            "source_phrase": parent,
+        }
+    ]
+    content = json.dumps(
+        {"mapping": [{**expected[0], "target_phrase": target}]}
+    )
+    with pytest.raises(ValueError, match=rf"parent collision.*{re.escape(parent)}"):
+        validate_surface_mapping_response(content, expected, {parent})
+
+
+@pytest.mark.parametrize(
+    ("category", "target"),
+    (
+        ("tea", "basalt linen tea"),
+        ("tea", "quartz cotton tea"),
+        ("seating", "granite flannel mezzanine seating"),
+        ("tea", "azurite organza tea"),
+    ),
+)
+def test_mapping_validation_rejects_observed_cross_category_code_phrases(
+    category: str, target: str
+) -> None:
+    source = "window seating" if category == "seating" else "cedar tea"
+    expected = [
+        {
+            "history_id": "history-001",
+            "category": category,
+            "source_phrase": source,
+        }
+    ]
+    content = json.dumps(
+        {"mapping": [{**expected[0], "target_phrase": target}]}
+    )
+    with pytest.raises(ValueError, match="cross-category|synthetic"):
+        validate_surface_mapping_response(content, expected, {source})
+
+
+def test_natural_mapping_fixtures_pass_all_categories_for_both_assignments() -> None:
+    expected = [
+        {"history_id": "history-001", "category": category, "source_phrase": source}
+        for category, source in (
+            ("tea", "cedar tea"),
+            ("seating", "window seating"),
+            ("food", "vegetable ramen"),
+            ("delivery", "evening delivery"),
+            ("receipt", "digital receipts"),
+            ("private_lineage", "cedar glass"),
+        )
+    ]
+    targets = {
+        "A": (
+            "jasmine tea",
+            "window-side seating",
+            "mushroom ravioli",
+            "morning delivery",
+            "PDF receipts",
+            "silver locket",
+        ),
+        "B": (
+            "chamomile tea",
+            "aisle-side seating",
+            "vegetable curry",
+            "scheduled delivery",
+            "emailed receipts",
+            "brass pendant",
+        ),
+    }
+    mappings = {}
+    for assignment, phrases in targets.items():
+        content = json.dumps(
+            {
+                "mapping": [
+                    {**row, "target_phrase": target}
+                    for row, target in zip(expected, phrases, strict=True)
+                ]
+            }
+        )
+        mappings[assignment] = validate_surface_mapping_response(
+            content, expected, {row["source_phrase"] for row in expected}
+        )
+    validate_paired_surface_mappings(mappings["A"], mappings["B"])
 
 
 def test_mapping_targets_must_be_unique() -> None:
@@ -515,6 +616,7 @@ def test_mapping_prompts_bind_distinct_assignment_round_directives(
 ) -> None:
     _, output_a, output_b, _ = generated_pair
     payloads = {}
+    system_prompts = {}
     for assignment, output in (("A", output_a), ("B", output_b)):
         request = next(
             json.loads(line)
@@ -522,7 +624,13 @@ def test_mapping_prompts_bind_distinct_assignment_round_directives(
             if json.loads(line)["stage"] == "mapping"
         )
         payloads[assignment] = json.loads(request["messages"][-1]["content"])
+        system_prompts[assignment] = request["messages"][0]["content"]
         assert payloads[assignment]["lexical_directive"]
+        assert payloads[assignment]["schema_version"] == "persona-independent-surface.v2"
+        assert "conventional real-world" in system_prompts[assignment]
+        assert "arbitrary adjective stacking" in system_prompts[assignment]
+        assert "fabric, mineral, or gemstone" in system_prompts[assignment]
+        assert "synthetic code-like labels" in system_prompts[assignment]
     assert payloads["A"]["lexical_directive"] != payloads["B"]["lexical_directive"]
 
 
@@ -584,6 +692,27 @@ def test_mapping_batch_repair_prompt_names_exact_validation_failure(
     assert "receipt targets must end with the plural 'receipts'" in requests[1][
         "messages"
     ][0]["content"]
+
+
+def test_mapping_repair_prompt_names_parent_containment_collision(
+    tmp_path: Path,
+) -> None:
+    config = _launch_order_fixture(tmp_path, attempts=2)
+    generate_surface_pair(config, RepairingMappingClient("tea", "river mint tea"))
+    requests = [
+        json.loads(line)
+        for line in (config.output_a / "requests.jsonl").read_text().splitlines()
+        if json.loads(line)["stage"] == "mapping"
+        and json.loads(line)["mapping_request_index"] == 0
+    ]
+    assert [row["attempt_index"] for row in requests] == [0, 1]
+    repair_text = " ".join(
+        message["content"]
+        for message in requests[1]["messages"]
+        if message["role"] == "system"
+    )
+    assert "parent collision with 'mint tea'" in repair_text
+    assert "river mint tea" in repair_text
 
 
 class RecordingPairClient(FakeKimiClient):
@@ -814,6 +943,33 @@ def test_persistent_mapping_overlap_fails_without_dialogue_or_gate(
         ]
         assert requests and all(row["stage"] == "mapping" for row in requests)
         assert all(not row["accepted"] and row["superseded"] for row in requests)
+
+
+def test_whole_mapping_naturalness_audit_precedes_dialogue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import experiments.persona_surface_derivation as derivation
+
+    original = derivation._request_mapping_candidate
+
+    def inject_artificial_mapping(*args: object, **kwargs: object) -> list[dict[str, str]]:
+        mapping = original(*args, **kwargs)
+        assignment = str(kwargs["assignment"])
+        mapping[0] = {
+            **mapping[0],
+            "target_phrase": (
+                "basalt linen tea" if assignment == "A" else "quartz cotton tea"
+            ),
+        }
+        return mapping
+
+    monkeypatch.setattr(derivation, "_request_mapping_candidate", inject_artificial_mapping)
+    client = RecordingPairClient(set())
+    config = _launch_order_fixture(tmp_path, attempts=1)
+    with pytest.raises(ValueError, match="cross-category|synthetic"):
+        generate_surface_pair(config, client)
+    assert client.calls and all(stage == "mapping" for stage, _, _ in client.calls)
+    assert not config.gate_path.exists()
 
 
 def test_successful_mapping_pair_then_realizes_all_parent_events(tmp_path: Path) -> None:
@@ -1123,6 +1279,29 @@ def test_resume_rejects_generation_control_drift_before_provider_call(
     client = InterruptingDurableClient(None)
     with pytest.raises(ValueError, match="generation controls"):
         generate_surface_pair(drifted, client)
+    assert client.calls == []
+
+
+def test_resume_rejects_v1_prompt_schema_before_provider_call(tmp_path: Path) -> None:
+    config = replace(
+        _launch_order_fixture(tmp_path, attempts=1),
+        events_per_request=100,
+        resume_existing=True,
+    )
+    with pytest.raises(SimulatedInterruption):
+        generate_surface_pair(config, InterruptingDurableClient(0))
+    manifest_path = config.output_a / "generation_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["generation_controls"][
+        "prompt_schema_version"
+    ] = "persona-independent-surface.v1"
+    manifest["generation_controls_sha256"] = _stable_hash(
+        manifest["generation_controls"]
+    )
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    client = InterruptingDurableClient(None)
+    with pytest.raises(ValueError, match="generation controls"):
+        generate_surface_pair(config, client)
     assert client.calls == []
 
 
