@@ -17,6 +17,7 @@ from experiments.persona_interference_schedule import ScheduleConfig, build_eval
 from experiments.persona_fixed_assignment_analysis import _authenticate_corpus
 from experiments.persona_surface_derivation import (
     SurfacePairConfig,
+    _normalized_phrases_collide,
     _stable_hash,
     authenticate_pair_gate,
     generate_surface_pair,
@@ -285,6 +286,62 @@ def test_prior_target_exclusion_rejects_bidirectional_containment() -> None:
             set(),
             forbidden_targets=("lavender tea",),
         )
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    (
+        ("afternoon delivery", "midafternoon delivery"),
+        (" Afternoon-Delivery ", "mid AFTERNOON delivery"),
+        ("afternoon\t delivery", "midafternoon   delivery"),
+        ("lavender tea", "iced lavender tea"),
+    ),
+)
+def test_canonical_collision_predicate_handles_compounds_and_normalization(
+    left: str, right: str
+) -> None:
+    assert _normalized_phrases_collide(left, right)
+
+
+def test_canonical_collision_predicate_avoids_empty_and_unrelated_matches() -> None:
+    assert not _normalized_phrases_collide("", "afternoon delivery")
+    assert not _normalized_phrases_collide("!!!", "afternoon delivery")
+    assert not _normalized_phrases_collide("scheduled delivery", "afternoon delivery")
+
+
+def test_b_forbidden_targets_reject_observed_morphological_compound() -> None:
+    expected = [
+        {
+            "history_id": "history-001",
+            "category": "delivery",
+            "source_phrase": "evening delivery",
+        }
+    ]
+    content = json.dumps(
+        {
+            "mapping": [
+                {**expected[0], "target_phrase": "midafternoon delivery"}
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError, match="cross-assignment collision with 'afternoon delivery'"
+    ):
+        validate_surface_mapping_response(
+            content,
+            expected,
+            {"evening delivery"},
+            cross_assignment_forbidden_targets=("afternoon delivery",),
+        )
+    unrelated = json.dumps(
+        {"mapping": [{**expected[0], "target_phrase": "scheduled delivery"}]}
+    )
+    assert validate_surface_mapping_response(
+        unrelated,
+        expected,
+        {"evening delivery"},
+        cross_assignment_forbidden_targets=("afternoon delivery",),
+    )[0]["target_phrase"] == "scheduled delivery"
 
 
 @pytest.mark.parametrize(
@@ -943,6 +1000,36 @@ class LegacyDanglingTimeoutClient(TransientBMappingClient):
         return FakeKimiClient.complete(self, **kwargs)
 
 
+class FinalPairCollisionClient(FakeKimiClient):
+    """Create the observed A/B delivery compound collision in complete mappings."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, list[str]]] = []
+
+    def complete(self, **kwargs: object) -> LLMResponse:
+        messages = kwargs["messages"]
+        payload = json.loads(messages[-1]["content"])
+        if "mapping" not in payload:
+            self.calls.append(("dialogue", "", []))
+            return super().complete(**kwargs)
+        assignment = "A" if "surface-a" in payload["realization_id"] else "B"
+        self.calls.append(("mapping", assignment, list(payload["history_ids"])))
+        response = super().complete(**kwargs)
+        if payload["history_ids"] != ["history-005"]:
+            return response
+        mapping = json.loads(response.content)["mapping"]
+        delivery = next(row for row in mapping if row["category"] == "delivery")
+        delivery["target_phrase"] = (
+            "afternoon delivery" if assignment == "A" else "midafternoon delivery"
+        )
+        return LLMResponse(
+            content=json.dumps({"mapping": mapping}),
+            finish_reason=response.finish_reason,
+            model=response.model,
+            usage=response.usage,
+        )
+
+
 def _launch_order_fixture(
     tmp_path: Path, *, attempts: int
 ) -> SurfacePairConfig:
@@ -1496,6 +1583,99 @@ def test_pk4_failed_dangling_timeout_resume_starts_at_changed_attempt_one(
     assert reconciled["attempt_index"] == 0
     assert reconciled["provider_error"]["type"] == "APITimeoutError"
     assert config.gate_path.exists()
+
+
+def test_pk4_final_pair_collision_resume_retries_only_affected_b_batch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import experiments.persona_surface_derivation as derivation
+
+    config = replace(_launch_order_fixture(tmp_path, attempts=2), resume_existing=True)
+    current_validator = derivation.validate_surface_mapping_response
+
+    def legacy_b_validator(
+        content: str,
+        expected_rows: list[dict[str, str]],
+        parent_phrases: set[str],
+        forbidden_targets: tuple[str, ...] | list[str] = (),
+        cross_assignment_forbidden_targets: tuple[str, ...] | list[str] = (),
+    ) -> list[dict[str, str]]:
+        del cross_assignment_forbidden_targets
+        return current_validator(
+            content,
+            expected_rows,
+            parent_phrases,
+            forbidden_targets,
+            (),
+        )
+
+    initial = FinalPairCollisionClient()
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            derivation, "validate_surface_mapping_response", legacy_b_validator
+        )
+        with pytest.raises(ValueError, match="cross-assignment"):
+            generate_surface_pair(config, initial)
+    assert initial.calls == [
+        *(('mapping', 'A', [f'history-{index:03d}']) for index in range(1, 17)),
+        *(('mapping', 'B', [f'history-{index:03d}']) for index in range(1, 17)),
+    ]
+    assert not config.gate_path.exists()
+    failed_b_responses = [
+        json.loads(line)
+        for line in (config.output_b / "raw_responses.jsonl").read_text().splitlines()
+    ]
+    assert len(failed_b_responses) == 16
+
+    resumed = TransientBMappingClient("never")
+    generate_surface_pair(config, resumed)
+    mapping_calls = [call for call in resumed.calls if "mapping" in call[0]]
+    assert len(mapping_calls) == 1
+    retry_payload, retry_seed, retry_messages = mapping_calls[0]
+    assert retry_payload["history_ids"] == ["history-005"]
+    assert retry_seed == 911 + 4_000 + 1
+    repair_text = " ".join(
+        message["content"]
+        for message in retry_messages
+        if message["role"] == "system"
+    )
+    assert "cross-assignment collision with 'afternoon delivery'" in repair_text
+    assert "midafternoon delivery" in repair_text
+    repaired_b_responses = [
+        json.loads(line)
+        for line in (config.output_b / "raw_responses.jsonl").read_text().splitlines()
+    ]
+    old_collision = next(
+        row
+        for row in repaired_b_responses
+        if row["attempt_index"] == 0
+        and row["history_ids"] == ["history-005"]
+    )
+    repaired = next(
+        row
+        for row in repaired_b_responses
+        if row["attempt_index"] == 1
+        and row["history_ids"] == ["history-005"]
+    )
+    assert old_collision["accepted"] is False and old_collision["superseded"] is True
+    assert repaired["accepted"] is True
+    assert config.gate_path.exists()
+
+
+def test_arbitrary_failed_value_error_is_not_resumable(tmp_path: Path) -> None:
+    config = replace(_launch_order_fixture(tmp_path, attempts=1), resume_existing=True)
+    initial = FinalPairCollisionClient()
+    # Build a complete mapping-failure journal, then replace only its stated failure class.
+    with pytest.raises(ValueError):
+        generate_surface_pair(config, initial)
+    manifest_path = config.output_b / "generation_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["error"] = {"type": "ValueError", "message": "arbitrary application error"}
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    resumed = TransientBMappingClient("never")
+    with pytest.raises(ValueError, match="recognized mapping/pair validation"):
+        generate_surface_pair(config, resumed)
+    assert resumed.calls == []
 
 
 @pytest.mark.parametrize(

@@ -390,6 +390,22 @@ def _raw_provenance_hash(row: Mapping[str, Any]) -> str:
     return response_hash
 
 
+def _is_recognized_mapping_failure(error: Any) -> bool:
+    """Recognize only persisted mapping/pair ValueErrors that are safe to revalidate."""
+    if not isinstance(error, Mapping) or error.get("type") != "ValueError":
+        return False
+    message = error.get("message")
+    if not isinstance(message, str):
+        return False
+    return message.startswith(
+        (
+            "mapping request failed after ",
+            "cross-assignment normalized equality/containment collision:",
+            "whole mapping ",
+        )
+    )
+
+
 def _generation_controls(config: SurfacePairConfig) -> dict[str, Any]:
     """Return every effective non-secret control that defines generated artifacts."""
     return {
@@ -539,41 +555,26 @@ def _validate_category_shape(category: str, phrase: str) -> None:
         raise ValueError(f"target phrase has invalid private_lineage category shape: {phrase!r}")
 
 
-def _contains_token_sequence(container: str, candidate: str) -> bool:
-    """Return whether normalized candidate tokens occur contiguously in container."""
-    container_tokens = container.split()
-    candidate_tokens = candidate.split()
-    if not candidate_tokens or len(candidate_tokens) > len(container_tokens):
-        return False
-    return any(
-        container_tokens[index : index + len(candidate_tokens)] == candidate_tokens
-        for index in range(len(container_tokens) - len(candidate_tokens) + 1)
+def _normalized_phrases_collide(left: str, right: str) -> bool:
+    """Reject non-empty normalized equality or bidirectional string containment."""
+    normalized_left = _normalize_phrase(left)
+    normalized_right = _normalize_phrase(right)
+    return bool(
+        normalized_left
+        and normalized_right
+        and (
+            normalized_left == normalized_right
+            or normalized_left in normalized_right
+            or normalized_right in normalized_left
+        )
     )
 
 
-def _parent_phrase_collision(target: str, parent_phrases: set[str]) -> str | None:
-    """Return the first parent phrase with equal or bidirectional token containment."""
-    normalized_target = _normalize_phrase(target)
-    for parent in sorted(parent_phrases):
-        normalized_parent = _normalize_phrase(parent)
-        if _contains_token_sequence(normalized_target, normalized_parent) or _contains_token_sequence(
-            normalized_parent, normalized_target
-        ):
-            return parent
-    return None
-
-
-def _forbidden_target_collision(
-    target: str, forbidden_targets: Sequence[str]
-) -> str | None:
-    """Return the first forbidden target with bidirectional token containment."""
-    normalized_target = _normalize_phrase(target)
-    for forbidden in forbidden_targets:
-        normalized_forbidden = _normalize_phrase(forbidden)
-        if _contains_token_sequence(
-            normalized_target, normalized_forbidden
-        ) or _contains_token_sequence(normalized_forbidden, normalized_target):
-            return forbidden
+def _first_phrase_collision(target: str, candidates: Sequence[str]) -> str | None:
+    """Return the first candidate colliding under the canonical phrase predicate."""
+    for candidate in candidates:
+        if _normalized_phrases_collide(target, candidate):
+            return candidate
     return None
 
 
@@ -639,26 +640,26 @@ def validate_surface_mapping_response(
         _validate_category_shape(str(row["category"]), target)
         _validate_lexical_plausibility(str(row["category"]), target)
         normalized = _normalize_phrase(target)
-        parent_collision = _parent_phrase_collision(target, parent_phrases)
+        parent_collision = _first_phrase_collision(target, sorted(parent_phrases))
         if parent_collision is not None:
             raise ValueError(
                 f"mapping row {index} has parent collision with {parent_collision!r}: "
-                f"{target!r} has normalized token-sequence equality or containment"
+                f"{target!r} has normalized equality or string containment"
             )
-        prior_collision = _forbidden_target_collision(target, forbidden_targets)
+        prior_collision = _first_phrase_collision(target, forbidden_targets)
         if prior_collision is not None:
             raise ValueError(
                 f"mapping row {index} has prior-target collision with {prior_collision!r}: "
-                f"{target!r} has normalized token-sequence equality or containment"
+                f"{target!r} has normalized equality or string containment"
             )
-        cross_collision = _forbidden_target_collision(
+        cross_collision = _first_phrase_collision(
             target, cross_assignment_forbidden_targets
         )
         if cross_collision is not None:
             raise ValueError(
                 f"mapping row {index} has cross-assignment collision with "
-                f"{cross_collision!r}: {target!r} has normalized token-sequence "
-                "equality or containment"
+                f"{cross_collision!r}: {target!r} has normalized equality or "
+                "string containment"
             )
         targets.append(normalized)
     if actual_keys != expected_keys:
@@ -680,11 +681,11 @@ def validate_whole_mapping_naturalness(
         target = str(row.get("target_phrase", ""))
         _validate_category_shape(category, target)
         _validate_lexical_plausibility(category, target)
-        parent_collision = _parent_phrase_collision(target, parent_phrases)
+        parent_collision = _first_phrase_collision(target, sorted(parent_phrases))
         if parent_collision is not None:
             raise ValueError(
                 f"whole mapping row {index} has parent collision with {parent_collision!r}: "
-                f"{target!r} has normalized token-sequence equality or containment"
+                f"{target!r} has normalized equality or string containment"
             )
         normalized_targets.append(_normalize_phrase(target))
     if len(set(normalized_targets)) != len(normalized_targets):
@@ -695,13 +696,14 @@ def validate_paired_surface_mappings(
     mapping_a: Sequence[Mapping[str, str]], mapping_b: Sequence[Mapping[str, str]]
 ) -> None:
     """Reject normalized equality or containment anywhere across assignments."""
-    a_targets = [_normalize_phrase(str(row["target_phrase"])) for row in mapping_a]
-    b_targets = [_normalize_phrase(str(row["target_phrase"])) for row in mapping_b]
+    a_targets = [str(row["target_phrase"]) for row in mapping_a]
+    b_targets = [str(row["target_phrase"]) for row in mapping_b]
     for left in a_targets:
         for right in b_targets:
-            if left == right or left in right or right in left:
+            if _normalized_phrases_collide(left, right):
                 raise ValueError(
-                    f"cross-assignment normalized equality/containment collision: {left!r}, {right!r}"
+                    "cross-assignment normalized equality/containment collision: "
+                    f"{_normalize_phrase(left)!r}, {_normalize_phrase(right)!r}"
                 )
 
 
@@ -932,6 +934,65 @@ def _dialogue_messages(
         turn_pairs_per_event=turn_pairs,
         minimum_words_per_turn=minimum_words,
     )
+
+
+def _resume_mapping_base_messages(
+    generated_messages: list[dict[str, str]],
+    request_rows: Sequence[Mapping[str, Any]],
+    request_index: int,
+) -> list[dict[str, str]]:
+    """Reuse an authenticated cached base prompt while allowing repaired prior history."""
+    cached = [
+        row
+        for row in request_rows
+        if row.get("stage") == "mapping"
+        and row.get("request_index") == request_index
+        and row.get("attempt_index") == 0
+    ]
+    if not cached:
+        return generated_messages
+    if len(cached) != 1:
+        raise CacheIntegrityError(
+            f"duplicate cached mapping base request for index {request_index}"
+        )
+    cached_messages = cached[0].get("messages")
+    if not isinstance(cached_messages, list) or len(cached_messages) != len(
+        generated_messages
+    ):
+        raise CacheIntegrityError(
+            f"cached mapping base prompt is malformed for index {request_index}"
+        )
+    for cached_message, generated_message in zip(
+        cached_messages, generated_messages, strict=True
+    ):
+        if not isinstance(cached_message, Mapping) or cached_message.get(
+            "role"
+        ) != generated_message.get("role"):
+            raise CacheIntegrityError(
+                f"cached mapping base prompt role differs for index {request_index}"
+            )
+    if cached_messages[0] != generated_messages[0]:
+        raise CacheIntegrityError(
+            f"cached mapping system prompt differs for index {request_index}"
+        )
+    try:
+        cached_payload = json.loads(str(cached_messages[-1]["content"]))
+        generated_payload = json.loads(generated_messages[-1]["content"])
+    except (KeyError, TypeError, json.JSONDecodeError) as error:
+        raise CacheIntegrityError(
+            f"cached mapping payload is malformed for index {request_index}"
+        ) from error
+    cached_forbidden = cached_payload.pop("forbidden_targets", None)
+    generated_payload.pop("forbidden_targets", None)
+    if (
+        not isinstance(cached_forbidden, list)
+        or any(not isinstance(value, str) for value in cached_forbidden)
+        or cached_payload != generated_payload
+    ):
+        raise CacheIntegrityError(
+            f"cached mapping payload contract differs for index {request_index}"
+        )
+    return [dict(message) for message in cached_messages]
 
 
 def _expected_dialogue_events(
@@ -1278,13 +1339,16 @@ def _request_mapping_candidate(
             SURFACE_ASSIGNMENT_SEEDS[assignment]
             + batch_index * 1_000
         )
-        messages = _mapping_messages(
+        generated_messages = _mapping_messages(
             batch_rows,
             assignment,
             request_index,
             batch_history_ids,
             prior_targets,
             cross_assignment_forbidden_targets,
+        )
+        messages = _resume_mapping_base_messages(
+            generated_messages, request_rows, request_index
         )
         context = {
             "stage": "mapping",
@@ -2182,6 +2246,16 @@ def _load_or_initialize_assignment_state(
                     reconciled_from_failed_manifest=True,
                 )
             )
+        if manifest.get("status") == "failed":
+            error = manifest.get("error")
+            error_type = error.get("type") if isinstance(error, Mapping) else None
+            if (
+                error_type not in _TRANSIENT_PROVIDER_ERROR_NAMES
+                and not _is_recognized_mapping_failure(error)
+            ):
+                raise CacheIntegrityError(
+                    "failed manifest is not a recognized mapping/pair validation failure"
+                )
     if completed:
         if not isinstance(recorded, Mapping):
             raise CacheIntegrityError("completed manifest lacks provenance artifact hashes")
