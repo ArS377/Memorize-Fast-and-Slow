@@ -716,7 +716,8 @@ def test_query_context_one_hop_filters_by_example_and_session() -> None:
     assert row["rule_params_version"] == "rules.v1"
 
     query, params = graph._driver.queries[-1]
-    assert "MATCH (start:Entity) WHERE start.name IN $seed_entities" in query
+    assert "MATCH (start:Entity)" in query
+    assert "start.name STARTS WITH seed + ' '" in query
     assert "[rels*1..1]" in query
     assert "($example_id IS NULL OR r.example_id = $example_id)" in query
     assert "($session_id IS NULL OR r.session_id = $session_id)" in query

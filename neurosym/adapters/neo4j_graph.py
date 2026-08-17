@@ -957,7 +957,9 @@ class Neo4jGraph:
             limit_int = 1
 
         query = (
-            "MATCH (start:Entity) WHERE start.name IN $seed_entities\n"
+            "MATCH (start:Entity)\n"
+            "WHERE any(seed IN $seed_entities WHERE\n"
+            "  start.name = seed OR start.name STARTS WITH seed + ' ')\n"
             f"MATCH path = (start)-[rels*1..{hops_int}]-(neighbor:Entity)\n"
             "WHERE all(r IN rels WHERE\n"
             "  ($example_id IS NULL OR r.example_id = $example_id)\n"
