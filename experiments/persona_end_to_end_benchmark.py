@@ -1034,17 +1034,20 @@ def _git_provenance(
     root = Path(
         run(path, "rev-parse", "--show-toplevel").decode("utf-8").strip()
     ).resolve()
-    excluded = excluded_untracked_dir.resolve() if excluded_untracked_dir is not None else None
+    excluded_roots = [root / "results"]
+    if excluded_untracked_dir is not None:
+        excluded_roots.append(excluded_untracked_dir.resolve())
     head = run(root, "rev-parse", "HEAD").decode("ascii").strip()
     tracked_diff_args = ["diff", "--binary", "HEAD", "--", "."]
-    if excluded is not None and (excluded == root or root in excluded.parents):
-        relative_excluded = excluded.relative_to(root).as_posix()
-        tracked_diff_args.extend(
-            [
-                f":(exclude){relative_excluded}",
-                f":(exclude){relative_excluded}/**",
-            ]
-        )
+    for excluded in excluded_roots:
+        if excluded == root or root in excluded.parents:
+            relative_excluded = excluded.relative_to(root).as_posix()
+            tracked_diff_args.extend(
+                [
+                    f":(exclude){relative_excluded}",
+                    f":(exclude){relative_excluded}/**",
+                ]
+            )
     tracked_diff = run(root, *tracked_diff_args)
     untracked_names = [
         name.decode("utf-8")
@@ -1059,7 +1062,10 @@ def _git_provenance(
     included_untracked = []
     for name in sorted(untracked_names):
         source = (root / name).resolve()
-        if excluded is not None and (source == excluded or excluded in source.parents):
+        if any(
+            source == excluded or excluded in source.parents
+            for excluded in excluded_roots
+        ):
             continue
         if not source.is_file():
             continue
