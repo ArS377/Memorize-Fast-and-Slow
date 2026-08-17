@@ -24,7 +24,7 @@ from experiments.persona_end_to_end_benchmark import (
 from experiments.preference_stream_injection import PreferenceStreamInjectionClient
 
 
-PREFLIGHT_VERSION = "persona_neurosym_preflight.v1"
+PREFLIGHT_VERSION = "persona_neurosym_preflight.v2"
 
 
 def _write_jsonl(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
@@ -61,6 +61,13 @@ def run_preflight(config_path: Path) -> dict[str, Any]:
     )
     if hybrid_identity is None:
         raise ValueError("hybrid memory identity is unavailable")
+    if (
+        hybrid_identity.get("backend") != "neo4j"
+        or not hybrid_identity.get("graph_traversal_applied")
+        or hybrid_identity.get("sparse_backend") != "neo4j_n_hop"
+        or hybrid_identity.get("n_hop_canary", {}).get("status") != "passed"
+    ):
+        raise ValueError("hybrid memory did not execute verified live Neo4j traversal")
     specs = _build_arm_specs(
         scheduled["inputs"],
         turns,
@@ -89,6 +96,10 @@ def run_preflight(config_path: Path) -> dict[str, Any]:
         or row["metadata"].get("degraded")
         or row["metadata"].get("branch_counts", {}).get("sparse", 0) < 1
         or row["metadata"].get("branch_counts", {}).get("dense", 0) < 1
+        or row["metadata"].get("sparse_backend") != "neo4j_n_hop"
+        or not row["metadata"].get("graph_traversal_applied")
+        or row["metadata"].get("hops_requested") != config.hybrid_memory.hops
+        or row["metadata"].get("rrf", {}).get("k") != config.hybrid_memory.rrf_k
         for row in retrieval_rows
     ):
         raise ValueError("one or more conditions did not execute both hybrid branches")

@@ -255,14 +255,20 @@ published structured-memory arms do not use KG retrieval.
 
 `configs/persona_end_to_end_neurosym.json` adds matched 4K and 16K
 `hybrid_kg_memory` arms. The bridge replays each causal condition through the
-HTTP Scallop validator, builds a condition-scoped fact snapshot, runs the same
-sparse+dense RRF implementation used by the KG system, and fits retrieved facts
-plus a recent suffix under the same Qwen prompt caps.
+HTTP Scallop validator, commits the admitted condition-scoped snapshot to live
+Neo4j, runs scoped two-hop sparse traversal plus dense retrieval through the
+same production RRF implementation, and fits retrieved facts plus a recent
+suffix under the same Qwen prompt caps. The live configuration requires
+`PERSONA_NEO4J_URI`, `PERSONA_NEO4J_USER`, `PERSONA_NEO4J_PASSWORD`, and
+`PERSONA_NEO4J_DATABASE`.
 
 `results/persona_neurosym_preflight_v1/` verifies all 120 conditions through
 Scallop admission, both hybrid branches, and 240 prompt builds without running
 Qwen generation. It uses the supported JSONL fact-repository fallback, so this
 preflight does not claim Neo4j n-hop traversal or answer-quality improvement.
+The v2 preflight supersedes that execution path by requiring live Neo4j,
+proving isolated two-hop behavior with an adversarial canary, and failing if
+either hybrid branch is absent.
 Aggregate CSVs report this separately as `diagnostic_accuracy`; it never
 contributes to the official `accuracy` column.
 

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Mapping
 
+import pytest
+
+import experiments.persona_neurosym_retrieval as persona_retrieval
 from experiments.persona_neurosym_retrieval import (
+    HybridMemoryConfig,
     build_validated_condition_facts,
+    open_hybrid_graph_source,
     retrieve_condition_facts,
 )
 from neurosym.adapters.graph_source import GraphSource
@@ -51,6 +57,25 @@ class DenseIndex:
             if fact["example_id"] == scope.example_id
         ]
         return rows[:top_k]
+
+
+class RecordingGraph:
+    """Return live scoped rows and record requested graph depth."""
+
+    def __init__(self, facts: list[dict[str, Any]]) -> None:
+        self.facts = facts
+        self.calls: list[dict[str, Any]] = []
+
+    def query_context(self, **kwargs: Any) -> list[dict[str, Any]]:
+        self.calls.append(dict(kwargs))
+        return [
+            fact
+            for fact in self.facts
+            if fact["example_id"] == kwargs["example_id"]
+        ][: kwargs["limit"]]
+
+    def close(self) -> None:
+        return None
 
 
 def _event(
@@ -236,6 +261,8 @@ def test_retrieval_uses_real_hybrid_rrf_telemetry() -> None:
     facts = [
         {
             "fact_id": "fact-1",
+            "source_fact_id": "source-fact-1",
+            "source_event_id": "source-event-1",
             "session_id": "persona-session",
             "example_id": "condition-1",
             "subject": "AsterArc",
@@ -260,6 +287,7 @@ def test_retrieval_uses_real_hybrid_rrf_telemetry() -> None:
         },
     ]
     source = GraphSource(
+        graph=RecordingGraph(facts),
         fallback_facts=facts,
         session_id="persona-session",
         memory_scope="example",
@@ -286,3 +314,112 @@ def test_retrieval_uses_real_hybrid_rrf_telemetry() -> None:
     assert row["metadata"]["degraded"] is False
     assert row["metadata"]["branch_counts"] == {"sparse": 2, "dense": 2}
     assert row["metadata"]["rrf"]["k"] == 60
+    assert row["metadata"]["sparse_backend"] == "neo4j_n_hop"
+    assert row["metadata"]["graph_traversal_applied"] is True
+    assert row["metadata"]["hops_requested"] == 2
+    assert len(source.graph.calls) == 1
+    graph_call = source.graph.calls[0]
+    assert "AsterArc" in graph_call["seed_entities"]
+    assert graph_call["hops"] == 2
+    assert graph_call["example_id"] == "condition-1"
+    assert graph_call["session_id"] == "persona-session"
+    assert graph_call["session_ids"] is None
+
+
+def test_retrieval_rejects_jsonl_only_graph_source() -> None:
+    source = GraphSource(
+        fallback_facts=[],
+        session_id="persona-session",
+        memory_scope="example",
+        retrieval_config=RetrievalConfig(mode="hybrid", failure_policy="error"),
+        dense_indexes={"persona-session": DenseIndex([])},
+    )
+
+    with pytest.raises(ValueError, match="live Neo4j"):
+        retrieve_condition_facts([], source, top_k=2, hops=2)
+
+
+def test_open_hybrid_source_commits_prevalidated_facts_once(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    facts = [
+        {
+            "fact_id": "fact-1",
+            "session_id": "persona-session",
+            "example_id": "condition-1",
+            "subject": "AsterArc",
+            "predicate": "PREFERS",
+            "object": "cedar tea",
+            "support_text": "AsterArc chose cedar tea.",
+            "provenance": [],
+        }
+    ]
+
+    class FakeNeo4jGraph(RecordingGraph):
+        instance: "FakeNeo4jGraph | None" = None
+
+        def __init__(self, **kwargs: Any) -> None:
+            super().__init__(facts)
+            self.kwargs = kwargs
+            self.cleared: list[tuple[str, bool]] = []
+            self.committed: list[list[dict[str, Any]]] = []
+            FakeNeo4jGraph.instance = self
+
+        def clear_session(self, session_id: str, delete_orphans: bool = False) -> None:
+            self.cleared.append((session_id, delete_orphans))
+
+        def commit_facts(
+            self, rows: list[dict[str, Any]], session_id: str | None = None
+        ) -> int:
+            assert session_id is None
+            self.committed.append(rows)
+            return len(rows)
+
+        def export_facts(self) -> list[dict[str, Any]]:
+            return list(facts)
+
+    dense_index = DenseIndex(facts)
+    monkeypatch.setattr(persona_retrieval, "Neo4jGraph", FakeNeo4jGraph)
+    monkeypatch.setattr(
+        persona_retrieval,
+        "ensure_dense_index",
+        lambda **kwargs: dense_index,
+    )
+    config = HybridMemoryConfig(
+        index_root=tmp_path,
+        embedding_model_id="BAAI/fixture",
+        embedding_model_path=tmp_path / "embedding",
+        embedding_revision="revision-1",
+        embedding_device="cpu",
+        embedding_batch_size=2,
+        top_k=2,
+        hops=2,
+        rrf_k=60,
+        neo4j_uri="bolt://neo4j.invalid:7687",
+        neo4j_user="neo4j",
+        neo4j_password="fixture-password",
+        neo4j_database="neo4j",
+    )
+
+    source = open_hybrid_graph_source(
+        facts,
+        session_id="persona-session",
+        validator_url="http://scallop.invalid",
+        config=config,
+    )
+
+    graph = FakeNeo4jGraph.instance
+    assert graph is not None
+    assert graph.kwargs == {
+        "uri": "bolt://neo4j.invalid:7687",
+        "user": "neo4j",
+        "password": "fixture-password",
+        "database": "neo4j",
+        "session_id": "persona-session",
+        "validator_url": "http://scallop.invalid",
+        "require_scallop": True,
+    }
+    assert graph.cleared == [("persona-session", False)]
+    assert graph.committed == [facts]
+    assert source.is_live is True
+    assert source.dense_indexes == {"persona-session": dense_index}

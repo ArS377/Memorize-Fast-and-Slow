@@ -10,6 +10,7 @@ from typing import Any, Mapping, Protocol, Sequence
 
 from neurosym.adapters.dense_index import ensure_dense_index
 from neurosym.adapters.graph_source import GraphSource, extract_seed_entities
+from neurosym.adapters.neo4j_graph import Neo4jGraph
 from neurosym.domain.retrieval_config import EmbeddingConfig, RetrievalConfig
 
 
@@ -40,6 +41,10 @@ class HybridMemoryConfig:
     top_k: int
     hops: int
     rrf_k: int
+    neo4j_uri: str
+    neo4j_user: str
+    neo4j_password: str
+    neo4j_database: str
 
     def __post_init__(self) -> None:
         """Reject incomplete retrieval controls."""
@@ -50,6 +55,10 @@ class HybridMemoryConfig:
                 self.embedding_model_path,
                 self.embedding_revision,
                 self.embedding_device,
+                self.neo4j_uri,
+                self.neo4j_user,
+                self.neo4j_password,
+                self.neo4j_database,
             )
         ):
             raise ValueError("hybrid embedding identity and device must be non-empty")
@@ -61,6 +70,8 @@ class HybridMemoryConfig:
         ):
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
                 raise ValueError(f"{name} must be a positive integer")
+        if self.hops < 2:
+            raise ValueError("hops must be at least 2 for live n-hop retrieval")
 
 
 def _surface_fact(
@@ -287,6 +298,8 @@ def retrieve_condition_facts(
     hops: int,
 ) -> dict[str, dict[str, Any]]:
     """Run the configured retrieval stack for every visible condition query."""
+    if not source.is_live:
+        raise ValueError("persona NeuroSym retrieval requires live Neo4j")
     if source.retrieval_config.mode != "hybrid":
         raise ValueError("persona NeuroSym retrieval requires hybrid mode")
     retrieved = {}
@@ -309,6 +322,18 @@ def retrieve_condition_facts(
             raise ValueError(
                 f"condition {evaluation_input_id} did not execute non-degraded hybrid retrieval"
             )
+        branch_counts = metadata.get("branch_counts", {})
+        if branch_counts.get("sparse", 0) < 1 or branch_counts.get("dense", 0) < 1:
+            raise ValueError(
+                f"condition {evaluation_input_id} did not execute both hybrid branches"
+            )
+        metadata.update(
+            {
+                "sparse_backend": "neo4j_n_hop",
+                "graph_traversal_applied": True,
+                "hops_requested": hops,
+            }
+        )
         retrieved[evaluation_input_id] = {
             "seed_entities": seeds,
             "rows": [dict(row) for row in outcome.rows],
@@ -321,9 +346,10 @@ def open_hybrid_graph_source(
     facts: Sequence[Mapping[str, Any]],
     *,
     session_id: str,
+    validator_url: str,
     config: HybridMemoryConfig,
 ) -> GraphSource:
-    """Build the production hybrid retrieval stack over an authenticated snapshot."""
+    """Persist one authenticated snapshot and build live hybrid retrieval."""
     rows = [dict(fact) for fact in facts]
     fact_ids = [str(row.get("fact_id", "")) for row in rows]
     if len(fact_ids) != len(set(fact_ids)):
@@ -341,19 +367,164 @@ def open_hybrid_graph_source(
         embedding=embedding,
         failure_policy="error",
     )
-    dense_index = ensure_dense_index(
-        index_root=config.index_root,
+    graph = Neo4jGraph(
+        uri=config.neo4j_uri,
+        user=config.neo4j_user,
+        password=config.neo4j_password,
+        database=config.neo4j_database,
         session_id=session_id,
-        facts=rows,
-        config=embedding,
+        validator_url=validator_url,
+        require_scallop=True,
     )
-    return GraphSource(
-        fallback_facts=rows,
-        session_id=session_id,
-        memory_scope="example",
-        retrieval_config=retrieval,
-        dense_indexes={session_id: dense_index},
-    )
+    try:
+        graph.clear_session(session_id)
+        committed = graph.commit_facts(rows)
+        if committed != len(rows):
+            raise ValueError(
+                f"Neo4j committed {committed} of {len(rows)} authenticated facts"
+            )
+        persisted = graph.export_facts()
+        persisted_ids = {str(row.get("fact_id", "")) for row in persisted}
+        if persisted_ids != set(fact_ids):
+            raise ValueError("Neo4j persisted fact IDs differ from the authenticated snapshot")
+        expected_lineage = {
+            str(row["fact_id"]): (
+                str(row.get("source_fact_id", "")),
+                str(row.get("source_event_id", "")),
+            )
+            for row in rows
+        }
+        persisted_lineage = {
+            str(row["fact_id"]): (
+                str(row.get("source_fact_id", "")),
+                str(row.get("source_event_id", "")),
+            )
+            for row in persisted
+        }
+        if persisted_lineage != expected_lineage:
+            raise ValueError("Neo4j persisted lineage differs from the authenticated snapshot")
+        dense_index = ensure_dense_index(
+            index_root=config.index_root,
+            session_id=session_id,
+            facts=rows,
+            config=embedding,
+        )
+        return GraphSource(
+            graph=graph,
+            fallback_facts=rows,
+            session_id=session_id,
+            memory_scope="example",
+            retrieval_config=retrieval,
+            dense_indexes={session_id: dense_index},
+        )
+    except Exception as error:
+        try:
+            graph.clear_session(session_id)
+        except Exception as cleanup_error:
+            error.add_note(f"Neo4j partial-session cleanup failed: {cleanup_error}")
+        graph.close()
+        raise
+
+
+def verify_live_n_hop(graph: Neo4jGraph, *, benchmark_session_id: str) -> dict[str, Any]:
+    """Prove that the live database reaches a scoped second-hop edge."""
+    canary_session = f"{benchmark_session_id}-n-hop-canary"
+    example_id = "persona-n-hop-canary"
+    digest = hashlib.sha256(benchmark_session_id.encode("utf-8")).hexdigest()[:16]
+    start = f"PersonaCanaryStart{digest}"
+    middle = f"PersonaCanaryMiddle{digest}"
+    end = f"PersonaCanaryEnd{digest}"
+    first_id = f"persona-canary-{digest}-first"
+    second_id = f"persona-canary-{digest}-second"
+    isolation_session = f"{canary_session}-isolation"
+    isolation_start = f"PersonaCanaryIsolationStart{digest}"
+    isolation_middle = f"PersonaCanaryIsolationMiddle{digest}"
+    isolation_end = f"PersonaCanaryIsolationEnd{digest}"
+    facts = [
+        {
+            "fact_id": first_id,
+            "example_id": example_id,
+            "subject": start,
+            "predicate": "CANARY_LINK",
+            "object": middle,
+            "support_text": "first live traversal edge",
+            "provenance": [],
+        },
+        {
+            "fact_id": second_id,
+            "example_id": example_id,
+            "subject": middle,
+            "predicate": "CANARY_LINK",
+            "object": end,
+            "support_text": "second live traversal edge",
+            "provenance": [],
+        },
+    ]
+    graph.clear_session(canary_session)
+    graph.clear_session(isolation_session)
+    try:
+        if graph.commit_facts(facts, session_id=canary_session) != len(facts):
+            raise ValueError("Neo4j n-hop canary did not commit both edges")
+        one_hop = graph.query_context(
+            [start],
+            hops=1,
+            limit=10,
+            example_id=example_id,
+            session_id=canary_session,
+        )
+        two_hop = graph.query_context(
+            [start],
+            hops=2,
+            limit=10,
+            example_id=example_id,
+            session_id=canary_session,
+        )
+        one_hop_ids = {str(row.get("fact_id", "")) for row in one_hop}
+        two_hop_ids = {str(row.get("fact_id", "")) for row in two_hop}
+        if second_id in one_hop_ids or two_hop_ids != {first_id, second_id}:
+            raise ValueError("live Neo4j did not demonstrate isolated two-hop traversal")
+        isolation_facts = [
+            {
+                "fact_id": f"persona-canary-{digest}-foreign-bridge",
+                "example_id": "foreign-condition",
+                "subject": isolation_start,
+                "predicate": "CANARY_LINK",
+                "object": isolation_middle,
+                "support_text": "foreign bridge must not establish reachability",
+                "provenance": [],
+            },
+            {
+                "fact_id": f"persona-canary-{digest}-scoped-hidden",
+                "example_id": example_id,
+                "subject": isolation_middle,
+                "predicate": "CANARY_LINK",
+                "object": isolation_end,
+                "support_text": "scoped edge behind a foreign bridge",
+                "provenance": [],
+            },
+        ]
+        if graph.commit_facts(
+            isolation_facts, session_id=isolation_session
+        ) != len(isolation_facts):
+            raise ValueError("Neo4j isolation canary did not commit both edges")
+        leaked = graph.query_context(
+            [isolation_start],
+            hops=2,
+            limit=10,
+            example_id=example_id,
+            session_id=isolation_session,
+        )
+        if leaked:
+            raise ValueError("live Neo4j n-hop traversal crossed condition scope")
+        return {
+            "status": "passed",
+            "one_hop_fact_count": len(one_hop_ids),
+            "two_hop_fact_count": len(two_hop_ids),
+            "cross_condition_path_fact_count": 0,
+        }
+    finally:
+        graph.clear_session(canary_session)
+        graph.clear_session(isolation_session)
 
 
 def render_retrieved_facts(rows: Sequence[Mapping[str, Any]]) -> str:

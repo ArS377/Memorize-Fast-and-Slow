@@ -35,6 +35,7 @@ from experiments.persona_neurosym_retrieval import (
     open_hybrid_graph_source,
     render_retrieved_facts,
     retrieve_condition_facts,
+    verify_live_n_hop,
 )
 from experiments.preference_stream_injection import PreferenceStreamInjectionClient
 from neurosym.adapters.validation_backend import HttpScallopValidatorBackend
@@ -216,6 +217,10 @@ def load_benchmark_config(
                 "embedding_model_path_env",
                 "embedding_revision_env",
                 "embedding_device_env",
+                "neo4j_uri_env",
+                "neo4j_user_env",
+                "neo4j_password_env",
+                "neo4j_database_env",
             )
         }
         hybrid_memory = HybridMemoryConfig(
@@ -239,6 +244,14 @@ def load_benchmark_config(
             top_k=_positive_int(retrieval.get("top_k"), "retrieval.top_k"),
             hops=_positive_int(retrieval.get("hops"), "retrieval.hops"),
             rrf_k=_positive_int(retrieval.get("rrf_k"), "retrieval.rrf_k"),
+            neo4j_uri=_required_env(environ, string_fields["neo4j_uri_env"]),
+            neo4j_user=_required_env(environ, string_fields["neo4j_user_env"]),
+            neo4j_password=_required_env(
+                environ, string_fields["neo4j_password_env"]
+            ),
+            neo4j_database=_required_env(
+                environ, string_fields["neo4j_database_env"]
+            ),
         )
     elif retrieval is not None:
         raise ValueError("retrieval configuration requires hybrid KG arms")
@@ -1322,8 +1335,14 @@ def _prepare_hybrid_memory(
         config.scallop_endpoint,
         timeout=config.scallop_timeout_seconds,
     )
+    output_identity = hashlib.sha256(
+        str(config.output_dir.resolve()).encode("utf-8")
+    ).hexdigest()[:12]
     session_id = (
-        "persona-" + str(scheduled["dataset"]["generation_manifest_sha256"])[:16]
+        "persona-"
+        + str(scheduled["dataset"]["generation_manifest_sha256"])[:12]
+        + "-"
+        + output_identity
     )
     condition_facts, admission_ledgers = build_validated_condition_facts(
         scheduled["inputs"],
@@ -1334,21 +1353,46 @@ def _prepare_hybrid_memory(
     source = open_hybrid_graph_source(
         condition_facts,
         session_id=session_id,
+        validator_url=config.scallop_endpoint,
         config=config.hybrid_memory,
     )
+    retrieval_completed = False
     try:
+        n_hop_canary = verify_live_n_hop(
+            source.graph,
+            benchmark_session_id=session_id,
+        )
         hybrid_retrievals = retrieve_condition_facts(
             scheduled["inputs"],
             source,
             top_k=config.hybrid_memory.top_k,
             hops=config.hybrid_memory.hops,
         )
+        retrieval_completed = True
     finally:
+        if not retrieval_completed:
+            source.graph.clear_session(session_id)
         source.close()
+    validator_identity = validator.info.to_dict()
+    validator_endpoint = str(validator_identity.pop("endpoint", ""))
     identity = {
-        "backend": "condition_scoped_jsonl_fact_repository",
-        "graph_traversal_applied": False,
-        "validator": validator.info.to_dict(),
+        "backend": "neo4j",
+        "graph_traversal_applied": True,
+        "sparse_backend": "neo4j_n_hop",
+        "n_hop_canary": n_hop_canary,
+        "graph_endpoint_database_sha256": _stable_hash(
+            {
+                "uri": config.hybrid_memory.neo4j_uri,
+                "database": config.hybrid_memory.neo4j_database,
+            }
+        ),
+        "database": config.hybrid_memory.neo4j_database,
+        "session_id": session_id,
+        "committed_fact_count": len(condition_facts),
+        "validator": validator_identity,
+        "validator_endpoint_sha256": hashlib.sha256(
+            validator_endpoint.encode("utf-8")
+        ).hexdigest(),
         "retrieval_mode": "hybrid",
         "rrf_k": config.hybrid_memory.rrf_k,
         "top_k": config.hybrid_memory.top_k,

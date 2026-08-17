@@ -141,6 +141,10 @@ def test_neurosym_config_adds_pinned_hybrid_kg_arms() -> None:
             "PERSONA_EMBEDDING_MODEL_PATH": "/embedding-model",
             "PERSONA_EMBEDDING_REVISION": "revision-1",
             "PERSONA_EMBEDDING_DEVICE": "cpu",
+            "PERSONA_NEO4J_URI": "bolt://neo4j.invalid:7687",
+            "PERSONA_NEO4J_USER": "neo4j",
+            "PERSONA_NEO4J_PASSWORD": "fixture-password",
+            "PERSONA_NEO4J_DATABASE": "neo4j",
         },
     )
 
@@ -151,7 +155,37 @@ def test_neurosym_config_adds_pinned_hybrid_kg_arms() -> None:
     assert config.hybrid_memory is not None
     assert config.hybrid_memory.embedding_model_id == "BAAI/fixture"
     assert config.hybrid_memory.embedding_model_path == Path("/embedding-model")
+    assert config.hybrid_memory.neo4j_uri == "bolt://neo4j.invalid:7687"
+    assert config.hybrid_memory.neo4j_user == "neo4j"
+    assert config.hybrid_memory.neo4j_password == "fixture-password"
+    assert config.hybrid_memory.neo4j_database == "neo4j"
     assert config.hybrid_memory.rrf_k == 60
+
+
+def test_neurosym_config_requires_live_neo4j() -> None:
+    root = Path(__file__).parents[1]
+    environ = {
+        "PERSONA_DATASET_DIR": "/dataset",
+        "PERSONA_BENCHMARK_OUTPUT_DIR": "/output",
+        "PERSONA_QWEN_MODEL_PATH": "/model",
+        "PERSONA_QWEN_MODEL_ID": "Qwen/fixture",
+        "PERSONA_QWEN_DEVICE": "cuda",
+        "PERSONA_SCALLOP_ENDPOINT": "http://scallop.invalid",
+        "PERSONA_RETRIEVAL_INDEX_ROOT": "/indexes",
+        "PERSONA_EMBEDDING_MODEL_ID": "BAAI/fixture",
+        "PERSONA_EMBEDDING_MODEL_PATH": "/embedding-model",
+        "PERSONA_EMBEDDING_REVISION": "revision-1",
+        "PERSONA_EMBEDDING_DEVICE": "cpu",
+        "PERSONA_NEO4J_USER": "neo4j",
+        "PERSONA_NEO4J_PASSWORD": "fixture-password",
+        "PERSONA_NEO4J_DATABASE": "neo4j",
+    }
+
+    with pytest.raises(ValueError, match="PERSONA_NEO4J_URI"):
+        load_benchmark_config(
+            root / "configs" / "persona_end_to_end_neurosym.json",
+            environ=environ,
+        )
 
 
 def test_benchmark_authenticates_and_rebuilds_all_120_conditions(tmp_path: Path) -> None:
