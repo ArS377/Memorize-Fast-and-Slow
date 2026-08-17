@@ -665,6 +665,8 @@ def test_export_facts_is_complete_and_deterministic() -> None:
     assert rows[1]["decision_status"] == "accept"
     query, params = graph._driver.queries[-1]
     assert "r.qualifiers_json AS qualifiers_json" in query
+    assert "r.source_fact_id AS source_fact_id" in query
+    assert "r.source_event_id AS source_event_id" in query
     assert "r.normalization_notes AS normalization_notes" in query
     assert "r.decision_status AS decision_status" in query
     assert "ORDER BY" in query

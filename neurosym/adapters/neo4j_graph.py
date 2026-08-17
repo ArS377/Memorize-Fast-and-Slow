@@ -556,6 +556,8 @@ class Neo4jGraph:
             "  )\n"
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
+            "       r.source_fact_id AS source_fact_id,\n"
+            "       r.source_event_id AS source_event_id,\n"
             "       r.example_id AS example_id, r.question AS question,\n"
             "       r.support_text AS support_text,\n"
             "       r.provenance_json AS provenance_json,\n"
@@ -707,6 +709,8 @@ class Neo4jGraph:
             +
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
+            "       r.source_fact_id AS source_fact_id,\n"
+            "       r.source_event_id AS source_event_id,\n"
             "       r.example_id AS example_id, r.question AS question,\n"
             "       r.support_text AS support_text,\n"
             "       r.provenance_json AS provenance_json,\n"
