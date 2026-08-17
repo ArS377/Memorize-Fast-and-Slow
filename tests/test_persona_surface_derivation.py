@@ -442,7 +442,7 @@ def test_pair_generation_config_resolves_all_runtime_and_provider_values_from_en
     assert config.events_per_request == 2
     assert config.max_validation_attempts == 3
     assert config.dialogue_max_tokens == 16384
-    assert config.mapping_max_tokens == 8192
+    assert config.mapping_max_tokens == 32768
     assert config.timeout_seconds == 600.0
     assert config.resume_existing is True
     assert config.mapping_histories_per_request == 1

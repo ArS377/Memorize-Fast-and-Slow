@@ -8,7 +8,7 @@
     "api_key_env": "KIMI_API_KEY",
     "model_env": "KIMI_MODEL",
     "timeout_seconds": 600.0,
-    "mapping_max_tokens": 8192,
+    "mapping_max_tokens": 32768,
     "dialogue_max_tokens": 16384,
     "mapping_histories_per_request": 1,
     "dialogue_assignment_concurrency": 2,
