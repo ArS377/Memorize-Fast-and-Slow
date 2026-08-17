@@ -29,16 +29,28 @@ from experiments.persona_interference_schedule import (
     _read_jsonl_bytes,
     build_evaluation_schedule,
 )
+from experiments.persona_neurosym_retrieval import (
+    HybridMemoryConfig,
+    build_validated_condition_facts,
+    open_hybrid_graph_source,
+    render_retrieved_facts,
+    retrieve_condition_facts,
+)
 from experiments.preference_stream_injection import PreferenceStreamInjectionClient
+from neurosym.adapters.validation_backend import HttpScallopValidatorBackend
 
 
-EVALUATOR_VERSION = "persona_end_to_end_qwen.v1"
+EVALUATOR_VERSION = "persona_end_to_end_qwen.v2"
 _EXPECTED_ARMS = (
     ("sliding_context_4096", "sliding_context", 4096),
     ("sliding_context_16384", "sliding_context", 16384),
     ("structured_memory_4096", "structured_memory", 4096),
     ("structured_memory_16384", "structured_memory", 16384),
     ("full_qwen_context", "full_qwen_context", None),
+)
+_HYBRID_ARMS = (
+    ("hybrid_kg_memory_4096", "hybrid_kg_memory", 4096),
+    ("hybrid_kg_memory_16384", "hybrid_kg_memory", 16384),
 )
 _ANSWER_PREFIX = re.compile(r"^\s*(?:final\s+)?answer\s*:\s*", re.IGNORECASE)
 
@@ -98,6 +110,7 @@ class BenchmarkConfig:
     local_files_only: bool
     use_kernels: bool
     comparisons: tuple[tuple[str, str], ...]
+    hybrid_memory: HybridMemoryConfig | None
 
 
 class _ScheduleTokenizerAdapter:
@@ -185,8 +198,50 @@ def load_benchmark_config(
     for arm in arms:
         if arm.prompt_token_cap is not None:
             _positive_int(arm.prompt_token_cap, f"{arm.name}.prompt_token_cap")
-    if tuple((arm.name, arm.kind, arm.prompt_token_cap) for arm in arms) != _EXPECTED_ARMS:
-        raise ValueError("arms must declare exactly the two matched caps and full Qwen context")
+    arm_layout = tuple((arm.name, arm.kind, arm.prompt_token_cap) for arm in arms)
+    if arm_layout not in {_EXPECTED_ARMS, (*_EXPECTED_ARMS, *_HYBRID_ARMS)}:
+        raise ValueError(
+            "arms must declare the five base arms and optional matched hybrid KG arms"
+        )
+    retrieval = payload.get("retrieval")
+    hybrid_memory = None
+    if arm_layout == (*_EXPECTED_ARMS, *_HYBRID_ARMS):
+        if not isinstance(retrieval, Mapping):
+            raise ValueError("hybrid KG arms require a retrieval configuration")
+        string_fields = {
+            name: _nonempty_string(retrieval.get(name), f"retrieval.{name}")
+            for name in (
+                "index_root_env",
+                "embedding_model_id_env",
+                "embedding_model_path_env",
+                "embedding_revision_env",
+                "embedding_device_env",
+            )
+        }
+        hybrid_memory = HybridMemoryConfig(
+            index_root=Path(_required_env(environ, string_fields["index_root_env"])),
+            embedding_model_id=_required_env(
+                environ, string_fields["embedding_model_id_env"]
+            ),
+            embedding_model_path=Path(
+                _required_env(environ, string_fields["embedding_model_path_env"])
+            ),
+            embedding_revision=_required_env(
+                environ, string_fields["embedding_revision_env"]
+            ),
+            embedding_device=_required_env(
+                environ, string_fields["embedding_device_env"]
+            ),
+            embedding_batch_size=_positive_int(
+                retrieval.get("embedding_batch_size"),
+                "retrieval.embedding_batch_size",
+            ),
+            top_k=_positive_int(retrieval.get("top_k"), "retrieval.top_k"),
+            hops=_positive_int(retrieval.get("hops"), "retrieval.hops"),
+            rrf_k=_positive_int(retrieval.get("rrf_k"), "retrieval.rrf_k"),
+        )
+    elif retrieval is not None:
+        raise ValueError("retrieval configuration requires hybrid KG arms")
 
     suffixes = schedule_payload.get("query_suffixes")
     distances = schedule_payload.get("token_distance_thresholds")
@@ -220,6 +275,10 @@ def load_benchmark_config(
         ),
         query_suffixes=tuple(suffixes),
         token_distance_thresholds=tuple(distances),
+        minimum_stream_tokens=schedule_payload.get("minimum_stream_tokens", 0),
+        preserve_generated_dialogue=schedule_payload.get(
+            "preserve_generated_dialogue", False
+        ),
     )
     endpoint_env = _nonempty_string(scallop.get("endpoint_env"), "scallop.endpoint_env")
     timeout = scallop.get("timeout_seconds")
@@ -277,6 +336,7 @@ def load_benchmark_config(
         local_files_only=local_files_only,
         use_kernels=use_kernels,
         comparisons=comparisons,
+        hybrid_memory=hybrid_memory,
     )
 
 
@@ -404,6 +464,57 @@ def _fit_structured_prompt(
     return list(prefix[start:]), prompt, count
 
 
+def _fit_hybrid_kg_prompt(
+    prefix: Sequence[Mapping[str, Any]],
+    *,
+    retrieved_rows: Sequence[Mapping[str, Any]],
+    history_id: str,
+    query_text: str,
+    prompt_instruction: str,
+    cap: int,
+    tokenizer: ChatTokenizer,
+) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]], str, int]:
+    """Fit RRF-ranked KG facts plus a maximal recent conversation suffix."""
+    _positive_int(cap, "hybrid KG prompt cap")
+    facts = [dict(row) for row in retrieved_rows]
+
+    def context_for(
+        retained_facts: Sequence[Mapping[str, Any]],
+        suffix: Sequence[Mapping[str, Any]],
+    ) -> str:
+        sections = []
+        fact_context = render_retrieved_facts(retained_facts)
+        if fact_context:
+            sections.append("Scallop-validated retrieved memory facts:\n" + fact_context)
+        if suffix:
+            sections.append("Recent conversation suffix:\n" + _render_turns(suffix, history_id))
+        return "\n\n".join(sections)
+
+    prompt, count = _chat_prompt(
+        context_for(facts, ()), query_text, prompt_instruction, tokenizer
+    )
+    while count > cap and facts:
+        facts.pop()
+        prompt, count = _chat_prompt(
+            context_for(facts, ()), query_text, prompt_instruction, tokenizer
+        )
+    if count > cap:
+        raise ValueError(
+            f"hybrid KG query and chat template require {count} tokens, exceeding cap {cap}"
+        )
+    start = len(prefix)
+    while start > 0:
+        candidate = prefix[start - 1 :]
+        candidate_prompt, candidate_count = _chat_prompt(
+            context_for(facts, candidate), query_text, prompt_instruction, tokenizer
+        )
+        if candidate_count > cap:
+            break
+        start -= 1
+        prompt, count = candidate_prompt, candidate_count
+    return list(prefix[start:]), facts, prompt, count
+
+
 def _canary_events() -> list[dict[str, Any]]:
     """Return fixed facts that exercise both Scallop preference rules."""
     def preference(
@@ -516,6 +627,7 @@ def _build_arm_specs(
     *,
     arms: Sequence[ArmConfig | Sequence[Any]],
     injections: Mapping[str, Mapping[str, Any]],
+    hybrid_retrievals: Mapping[str, Mapping[str, Any]] | None = None,
     prompt_instruction: str,
     tokenizer: ChatTokenizer,
 ) -> list[dict[str, Any]]:
@@ -531,6 +643,9 @@ def _build_arm_specs(
         for arm in arms:
             arm_name, kind, cap = _arm_tuple(arm)
             source_count = 0
+            retrieved_rows: list[Mapping[str, Any]] = []
+            retrieval_metadata: Mapping[str, Any] = {}
+            seed_entities: list[str] = []
             if kind == "sliding_context":
                 if cap is None:
                     raise ValueError(f"sliding arm {arm_name} lacks a cap")
@@ -557,6 +672,32 @@ def _build_arm_specs(
                     cap=int(cap),
                     tokenizer=tokenizer,
                 )
+            elif kind == "hybrid_kg_memory":
+                if cap is None:
+                    raise ValueError(f"hybrid KG arm {arm_name} lacks a cap")
+                retrieval = (hybrid_retrievals or {}).get(
+                    str(condition["evaluation_input_id"])
+                )
+                if not isinstance(retrieval, Mapping):
+                    raise ValueError(
+                        f"hybrid KG arm {arm_name} lacks retrieval for "
+                        f"{condition['evaluation_input_id']}"
+                    )
+                raw_rows = retrieval.get("rows")
+                if not isinstance(raw_rows, list):
+                    raise ValueError("hybrid KG retrieval rows must be a list")
+                seed_entities = [str(value) for value in retrieval.get("seed_entities", [])]
+                retrieval_metadata = dict(retrieval.get("metadata", {}))
+                selected, retained_rows, prompt, token_count = _fit_hybrid_kg_prompt(
+                    prefix,
+                    retrieved_rows=raw_rows,
+                    history_id=history_id,
+                    query_text=query_text,
+                    prompt_instruction=prompt_instruction,
+                    cap=int(cap),
+                    tokenizer=tokenizer,
+                )
+                retrieved_rows = retained_rows
             elif kind == "full_qwen_context":
                 if cap is not None:
                     raise ValueError("full_qwen_context must not declare a truncation cap")
@@ -574,6 +715,14 @@ def _build_arm_specs(
                 for turn in selected
                 if str(turn["history_id"]) != history_id
             )
+            retrieved_gold_occurrences = sum(
+                (
+                    str(row.get("object", ""))
+                    + " "
+                    + str(row.get("support_text", ""))
+                ).casefold().count(str(condition["gold"]).casefold())
+                for row in retrieved_rows
+            )
             specs.append(
                 {
                     "evaluation_input_id": str(condition["evaluation_input_id"]),
@@ -590,6 +739,13 @@ def _build_arm_specs(
                     "input_token_count": token_count,
                     "selected_turn_count": len(selected),
                     "structured_source_turn_count": source_count,
+                    "retrieved_fact_count": len(retrieved_rows),
+                    "retrieved_fact_ids": [
+                        str(row.get("fact_id", "")) for row in retrieved_rows
+                    ],
+                    "retrieval_seed_entities": seed_entities,
+                    "retrieval_metadata": dict(retrieval_metadata),
+                    "retrieved_gold_occurrence_count": retrieved_gold_occurrences,
                     "unrelated_gold_occurrence_count": unrelated_gold_occurrences,
                     "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
                     "prompt": prompt,
@@ -863,11 +1019,11 @@ def _git_provenance(
     path: Path, *, excluded_untracked_dir: Path | None = None
 ) -> dict[str, Any]:
     """Hash HEAD plus tracked and untracked source changes for immutable resume state."""
-    def run(*args: str) -> bytes:
+    def run(cwd: Path, *args: str) -> bytes:
         try:
             return subprocess.run(
                 ["git", *args],
-                cwd=path,
+                cwd=cwd,
                 check=True,
                 capture_output=True,
                 timeout=30,
@@ -875,15 +1031,28 @@ def _git_provenance(
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
             raise ValueError(f"cannot resolve git provenance with {' '.join(args)}: {error}") from error
 
-    root = Path(run("rev-parse", "--show-toplevel").decode("utf-8").strip()).resolve()
-    head = run("rev-parse", "HEAD").decode("ascii").strip()
-    tracked_diff = run("diff", "--binary", "HEAD", "--")
+    root = Path(
+        run(path, "rev-parse", "--show-toplevel").decode("utf-8").strip()
+    ).resolve()
+    excluded = excluded_untracked_dir.resolve() if excluded_untracked_dir is not None else None
+    head = run(root, "rev-parse", "HEAD").decode("ascii").strip()
+    tracked_diff_args = ["diff", "--binary", "HEAD", "--", "."]
+    if excluded is not None and (excluded == root or root in excluded.parents):
+        relative_excluded = excluded.relative_to(root).as_posix()
+        tracked_diff_args.extend(
+            [
+                f":(exclude){relative_excluded}",
+                f":(exclude){relative_excluded}/**",
+            ]
+        )
+    tracked_diff = run(root, *tracked_diff_args)
     untracked_names = [
         name.decode("utf-8")
-        for name in run("ls-files", "--others", "--exclude-standard", "-z").split(b"\0")
+        for name in run(
+            root, "ls-files", "--others", "--exclude-standard", "-z"
+        ).split(b"\0")
         if name
     ]
-    excluded = excluded_untracked_dir.resolve() if excluded_untracked_dir is not None else None
     digest = hashlib.sha256()
     digest.update(b"tracked-diff\0")
     digest.update(tracked_diff)
@@ -934,8 +1103,15 @@ def _load_source_and_rebuild(
         if row.get("split") == config.schedule.source_split
         and row.get("hardness_profile") == config.schedule.source_profile
     ]
+    rebuilt_events = [
+        {
+            **event,
+            "preserve_model_text": config.schedule.preserve_generated_dialogue,
+        }
+        for event in events
+    ]
     rebuilt = build_interleaved_schedule(
-        events,
+        rebuilt_events,
         tokenizer=adapter,
         seed=config.schedule.seed,
         concurrent_accounts=config.schedule.concurrent_accounts,
@@ -1064,9 +1240,10 @@ def _resume_manifest_fields(
     relation_coverage: Sequence[Mapping[str, Any]],
     evaluator_script_sha256: str,
     git_provenance: Mapping[str, Any],
+    hybrid_memory: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return immutable generation provenance checked on every resume."""
-    return {
+    fields = {
         "evaluator_version": EVALUATOR_VERSION,
         "schedule_version": SCHEDULE_VERSION,
         "config_sha256": config_sha256,
@@ -1099,6 +1276,9 @@ def _resume_manifest_fields(
             }
         ),
     }
+    if hybrid_memory is not None:
+        fields["hybrid_memory"] = dict(hybrid_memory)
+    return fields
 
 
 def _validate_resume_manifest(
@@ -1117,6 +1297,66 @@ def _validate_resume_manifest(
         if old_manifest.get(field) != expected:
             raise ValueError(f"cannot resume because manifest field {field} differs")
     return old_manifest
+
+
+def _prepare_hybrid_memory(
+    config: BenchmarkConfig,
+    scheduled: Mapping[str, Any],
+    turns: Sequence[Mapping[str, Any]],
+) -> tuple[
+    dict[str, dict[str, Any]],
+    dict[str, Any] | None,
+    list[dict[str, Any]],
+    dict[str, list[dict[str, Any]]],
+]:
+    """Build Scallop-gated snapshots and run hybrid retrieval for all conditions."""
+    if config.hybrid_memory is None:
+        return {}, None, [], {}
+    validator = HttpScallopValidatorBackend(
+        config.scallop_endpoint,
+        timeout=config.scallop_timeout_seconds,
+    )
+    session_id = (
+        "persona-" + str(scheduled["dataset"]["generation_manifest_sha256"])[:16]
+    )
+    condition_facts, admission_ledgers = build_validated_condition_facts(
+        scheduled["inputs"],
+        turns,
+        validator,
+        session_id=session_id,
+    )
+    source = open_hybrid_graph_source(
+        condition_facts,
+        session_id=session_id,
+        config=config.hybrid_memory,
+    )
+    try:
+        hybrid_retrievals = retrieve_condition_facts(
+            scheduled["inputs"],
+            source,
+            top_k=config.hybrid_memory.top_k,
+            hops=config.hybrid_memory.hops,
+        )
+    finally:
+        source.close()
+    identity = {
+        "backend": "condition_scoped_jsonl_fact_repository",
+        "graph_traversal_applied": False,
+        "validator": validator.info.to_dict(),
+        "retrieval_mode": "hybrid",
+        "rrf_k": config.hybrid_memory.rrf_k,
+        "top_k": config.hybrid_memory.top_k,
+        "hops_requested": config.hybrid_memory.hops,
+        "embedding_model_id": config.hybrid_memory.embedding_model_id,
+        "embedding_revision": config.hybrid_memory.embedding_revision,
+        "embedding_device": config.hybrid_memory.embedding_device,
+        "embedding_batch_size": config.hybrid_memory.embedding_batch_size,
+        "condition_fact_count": len(condition_facts),
+        "condition_facts_sha256": _stable_hash(condition_facts),
+        "admission_ledgers_sha256": _stable_hash(admission_ledgers),
+        "retrieval_map_sha256": _stable_hash(hybrid_retrievals),
+    }
+    return hybrid_retrievals, identity, condition_facts, admission_ledgers
 
 
 def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, Any]:
@@ -1141,11 +1381,15 @@ def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, A
     canary = _run_scallop_canary(client)
     injections = _derive_condition_sources(scheduled["inputs"], turns, client)
     relation_coverage = _relation_coverage_matrix(scheduled["inputs"], injections)
+    hybrid_retrievals, hybrid_identity, _, _ = _prepare_hybrid_memory(
+        config, scheduled, turns
+    )
     specs = _build_arm_specs(
         scheduled["inputs"],
         turns,
         arms=config.arms,
         injections=injections,
+        hybrid_retrievals=hybrid_retrievals,
         prompt_instruction=config.prompt_instruction,
         tokenizer=tokenizer,
     )
@@ -1205,6 +1449,7 @@ def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, A
         relation_coverage=relation_coverage,
         evaluator_script_sha256=evaluator_script_sha256,
         git_provenance=git_provenance,
+        hybrid_memory=hybrid_identity,
     )
     generation_manifest_path = config.output_dir / "generation_manifest.json"
     generations_path = config.output_dir / "generations.jsonl"
