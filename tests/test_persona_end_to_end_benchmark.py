@@ -21,6 +21,7 @@ from experiments.persona_end_to_end_benchmark import (
     _score_short_answer,
     _validate_resume_manifest,
     load_benchmark_config,
+    run_benchmark,
 )
 
 
@@ -145,6 +146,45 @@ def test_benchmark_authenticates_and_rebuilds_all_120_conditions(tmp_path: Path)
     assert scheduled["dataset"]["generation_manifest_sha256"] == (
         config.schedule.source_manifest_sha256
     )
+
+
+def test_invalid_pair_gate_fails_before_torch_or_transformers_import(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from dataclasses import replace
+    import builtins
+
+    root = Path(__file__).parents[1]
+    config = load_benchmark_config(
+        root / "configs" / "persona_end_to_end_benchmark.json",
+        environ={
+            "PERSONA_DATASET_DIR": str(root / "results" / "persona_conflict_conversations_v1"),
+            "PERSONA_BENCHMARK_OUTPUT_DIR": str(tmp_path / "output"),
+            "PERSONA_QWEN_MODEL_PATH": "/model",
+            "PERSONA_QWEN_MODEL_ID": "Qwen/fixture",
+            "PERSONA_QWEN_DEVICE": "cuda",
+            "PERSONA_SCALLOP_ENDPOINT": "http://scallop.invalid",
+        },
+    )
+    config = replace(
+        config,
+        schedule=replace(
+            config.schedule,
+            pair_gate_path=tmp_path / "missing-gate.json",
+            pair_gate_sha256="0" * 64,
+            surface_assignment="A",
+        ),
+    )
+    original_import = builtins.__import__
+
+    def guarded_import(name: str, *args: object, **kwargs: object) -> object:
+        if name in {"torch", "transformers"}:
+            raise AssertionError(f"model dependency imported before pair gate: {name}")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    with pytest.raises(ValueError, match="pair gate"):
+        run_benchmark(config, config_sha256="fixture")
 
 
 def test_sliding_prompt_uses_exact_chat_template_count_and_maximal_suffix() -> None:

@@ -7,9 +7,11 @@ import shutil
 
 import pytest
 
+from conftest import FakeKimiClient
 from experiments.persona_end_to_end_benchmark import _score_short_answer
-from experiments.persona_fixed_assignment_analysis import analyze_sources
+from experiments.persona_fixed_assignment_analysis import analyze_sources as _analyze_sources
 from experiments.persona_conversation_generator import SOURCE_ARTIFACTS
+from experiments.persona_surface_derivation import SurfacePairConfig, generate_surface_pair
 
 
 ARMS = (
@@ -19,6 +21,9 @@ ARMS = (
     "structured_memory_16384",
     "full_qwen_context",
 )
+_PAIR_CORPORA: dict[str, Path] = {}
+_PAIR_GATE: Path | None = None
+_PAIR_GATE_SHA256: str | None = None
 
 
 def _root() -> Path:
@@ -26,9 +31,57 @@ def _root() -> Path:
     return Path(__file__).parents[1]
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _kimi_pair_corpora(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Generate one authenticated fake-client Kimi pair for all analysis tests."""
+    global _PAIR_CORPORA, _PAIR_GATE, _PAIR_GATE_SHA256
+    root = tmp_path_factory.mktemp("analysis-kimi-pair")
+    parent = root / "parent"
+    shutil.copytree(_root() / "results" / "persona_conflict_conversations_v1", parent)
+    output_a = root / "surface-a"
+    output_b = root / "surface-b"
+    gate = root / "pair-gate.json"
+    generate_surface_pair(
+        SurfacePairConfig(
+            parent_dir=parent,
+            output_a=output_a,
+            output_b=output_b,
+            gate_path=gate,
+            endpoint="https://unused.invalid",
+            api_key="fixture",
+            model="kimi-k3",
+            timeout_seconds=1,
+            mapping_max_tokens=1,
+            dialogue_max_tokens=1,
+            mapping_histories_per_request=1,
+            events_per_request=416,
+            turn_pairs_per_event=1,
+            minimum_words_per_turn=1,
+            max_validation_attempts=1,
+            resume_existing=False,
+            enable_thinking=False,
+        ),
+        FakeKimiClient(),
+    )
+    _PAIR_CORPORA = {"A": output_a, "B": output_b}
+    _PAIR_GATE = gate
+    _PAIR_GATE_SHA256 = hashlib.sha256(gate.read_bytes()).hexdigest()
+
+
+def analyze_sources(*args: object, **kwargs: object) -> dict:
+    """Run analysis with the module-scoped authenticated pair gate."""
+    if _PAIR_GATE is None or _PAIR_GATE_SHA256 is None:
+        raise RuntimeError("Kimi pair fixture is not initialized")
+    kwargs.setdefault("pair_gate_path", _PAIR_GATE)
+    kwargs.setdefault("pair_gate_sha256", _PAIR_GATE_SHA256)
+    return _analyze_sources(*args, **kwargs)
+
+
 def _corpus(assignment: str) -> Path:
     """Return one authenticated materialized assignment corpus."""
-    return _root() / "results" / f"persona_conflict_conversations_surface_{assignment.lower()}"
+    return _PAIR_CORPORA[assignment.upper()]
 
 
 def _assignment_corpora() -> dict[str, Path]:
@@ -41,13 +94,18 @@ def _corpus_dataset(assignment: str) -> dict:
     corpus_path = _corpus(assignment)
     manifest_path = corpus_path / "generation_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if _PAIR_GATE_SHA256 is None:
+        raise RuntimeError("Kimi pair fixture is not initialized")
     return {
         "artifact_sha256": {
             name: manifest["artifact_sha256"][name]
             for name in (*SOURCE_ARTIFACTS, "dialogue.jsonl")
         },
         "checkpoint_policy": "authenticated_parent_exact_indices",
-        "derivation": dict(manifest["derivation"]),
+        "method": manifest["method"],
+        "assignment": assignment.upper(),
+        "seed": manifest["seed"],
+        "pair_gate_sha256": _PAIR_GATE_SHA256,
         "generation_manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
         "generation_model": manifest["model_identity"],
         "parent_generation_manifest_sha256": manifest["parent"][
@@ -215,7 +273,8 @@ def _relabel_as_b(path: Path) -> None:
     """Relabel copied A manifests as B while preserving copied result content."""
     generation_manifest_path = path / "generation_manifest.json"
     generation_manifest = json.loads(generation_manifest_path.read_text(encoding="utf-8"))
-    generation_manifest["dataset"]["derivation"]["seed"] = 911
+    generation_manifest["dataset"]["assignment"] = "B"
+    generation_manifest["dataset"]["seed"] = 911
     generation_manifest_path.write_text(
         json.dumps(generation_manifest, sort_keys=True), encoding="utf-8"
     )
@@ -224,7 +283,8 @@ def _relabel_as_b(path: Path) -> None:
     ).hexdigest()
     manifest_path = path / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["dataset"]["derivation"]["seed"] = 911
+    manifest["dataset"]["assignment"] = "B"
+    manifest["dataset"]["seed"] = 911
     manifest["generation_manifest_sha256"] = generation_manifest_sha256
     manifest["artifact_sha256"]["generation_manifest.json"] = generation_manifest_sha256
     manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
@@ -248,6 +308,42 @@ def _bind_result_fixture_to_corpus(path: Path, assignment: str) -> None:
     manifest["generation_manifest_sha256"] = generation_manifest_sha256
     manifest["artifact_sha256"]["generation_manifest.json"] = generation_manifest_sha256
     manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+
+
+def _rebind_committed_result_surfaces(path: Path, assignment: str) -> None:
+    """Translate committed deterministic result golds onto the fake Kimi mapping."""
+    old_manifest = json.loads(
+        (
+            _root()
+            / "results"
+            / f"persona_conflict_conversations_surface_{assignment.lower()}"
+            / "generation_manifest.json"
+        ).read_text()
+    )
+    new_manifest = json.loads((_corpus(assignment) / "generation_manifest.json").read_text())
+    old_source_by_target = {
+        (row["history_id"], row["target_phrase"]): row["source_phrase"]
+        for row in old_manifest["surface_mapping"]
+    }
+    new_target_by_source = {
+        (row["history_id"], row["source_phrase"]): row["target_phrase"]
+        for row in new_manifest["surface_mapping"]
+    }
+    generations = [
+        json.loads(line)
+        for line in (path / "generations.jsonl").read_text().splitlines()
+    ]
+    for row in generations:
+        if row["gold"] != "UNKNOWN":
+            source = old_source_by_target[(row["history_id"], row["gold"])]
+            row["gold"] = new_target_by_source[(row["history_id"], source)]
+        row["answer"] = "definitely wrong"
+    predictions = [
+        {**row, **_score_short_answer(row["answer"], row["gold"])}
+        for row in generations
+    ]
+    _rewrite_generation_bundle(path, generations, predictions)
+    _bind_result_fixture_to_corpus(path, assignment)
 
 
 def _remove_evaluation_input(path: Path, evaluation_input_id: str) -> None:
@@ -508,8 +604,12 @@ def test_assignment_a_corpus_cannot_be_used_as_v1(tmp_path: Path) -> None:
 
 def test_assignment_gold_must_match_v1_oracle_mapping(tmp_path: Path) -> None:
     root = _root() / "results"
+    source_a = tmp_path / "surface-a"
     source_b = tmp_path / "surface-b"
+    shutil.copytree(root / "persona_end_to_end_qwen35_4b_surface_a", source_a)
     shutil.copytree(root / "persona_end_to_end_qwen35_4b_surface_b", source_b)
+    _rebind_committed_result_surfaces(source_a, "A")
+    _rebind_committed_result_surfaces(source_b, "B")
     generation_rows = [
         json.loads(line)
         for line in (source_b / "generations.jsonl").read_text(encoding="utf-8").splitlines()
@@ -544,7 +644,7 @@ def test_assignment_gold_must_match_v1_oracle_mapping(tmp_path: Path) -> None:
         analyze_sources(
             baseline_path=root / "persona_end_to_end_qwen35_4b_v1",
             assignment_paths={
-                "A": root / "persona_end_to_end_qwen35_4b_surface_a",
+                "A": source_a,
                 "B": source_b,
             },
             baseline_corpus_path=root / "persona_conflict_conversations_v1",
@@ -568,6 +668,8 @@ def test_coordinated_wrong_v1_and_assignment_golds_fail_corpus_oracle(
         destination = tmp_path / label
         shutil.copytree(root / name, destination)
         sources[label] = destination
+    for label in ("A", "B"):
+        _rebind_committed_result_surfaces(sources[label], label)
     generation_rows = {
         label: [
             json.loads(line)
@@ -644,6 +746,8 @@ def test_coordinated_missing_v1_and_assignment_input_fails_complete_design(
         destination = tmp_path / label
         shutil.copytree(root / name, destination)
         sources[label] = destination
+    for label in ("A", "B"):
+        _rebind_committed_result_surfaces(sources[label], label)
     baseline_rows = [
         json.loads(line)
         for line in (sources["v1"] / "generations.jsonl").read_text(encoding="utf-8").splitlines()

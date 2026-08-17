@@ -10,6 +10,7 @@ import pytest
 from experiments.persona_conversation_generator import (
     GenerationConfig,
     LLMResponse,
+    _semantic_polarity,
     default_personas,
     generate_persona_conversations,
     validate_generation_response,
@@ -269,6 +270,82 @@ def test_generation_rejects_semantically_inverted_retraction() -> None:
         validate_generation_response(
             json.dumps(negated), expected, turn_pairs_per_event=1, minimum_words_per_turn=1
         )
+
+
+def test_generation_rejects_direct_old_new_polarity_inversion() -> None:
+    source_event = {
+        "event_id": "history-001-transition",
+        "operation": "supersede",
+        "event_family": "non_overlap_transition",
+        "transitions_from": "prior-fact",
+        "fact": {
+            "qualifiers": {"source_authority": "direct_user"},
+        },
+    }
+    required = ["cedar tea", "mint tea"]
+    expected = [
+        {
+            "event_id": source_event["event_id"],
+            "required_surface_values": required,
+            "forbidden_surface_phrases": [],
+            "authority_markers": [],
+            "semantic_markers": ["switch"],
+            "semantic_polarity": _semantic_polarity(source_event, required),
+        }
+    ]
+    response = {
+        "events": [
+            {
+                "event_id": source_event["event_id"],
+                "turns": [
+                    {
+                        "role": "user",
+                        "content": (
+                            "Please switch the preference: cedar tea remains active; "
+                            "mint tea is not active."
+                        ),
+                    },
+                    {"role": "assistant", "content": "I understand the requested switch."},
+                ],
+            }
+        ]
+    }
+    with pytest.raises(ValueError, match="directly inverted"):
+        validate_generation_response(
+            json.dumps(response),
+            expected,
+            turn_pairs_per_event=1,
+            minimum_words_per_turn=1,
+        )
+
+
+@pytest.mark.parametrize(
+    ("event", "claim"),
+    (
+        ({"operation": "supersede", "transitions_from": "f", "fact": {}}, "correction_or_supersession"),
+        ({"operation": "backdated_correction", "corrects": "f", "fact": {}}, "correction_or_supersession"),
+        ({"operation": "retract", "event_family": "retraction", "fact": {}}, "retraction"),
+        ({"operation": "hard_constraint", "event_family": "hard_constraint", "fact": {}}, "hard_constraint"),
+        ({"operation": "add", "event_family": "contradiction_opening", "conflicts_with": "f", "fact": {}}, "conflict_opening"),
+        ({"operation": "direct_user_correction", "event_family": "contradiction_rectification", "fact": {}}, "conflict_resolution"),
+        ({"operation": "duplicate_delivery", "event_family": "duplicate_delivery", "fact": {}}, "duplicate"),
+        ({"operation": "duplicate_delivery", "event_family": "private_lineage", "fact": {}}, "private_lineage_duplicate"),
+    ),
+)
+def test_semantic_polarity_covers_finite_corpus_operations(
+    event: dict, claim: str
+) -> None:
+    event["fact"].setdefault("qualifiers", {"source_authority": "direct_user"})
+    assert _semantic_polarity(event, ["old value", "new value"])["claim"] == claim
+
+
+def test_semantic_polarity_records_inferred_authority() -> None:
+    metadata = _semantic_polarity(
+        {"operation": "add", "fact": {"qualifiers": {"source_authority": "inferred"}}},
+        ["cedar tea"],
+    )
+    assert metadata["authority"] == "inferred"
+    assert metadata["forbidden_inversion_patterns"]
 
 
 def test_generation_enforces_dialogue_length_and_conflict_values() -> None:
