@@ -1,0 +1,91 @@
+{
+  "artifact_sha256": {
+    "admission_ledgers.jsonl": "f6d8f1cc4e68a14c6701dc54ba63eecd174958361aa57c8b6967fe6402c497cd",
+    "retrievals.jsonl": "101a5dfb2f7089848a947e515a48833b2a313031ee035f4cc4a0378ad5f73392"
+  },
+  "condition_count": 120,
+  "condition_fact_count": 946,
+  "config_sha256": "4a28414f1afe91acae5beda760d62b972b75d5aedf50728083d089a2236c7d6b",
+  "dataset": {
+    "artifact_sha256": {
+      "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+      "dialogue.jsonl": "21e9d035fdd645793b1ec4ccaaf2f6ef104363c1a891ee6ec84f7045e9bad7b5",
+      "events.jsonl": "c74d2a3fd2cfdad48b3b63d11ac2cf54ae3074e385bc77e8ddbc128f818fd0eb",
+      "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+      "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+      "queries.jsonl": "bcff1787b01e0654a73c002b2eb11ccbec2937e7ab58d889cbe6bed8f8f15075",
+      "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+    },
+    "generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+    "generation_model": "kimi-k3",
+    "path": "/data1/kylezheng/aa-runtime/tmp/opencode/neurosym-publish/results/persona_conflict_conversations_v1"
+  },
+  "git": {
+    "dirty": false,
+    "dirty_diff_sha256": "33c2da2f369cc6a117055a71d327f41de48fe448131a6a62c936189bf2d3e4c3",
+    "git_head": "e452b46c97aa7e39aabb281958d24d86a170f061",
+    "untracked_file_count": 0
+  },
+  "hybrid_memory": {
+    "admission_ledgers_sha256": "63d68196fe61417e8fe2d9eaba0a9fd744d29afc68517b016bc0693e82923ede",
+    "backend": "neo4j",
+    "committed_fact_count": 946,
+    "condition_fact_count": 946,
+    "condition_facts_sha256": "fc836749de3db94fdc2e9c2c690e8325905cdb9cd5c3424ebc15158fe35c2c6c",
+    "database": "neo4j",
+    "embedding_batch_size": 32,
+    "embedding_device": "cpu",
+    "embedding_model_id": "BAAI/bge-small-en-v1.5",
+    "embedding_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "graph_endpoint_database_sha256": "b7af5e0b1f39a5afdca71e088c92091fbb4d53b65d980b4bdaccb3545d113457",
+    "graph_traversal_applied": true,
+    "hops_requested": 2,
+    "n_hop_canary": {
+      "cross_condition_path_fact_count": 0,
+      "one_hop_fact_count": 1,
+      "status": "passed",
+      "two_hop_fact_count": 2
+    },
+    "retrieval_map_sha256": "9b71bf35e9271e5bae9d1e829bc34351df9604fdf699d2cf7363003604b07e2a",
+    "retrieval_mode": "hybrid",
+    "rrf_k": 60,
+    "session_id": "persona-49247f1c3613-af6749f98224",
+    "sparse_backend": "neo4j_n_hop",
+    "top_k": 8,
+    "validator": {
+      "engine": "scallopy-http",
+      "name": "scallop",
+      "rule_version": "rules.v1",
+      "scallop_available": true
+    },
+    "validator_endpoint_sha256": "68ee74ba248e5f9c16727f09106ee387146fd7ad96d35fb1f70e44fce3fbfa21"
+  },
+  "hybrid_prompt_count": 240,
+  "ordered_hybrid_specs_sha256": "c2c7853f0cfdb572d7fe366fc92140fe257949cea6c4869741e64f542c8b7ab4",
+  "preflight_version": "persona_neurosym_preflight.v2",
+  "relation_coverage_sha256": "04aba184f33d003e957c854678589fd22e8dd0847fc44dbcd3dcb16ee393e1d5",
+  "scallop": {
+    "engine": "scallopy",
+    "rule_version": "preference_stream.v1",
+    "version": "0.2.4"
+  },
+  "schedule_metrics": {
+    "account_count": 12,
+    "adjacent_same_account_segments": 0,
+    "causal_order_violations": 0,
+    "maximum_intervening_accounts_per_resume": 11,
+    "minimum_intervening_accounts_per_resume": 1,
+    "resume_count": 52,
+    "segment_count": 64,
+    "stream_token_count": 48389,
+    "turn_count": 312
+  },
+  "status": "completed",
+  "tokenizer": {
+    "add_special_tokens": false,
+    "implementation": "Qwen2TokenizerFast",
+    "model_id": "Qwen/Qwen3.5-0.8B",
+    "resolved_revision": "2fc06364715b967f1860aea9cf38778875588b17",
+    "transformers_version": "4.57.6"
+  }
+}

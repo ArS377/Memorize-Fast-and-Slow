@@ -874,7 +874,9 @@ The 64-token generation cap remains a material limitation: all 64 of 64 64K gene
 The unique labels generally appear before truncation, but the pilot does not establish uncensored completion behavior.
 It evaluates no structured-context generation, so it cannot confirm or refute the deterministic structured-minus-sliding v3 advantage.
 
-`Qwen/Qwen3.5-4B` remains unmeasured, so this pilot supports no claim about its answer capability or its behavior under a memory-efficient serving engine.
+This 0.8B pilot does not measure `Qwen/Qwen3.5-4B`.
+A separate 120-condition persona benchmark under `results/persona_end_to_end_qwen35_4b_neurosym_v1/` now measures Qwen3.5-4B revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` with direct Transformers inference, Scallop-gated live Neo4j memory, scoped two-hop traversal, and sparse+dense RRF.
+That separate protocol reports 75.83% exact match for hybrid KG memory at 4K and 80.83% at 16K, but it does not retroactively change this pilot's dataset, task, or conclusions.
 
 Create the isolated evaluator environment with a host-compatible CUDA PyTorch installation and the pinned evaluator requirements, then run or rescore the pilot:
 

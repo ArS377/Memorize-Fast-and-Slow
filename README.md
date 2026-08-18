@@ -269,6 +269,21 @@ preflight does not claim Neo4j n-hop traversal or answer-quality improvement.
 The v2 preflight supersedes that execution path by requiring live Neo4j,
 proving isolated two-hop behavior with an adversarial canary, and failing if
 either hybrid branch is absent.
+`results/persona_neurosym_preflight_v2/` records 946 Scallop-admitted facts in
+live Neo4j, 120 non-degraded two-branch retrievals, and 240 fitted hybrid
+prompts.
+
+`results/persona_end_to_end_qwen35_4b_neurosym_v1/` completes all seven arms
+with Qwen3.5-4B revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a`.
+Exact match is 75.83% for hybrid KG memory at 4K and 80.83% at 16K, compared
+with 32.50% and 56.67% for matched sliding context and 63.33% and 65.00% for
+matched structured memory.
+The paired hybrid-minus-sliding improvements are 43.33 percentage points at
+4K with a history-clustered 95% interval of [34.17, 52.50], and 24.17 points
+at 16K with an interval of [15.00, 33.33].
+The paired hybrid-minus-structured improvements are 12.50 points at 4K with
+an interval of [5.00, 20.83], and 15.83 points at 16K with an interval of
+[10.00, 22.50].
 Aggregate CSVs report this separately as `diagnostic_accuracy`; it never
 contributes to the official `accuracy` column.
 
