@@ -312,23 +312,20 @@ def _bind_result_fixture_to_corpus(path: Path, assignment: str) -> None:
 
 
 def _rebind_committed_result_surfaces(path: Path, assignment: str) -> None:
-    """Translate committed deterministic result golds onto the fake Kimi mapping."""
-    old_manifest = json.loads(
-        (
-            _root()
-            / "results"
-            / f"persona_conflict_conversations_surface_{assignment.lower()}"
-            / "generation_manifest.json"
-        ).read_text()
-    )
+    """Translate committed result golds from v1 onto the fake Kimi mapping."""
     new_manifest = json.loads((_corpus(assignment) / "generation_manifest.json").read_text())
-    old_source_by_target = {
-        (row["history_id"], row["target_phrase"]): row["source_phrase"]
-        for row in old_manifest["surface_mapping"]
-    }
     new_target_by_source = {
         (row["history_id"], row["source_phrase"]): row["target_phrase"]
         for row in new_manifest["surface_mapping"]
+    }
+    v1_rows = [
+        json.loads(line)
+        for line in (
+            _root() / "results" / "persona_end_to_end_qwen35_4b_v1" / "generations.jsonl"
+        ).read_text().splitlines()
+    ]
+    v1_gold = {
+        (row["evaluation_input_id"], row["arm"]): row["gold"] for row in v1_rows
     }
     generations = [
         json.loads(line)
@@ -336,7 +333,7 @@ def _rebind_committed_result_surfaces(path: Path, assignment: str) -> None:
     ]
     for row in generations:
         if row["gold"] != "UNKNOWN":
-            source = old_source_by_target[(row["history_id"], row["gold"])]
+            source = v1_gold[(row["evaluation_input_id"], row["arm"])]
             row["gold"] = new_target_by_source[(row["history_id"], source)]
         row["answer"] = "definitely wrong"
     predictions = [

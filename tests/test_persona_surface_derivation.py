@@ -2181,12 +2181,12 @@ def test_fixed_assignment_analysis_authenticates_kimi_variant_through_pair_gate(
     assert authenticated["allowed_targets_by_history"]
 
 
-def test_scheduler_rejects_legacy_deterministic_surface_children() -> None:
+def test_scheduler_rejects_kimi_surface_children_without_pair_gate() -> None:
     dataset = _root() / "results" / "persona_conflict_conversations_surface_a"
     manifest_hash = __import__("hashlib").sha256(
         (dataset / "generation_manifest.json").read_bytes()
     ).hexdigest()
-    with pytest.raises(ValueError, match="neither a direct v1 Kimi corpus"):
+    with pytest.raises(ValueError, match="require an authenticated pair gate"):
         build_evaluation_schedule(
             dataset,
             WhitespaceTokenizer(),
