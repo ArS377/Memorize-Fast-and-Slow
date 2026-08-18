@@ -470,8 +470,8 @@ def _validate_monotonic_attempts(rows: Sequence[Mapping[str, Any]]) -> None:
             )
 
 
-def _is_recognized_mapping_failure(error: Any) -> bool:
-    """Recognize only persisted mapping/pair ValueErrors that are safe to revalidate."""
+def _is_recognized_generation_failure(error: Any) -> bool:
+    """Recognize only persisted generation/pair ValueErrors that are safe to revalidate."""
     if not isinstance(error, Mapping) or error.get("type") != "ValueError":
         return False
     message = error.get("message")
@@ -480,6 +480,8 @@ def _is_recognized_mapping_failure(error: Any) -> bool:
     return message.startswith(
         (
             "mapping request failed after ",
+            "dialogue request failed after ",
+            "paired dialogue materialization aborted: dialogue request failed after ",
             "cross-assignment normalized equality/containment collision:",
             "whole mapping ",
         )
@@ -494,16 +496,19 @@ def _next_transient_retry_epoch(
 ) -> dict[str, int] | None:
     """Authorize one bounded manual epoch for a terminal all-transient mapping batch."""
     error = manifest.get("error")
-    if not _is_recognized_mapping_failure(error):
+    if not _is_recognized_generation_failure(error):
         return None
     message = str(error["message"])
-    expected_prefix = f"mapping request failed after {max_attempts} attempts: "
-    if not message.startswith(expected_prefix) or "failed transiently" not in message:
+    if not any(
+        message.startswith(f"{stage} request failed after {max_attempts} attempts: ")
+        for stage in ("mapping", "dialogue")
+    ) or "failed transiently" not in message:
         return None
     if not requests:
         return None
     terminal = requests[-1]
-    if terminal.get("stage") != "mapping":
+    stage = terminal.get("stage")
+    if stage not in ("mapping", "dialogue"):
         return None
     request_index = int(terminal.get("request_index", -1))
     terminal_attempt = int(terminal.get("attempt_index", -1))
@@ -515,14 +520,14 @@ def _next_transient_retry_epoch(
     epoch_requests = [
         row
         for row in requests
-        if row.get("stage") == "mapping"
+        if row.get("stage") == stage
         and int(row.get("request_index", -1)) == request_index
         and int(row.get("retry_epoch", -1)) == terminal_epoch
     ]
     epoch_responses = [
         row
         for row in responses
-        if row.get("stage") == "mapping"
+        if row.get("stage") == stage
         and int(row.get("request_index", -1)) == request_index
         and int(row.get("retry_epoch", -1)) == terminal_epoch
     ]
@@ -535,7 +540,7 @@ def _next_transient_retry_epoch(
     for row in epoch_responses:
         _validate_provider_error_row(row)
     return {
-        "stage": "mapping",
+        "stage": str(stage),
         "request_index": request_index,
         "retry_epoch": terminal_epoch + 1,
     }
@@ -2463,7 +2468,7 @@ def _load_or_initialize_assignment_state(
             error_type = error.get("type") if isinstance(error, Mapping) else None
             if (
                 error_type not in _TRANSIENT_PROVIDER_ERROR_NAMES
-                and not _is_recognized_mapping_failure(error)
+                and not _is_recognized_generation_failure(error)
             ):
                 raise CacheIntegrityError(
                     "failed manifest is not a recognized mapping/pair validation failure"

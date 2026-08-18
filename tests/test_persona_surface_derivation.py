@@ -16,6 +16,7 @@ from experiments.persona_conversation_generator import LLMResponse
 from experiments.persona_interference_schedule import ScheduleConfig, build_evaluation_schedule
 from experiments.persona_fixed_assignment_analysis import _authenticate_corpus
 from experiments.persona_surface_derivation import (
+    SURFACE_ASSIGNMENT_SEEDS,
     SurfacePairConfig,
     _normalized_phrases_collide,
     _stable_hash,
@@ -1065,6 +1066,34 @@ class Pk5InternalServerClient(FakeKimiClient):
         return super().complete(**kwargs)
 
 
+class TransientDialogueClient(FakeKimiClient):
+    """Raise authenticated 502 errors for dialogue while recording live calls."""
+
+    def __init__(self, fail: bool) -> None:
+        self.fail = fail
+        self.calls: list[tuple[dict[str, object], int]] = []
+
+    def complete(self, **kwargs: object) -> LLMResponse:
+        payload = json.loads(kwargs["messages"][-1]["content"])
+        self.calls.append((payload, int(kwargs["seed"])))
+        if self.fail and "events" in payload:
+            import httpx
+            from openai import InternalServerError
+
+            response = httpx.Response(
+                502,
+                request=httpx.Request(
+                    "POST", "https://unused.invalid/chat/completions"
+                ),
+            )
+            raise InternalServerError(
+                "Error code: 502 - internal server error",
+                response=response,
+                body=None,
+            )
+        return super().complete(**kwargs)
+
+
 class ValidationExhaustionClient(FakeKimiClient):
     """Return a schema-valid but category-invalid B history-012 mapping forever."""
 
@@ -1860,6 +1889,22 @@ def test_later_retry_epoch_replays_an_earlier_accepted_epoch(
     assert not any(
         call[0]["history_ids"] == ["history-012"] for call in mapping_calls
     )
+    assert config.gate_path.exists()
+
+
+def test_exhausted_dialogue_transients_resume_in_a_bounded_epoch(
+    tmp_path: Path,
+) -> None:
+    config = replace(_launch_order_fixture(tmp_path, attempts=3), resume_existing=True)
+    with pytest.raises(ValueError, match="dialogue request failed after 3 attempts"):
+        generate_surface_pair(config, TransientDialogueClient(True))
+
+    resumed = TransientDialogueClient(False)
+    generate_surface_pair(config, resumed)
+
+    dialogue_calls = [call for call in resumed.calls if "events" in call[0]]
+    assert dialogue_calls[0][1] == SURFACE_ASSIGNMENT_SEEDS["A"] + 1000 + 3
+    assert not any("mapping" in payload for payload, _ in resumed.calls)
     assert config.gate_path.exists()
 
 
