@@ -1843,6 +1843,14 @@ def test_later_retry_epoch_replays_an_earlier_accepted_epoch(
             config,
             Pk5InternalServerClient(True, history_id="history-016"),
         )
+    manifest_path = config.output_b / "generation_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["error"]["message"] = (
+        "mapping request failed after 3 attempts: The prior provider call failed "
+        "transiently with APITimeoutError: stale replay diagnostic. Retry with the "
+        "changed seed and return a concise complete response."
+    )
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
     final = Pk5InternalServerClient(False)
     generate_surface_pair(config, final)

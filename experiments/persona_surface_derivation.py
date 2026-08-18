@@ -534,12 +534,6 @@ def _next_transient_retry_epoch(
         return None
     for row in epoch_responses:
         _validate_provider_error_row(row)
-    latest_error = epoch_responses[-1]["provider_error"]
-    if (
-        str(latest_error["type"]) not in message
-        or str(latest_error["message"]) not in message
-    ):
-        return None
     return {
         "stage": "mapping",
         "request_index": request_index,
