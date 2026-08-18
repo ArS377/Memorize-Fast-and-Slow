@@ -1,52 +1,52 @@
 {
-  "analysis_module_sha256": "9ad5186969f5eee67e9cd2663afd42915e87ccf047ee92d1887f3ce318bdc983",
-  "analysis_payload_sha256": "5277d88c90aab84b1eab149efce547350e1103c4df004ae99fb8e9e601e7f52f",
+  "analysis_module_sha256": "2f434830d5c04a1ccb141b3ad1ec636f5b65016b95c5f3401437cf7ee4da5f2a",
+  "analysis_payload_sha256": "9408ca635777d39ee4bb02777eeecba46d0637d24141b6fb351212e8e8cfc188",
   "artifact_sha256": {
-    "analysis.json": "d451a0f9329bc76acf6b1c3b423e1321f973e2c6938e7bb37056898fdd9de801",
-    "analysis.md": "20d8aba272579032b48afb88de6aea69ab3f12c3b506f0cc2058cb3abd16cd89"
+    "analysis.json": "d298adfe2bd4566284d083159f339a5a8c992dac21667834d13b3204ed6b4c84",
+    "analysis.md": "6a908bf4c58557191a151c6c074a54036e158b727173255c6cbe22cf58cbeb51"
   },
   "schema_version": "persona-fixed-assignment-result-manifest.v1",
   "source_authentication": {
     "A": {
-      "corpus_generation_manifest_sha256": "c64c5c4268d93691b9bdf12119fa31a91cc7e9a798182135593c85128fc89c89",
+      "corpus_generation_manifest_sha256": "2cfdbf18705204a9ca7412e9e962ad3bb03bd08b2426f09270abbc387b047f65",
       "corpus_verified_artifact_sha256": {
         "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
-        "dialogue.jsonl": "6abd3090a1e69f4cd3bef4388ce10051fd9bb753fcb8d2b17d3c55fd590adf39",
-        "events.jsonl": "930e95a49fff427db2303aad1f19b531dddb9c52aa3aee07cfa875b7c94fef25",
+        "dialogue.jsonl": "3324fbe6a91b8998ec05e932b862e8dbed68be49c583b0fdd6831f56d8fae8e3",
+        "events.jsonl": "fe0617008cbe0fcbce6b2a5c8cbd4d77b0ade1521b5d82ba791fa08e0509d656",
         "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
         "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
-        "queries.jsonl": "b01ceac57949a43600ddfb3c960754bf29f4487bd43b6ec1839e134ba1f3f40a",
-        "raw_responses.jsonl": "d35a5aa5464655421700bff566f4e42cfecc8d33c02a211603055a4842261928",
-        "requests.jsonl": "7646a1746c4247c3b4f69ddefe92415db3b5e595b772b1bc08b84f537a1b2894",
+        "queries.jsonl": "cfe2d27b10350ed08c65823a34fd6f713be5f299d03027bc67a481b477a0a1e0",
+        "raw_responses.jsonl": "2da57ae9dd9e141b6864b1f055eef32e5120dee0f81e1e146e280c15ef6cd221",
+        "requests.jsonl": "4ff4900036fd01c786b52a6720f73db8f2db68802af2e6d742e5737fecd8eef9",
         "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
       },
-      "manifest_sha256": "116bfebb1b968286ef12ae7ab15f821b5efac3e3b85667fa3b59ac5cf1629db2",
+      "manifest_sha256": "bf33313ea3ee1adc9ea9fe5c89a0715afd89a1ec47be95fe9f1300ddbefd0a2b",
       "verified_artifact_sha256": {
-        "generation_manifest.json": "65462e9217efb51927dde6cbee9a8a607516d73d9a1c4ae91e4ea98f42b90ef0",
-        "generations.jsonl": "e3b324e70d3f3c04094d95b26b7c476ae2d0f0589df6d9ac9fc8a4419073eadd",
-        "metrics.json": "fb70aa681059f8b527e3704b4bc301628a6f190904043f030790b5e363c867df",
-        "predictions.jsonl": "e54a650705adb5c479c1232530a50f851e5f3e90840417c51532347779052f1d"
+        "generation_manifest.json": "2ea56e684b5e47b7f5128488ec1559bab1d665d9db6a3af77ccdb38da4f32345",
+        "generations.jsonl": "1c20240368509dd7f7cd051076293d9df3763268fd5d6e8ee2b048b9b0b8ca1c",
+        "metrics.json": "5c2e3e14c29ffb46f4ea557ac3bc05b09f1cf246123c0b0586938d5b846fadb8",
+        "predictions.jsonl": "38fd82c092ac796913b807fbaf29ad92cab8eb71a9d84f36f62afbb3c5a4322d"
       }
     },
     "B": {
-      "corpus_generation_manifest_sha256": "07dbaa9698e282e67fe992f6f49282c5c2001ec8a99ad6fb472dd04772a5de92",
+      "corpus_generation_manifest_sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121",
       "corpus_verified_artifact_sha256": {
         "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
-        "dialogue.jsonl": "d2487894a71d83731653ebd51a6ab68183e76419e00c4b1f91f978c8e8d2d870",
-        "events.jsonl": "5c97092f2d4ad3c971563f21fee9e0ff481ea2f9283e192cae9aee9a3ee1fe9d",
+        "dialogue.jsonl": "dc90ff5ffddadf71ead7895885fd389ae386ae2ecb5cad990a08c32b2bbf7ca9",
+        "events.jsonl": "2bdcd86c5c4e7be0987fca6f02a85e18d9edd9ee52c424a4f385c4058caf8c39",
         "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
         "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
-        "queries.jsonl": "80633ea617a54a3b58fe06441927a361bcbf323d7e713c06cf74b2c795dae2af",
-        "raw_responses.jsonl": "d35a5aa5464655421700bff566f4e42cfecc8d33c02a211603055a4842261928",
-        "requests.jsonl": "7646a1746c4247c3b4f69ddefe92415db3b5e595b772b1bc08b84f537a1b2894",
+        "queries.jsonl": "688cc5d4bdd1b7b20dd0a99dbef780aa6650fac323f7e3e0d33461db8fc0ee02",
+        "raw_responses.jsonl": "3c92b5fa3b5076ba8bc0ec85bf39714308e0d3ebae686c215d246c1f110874da",
+        "requests.jsonl": "39d478d381e5b5bae5be3914261a70220f10f9d964a46c5a9b34baaa51fbadde",
         "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
       },
-      "manifest_sha256": "42a73474ae513ca68dabbc6920d8658db30d7f910d7d8d11146faed88ab9956a",
+      "manifest_sha256": "d9485e32163fef9a3ec178a4d581cdd1e7f9847cf64c6a0df6f9f2ca9936874a",
       "verified_artifact_sha256": {
-        "generation_manifest.json": "90d9ca944920ea4f12fa2f50fca5e07122859706b6ebb6cfcb3d7935ef8885bc",
-        "generations.jsonl": "fbe0d654a2937303dd33e60ed8b046269c4bb6680b9895f2feb2a17e17a0d991",
-        "metrics.json": "6ffb2eb4e93f88160f455d2ad7edcdb082a2bdb0fde6e0ffe25c2713436b450a",
-        "predictions.jsonl": "316c860cfcd6591312c0dbcf2baa8e8cbb4852329a154d80d045e32e2e2cc68f"
+        "generation_manifest.json": "63c693b0cd30ba202fbe0e136175133ffe10eda6d53f03cc8443762a69e21225",
+        "generations.jsonl": "ce74297bdd4e61bfdab1ddb3bc0f258572c7b89ed40b5711a3e5fd7a8ee8f9ca",
+        "metrics.json": "bf618ad1179d27276ac06366d117797a88cd245ffd06e08683b849f73103b3b2",
+        "predictions.jsonl": "c66ae165f7e444b908672723287b847b940f6e05175feabe149fa2100bde9683"
       }
     },
     "v1": {

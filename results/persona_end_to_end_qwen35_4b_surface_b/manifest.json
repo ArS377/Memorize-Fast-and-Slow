@@ -27,34 +27,33 @@
     }
   ],
   "artifact_sha256": {
-    "generation_manifest.json": "90d9ca944920ea4f12fa2f50fca5e07122859706b6ebb6cfcb3d7935ef8885bc",
-    "generations.jsonl": "fbe0d654a2937303dd33e60ed8b046269c4bb6680b9895f2feb2a17e17a0d991",
-    "metrics.json": "6ffb2eb4e93f88160f455d2ad7edcdb082a2bdb0fde6e0ffe25c2713436b450a",
-    "predictions.jsonl": "316c860cfcd6591312c0dbcf2baa8e8cbb4852329a154d80d045e32e2e2cc68f"
+    "generation_manifest.json": "63c693b0cd30ba202fbe0e136175133ffe10eda6d53f03cc8443762a69e21225",
+    "generations.jsonl": "ce74297bdd4e61bfdab1ddb3bc0f258572c7b89ed40b5711a3e5fd7a8ee8f9ca",
+    "metrics.json": "bf618ad1179d27276ac06366d117797a88cd245ffd06e08683b849f73103b3b2",
+    "predictions.jsonl": "c66ae165f7e444b908672723287b847b940f6e05175feabe149fa2100bde9683"
   },
   "condition_count": 120,
-  "config_sha256": "3bc244d5e1cf445a578c389a8c4e550b36ed9af2043db48b70c0804701465f62",
+  "config_sha256": "8718f3fdb31be4f2a7085a45148137302ecef65baf2f8e4e644dbd10a3c560bc",
   "dataset": {
     "artifact_sha256": {
       "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
-      "dialogue.jsonl": "d2487894a71d83731653ebd51a6ab68183e76419e00c4b1f91f978c8e8d2d870",
-      "events.jsonl": "5c97092f2d4ad3c971563f21fee9e0ff481ea2f9283e192cae9aee9a3ee1fe9d",
+      "dialogue.jsonl": "dc90ff5ffddadf71ead7895885fd389ae386ae2ecb5cad990a08c32b2bbf7ca9",
+      "events.jsonl": "2bdcd86c5c4e7be0987fca6f02a85e18d9edd9ee52c424a4f385c4058caf8c39",
       "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
       "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
-      "queries.jsonl": "80633ea617a54a3b58fe06441927a361bcbf323d7e713c06cf74b2c795dae2af",
+      "queries.jsonl": "688cc5d4bdd1b7b20dd0a99dbef780aa6650fac323f7e3e0d33461db8fc0ee02",
       "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
     },
+    "assignment": "B",
     "checkpoint_policy": "authenticated_parent_exact_indices",
-    "derivation": {
-      "algorithm": "category_block_permutation",
-      "seed": 911,
-      "version": "persona-surface-derivation.v2"
-    },
-    "generation_manifest_sha256": "07dbaa9698e282e67fe992f6f49282c5c2001ec8a99ad6fb472dd04772a5de92",
-    "generation_model": "deterministic-derived-surface",
+    "generation_manifest_sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121",
+    "generation_model": "kimi-k3",
+    "method": "kimi-pair-conditioned-surface-and-dialogue.v2",
+    "pair_gate_sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b",
     "parent_generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
     "parent_path": "/data1/kylezheng/aa-runtime/tmp/opencode/neurosym-persona-conflicts/results/persona_conflict_conversations_v1",
-    "path": "/data1/kylezheng/aa-runtime/tmp/opencode/neurosym-persona-conflicts/results/persona_conflict_conversations_surface_b"
+    "path": "/data1/kylezheng/aa-runtime/tmp/opencode/neurosym-persona-conflicts/results/persona_conflict_conversations_surface_b",
+    "seed": 911
   },
   "decoding": {
     "batch_size": 1,
@@ -62,14 +61,14 @@
     "enable_thinking": false,
     "max_new_tokens": 32
   },
-  "evaluator_script_sha256": "12752c191bd2b9458ba0339e303fdd134c2a77a0b0133abb2ad0ac156c882f94",
+  "evaluator_script_sha256": "2c12c5a39f8d59e1545dca60788b4e2f99850095abcae61afa6504e492dfd818",
   "evaluator_version": "persona_end_to_end_qwen.v1",
   "generation_count": 600,
-  "generation_manifest_sha256": "90d9ca944920ea4f12fa2f50fca5e07122859706b6ebb6cfcb3d7935ef8885bc",
+  "generation_manifest_sha256": "63c693b0cd30ba202fbe0e136175133ffe10eda6d53f03cc8443762a69e21225",
   "git": {
-    "dirty": true,
-    "dirty_diff_sha256": "22730369d835c9334b9d50be7a13f71924f7318e36d40116c45c8730c21ca4f7",
-    "git_head": "9576c2966546b818d69ed88cc886971b01cee5b1",
+    "dirty": false,
+    "dirty_diff_sha256": "33c2da2f369cc6a117055a71d327f41de48fe448131a6a62c936189bf2d3e4c3",
+    "git_head": "892a9241e614cc79a4c9fb4263d4acac5a627cf7",
     "untracked_file_count": 0
   },
   "injection_map_sha256": "bb59a1b066bdf2f560754fe1f320d38095bbfb0434459fd9c2d3dfecaecd205d",
@@ -96,7 +95,7 @@
     "torch_version": "2.6.0+cu124",
     "transformers_version": "5.15.0"
   },
-  "ordered_spec_sha256": "424a5a41c82f81dfdcb113b9c7fb51f02e05b2ad69ac3209026ebb0297a199e9",
+  "ordered_spec_sha256": "26b150863086bb05b361c1e7a2bcef3ef403e1a7a57da10d566ce2ad6843b070",
   "prompt_instruction_sha256": "400af53cf6036c5686cda14691605aeaf36a19a209ae35b29dfe51bed96ca1cd",
   "relation_coverage_matrix": [
     {
@@ -1557,7 +1556,7 @@
     "rule_version": "preference_stream.v1",
     "version": "0.2.4"
   },
-  "schedule_sha256": "94d9dba59c4714cf0157a68bdfefab051caeae0e0f3c1606f59418646f8d0668",
+  "schedule_sha256": "dc661ca1600d1dbbe4273e8e4547b4db7725fa15d791d1ef92fd000dafc51e8e",
   "schedule_version": "persona-interference-schedule.v1",
   "status": "completed",
   "tokenizer": {

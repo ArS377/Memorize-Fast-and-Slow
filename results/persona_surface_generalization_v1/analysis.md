@@ -8,26 +8,26 @@ A+B uses 12 base-history bootstrap clusters; each sampled history retains both a
 
 | Arm | EM | F1 | Rows | Histories |
 |---|---:|---:|---:|---:|
-| sliding_context_4096 | 0.350 | 0.377 | 240 | 12 |
-| sliding_context_16384 | 0.617 | 0.658 | 240 | 12 |
-| structured_memory_4096 | 0.679 | 0.695 | 240 | 12 |
-| structured_memory_16384 | 0.713 | 0.727 | 240 | 12 |
-| full_qwen_context | 0.721 | 0.731 | 240 | 12 |
+| sliding_context_4096 | 0.304 | 0.336 | 240 | 12 |
+| sliding_context_16384 | 0.529 | 0.574 | 240 | 12 |
+| structured_memory_4096 | 0.608 | 0.628 | 240 | 12 |
+| structured_memory_16384 | 0.621 | 0.646 | 240 | 12 |
+| full_qwen_context | 0.575 | 0.615 | 240 | 12 |
 
 ## Per-Assignment Arm Scores
 
 | Assignment | Arm | EM | F1 |
 |---|---|---:|---:|
-| A | sliding_context_4096 | 0.342 | 0.366 |
-| A | sliding_context_16384 | 0.600 | 0.646 |
-| A | structured_memory_4096 | 0.683 | 0.699 |
-| A | structured_memory_16384 | 0.708 | 0.721 |
-| A | full_qwen_context | 0.733 | 0.742 |
-| B | sliding_context_4096 | 0.358 | 0.388 |
-| B | sliding_context_16384 | 0.633 | 0.671 |
-| B | structured_memory_4096 | 0.675 | 0.692 |
-| B | structured_memory_16384 | 0.717 | 0.733 |
-| B | full_qwen_context | 0.708 | 0.721 |
+| A | sliding_context_4096 | 0.325 | 0.358 |
+| A | sliding_context_16384 | 0.500 | 0.556 |
+| A | structured_memory_4096 | 0.625 | 0.645 |
+| A | structured_memory_16384 | 0.608 | 0.640 |
+| A | full_qwen_context | 0.550 | 0.602 |
+| B | sliding_context_4096 | 0.283 | 0.314 |
+| B | sliding_context_16384 | 0.558 | 0.592 |
+| B | structured_memory_4096 | 0.592 | 0.610 |
+| B | structured_memory_16384 | 0.633 | 0.652 |
+| B | full_qwen_context | 0.600 | 0.628 |
 | v1 | sliding_context_4096 | 0.325 | 0.342 |
 | v1 | sliding_context_16384 | 0.567 | 0.604 |
 | v1 | structured_memory_4096 | 0.650 | 0.671 |
@@ -38,79 +38,79 @@ A+B uses 12 base-history bootstrap clusters; each sampled history retains both a
 
 | Contrast | Stratum | EM delta [95% CI] | F1 delta [95% CI] |
 |---|---|---:|---:|
-| structured_memory_4096 - sliding_context_4096 | overall | 0.329 [0.296, 0.358] | 0.319 [0.283, 0.352] |
-| structured_memory_4096 - sliding_context_4096 | delayed | 0.833 [0.729, 0.938] | 0.812 [0.667, 0.938] |
-| structured_memory_4096 - sliding_context_4096 | source_present | 0.898 [0.841, 0.954] | 0.869 [0.799, 0.938] |
+| structured_memory_4096 - sliding_context_4096 | overall | 0.304 [0.267, 0.333] | 0.291 [0.258, 0.318] |
+| structured_memory_4096 - sliding_context_4096 | delayed | 0.729 [0.604, 0.854] | 0.729 [0.604, 0.854] |
+| structured_memory_4096 - sliding_context_4096 | source_present | 0.830 [0.755, 0.907] | 0.794 [0.708, 0.871] |
 | structured_memory_4096 - sliding_context_4096 | source_absent | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
-| structured_memory_16384 - sliding_context_16384 | overall | 0.096 [0.054, 0.142] | 0.069 [0.042, 0.094] |
-| structured_memory_16384 - sliding_context_16384 | delayed | 0.333 [0.208, 0.438] | 0.281 [0.156, 0.406] |
-| structured_memory_16384 - sliding_context_16384 | source_present | 0.261 [0.144, 0.400] | 0.188 [0.109, 0.269] |
+| structured_memory_16384 - sliding_context_16384 | overall | 0.092 [0.042, 0.142] | 0.072 [0.039, 0.100] |
+| structured_memory_16384 - sliding_context_16384 | delayed | 0.271 [0.104, 0.417] | 0.250 [0.115, 0.375] |
+| structured_memory_16384 - sliding_context_16384 | source_present | 0.250 [0.110, 0.384] | 0.196 [0.104, 0.277] |
 | structured_memory_16384 - sliding_context_16384 | source_absent | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
 
 ## pooled_A_B: Full-Context Comparisons
 
 | Contrast | Stratum | EM delta [95% CI] | F1 delta [95% CI] |
 |---|---|---:|---:|
-| full_qwen_context - sliding_context_16384 | overall | 0.104 [0.033, 0.175] | 0.073 [0.019, 0.125] |
-| full_qwen_context - sliding_context_16384 | delayed | 0.333 [0.167, 0.479] | 0.271 [0.115, 0.427] |
-| full_qwen_context - sliding_context_16384 | source_present | 0.250 [0.085, 0.407] | 0.170 [0.039, 0.287] |
-| full_qwen_context - sliding_context_16384 | source_absent | 0.020 [-0.007, 0.054] | 0.016 [-0.010, 0.046] |
-| full_qwen_context - structured_memory_16384 | overall | 0.008 [-0.033, 0.042] | 0.004 [-0.033, 0.037] |
-| full_qwen_context - structured_memory_16384 | delayed | 0.000 [-0.062, 0.062] | -0.010 [-0.073, 0.052] |
-| full_qwen_context - structured_memory_16384 | source_present | -0.011 [-0.091, 0.048] | -0.017 [-0.101, 0.044] |
-| full_qwen_context - structured_memory_16384 | source_absent | 0.020 [-0.013, 0.054] | 0.016 [-0.012, 0.045] |
+| full_qwen_context - sliding_context_16384 | overall | 0.046 [0.000, 0.083] | 0.041 [0.001, 0.074] |
+| full_qwen_context - sliding_context_16384 | delayed | 0.229 [0.062, 0.375] | 0.242 [0.102, 0.380] |
+| full_qwen_context - sliding_context_16384 | source_present | 0.170 [0.095, 0.250] | 0.157 [0.092, 0.228] |
+| full_qwen_context - sliding_context_16384 | source_absent | -0.026 [-0.067, 0.000] | -0.026 [-0.068, 0.000] |
+| full_qwen_context - structured_memory_16384 | overall | -0.046 [-0.092, 0.000] | -0.031 [-0.059, -0.003] |
+| full_qwen_context - structured_memory_16384 | delayed | -0.042 [-0.125, 0.042] | -0.008 [-0.051, 0.036] |
+| full_qwen_context - structured_memory_16384 | source_present | -0.080 [-0.196, 0.025] | -0.039 [-0.105, 0.022] |
+| full_qwen_context - structured_memory_16384 | source_absent | -0.026 [-0.068, 0.000] | -0.026 [-0.069, 0.000] |
 
 ## A: Structured Minus Sliding
 
 | Contrast | Stratum | EM delta [95% CI] | F1 delta [95% CI] |
 |---|---|---:|---:|
-| structured_memory_4096 - sliding_context_4096 | overall | 0.342 [0.300, 0.383] | 0.333 [0.287, 0.379] |
-| structured_memory_4096 - sliding_context_4096 | delayed | 0.875 [0.750, 1.000] | 0.854 [0.708, 1.000] |
-| structured_memory_4096 - sliding_context_4096 | source_present | 0.932 [0.864, 1.000] | 0.909 [0.826, 0.979] |
+| structured_memory_4096 - sliding_context_4096 | overall | 0.300 [0.275, 0.325] | 0.287 [0.265, 0.307] |
+| structured_memory_4096 - sliding_context_4096 | delayed | 0.708 [0.583, 0.833] | 0.708 [0.583, 0.833] |
+| structured_memory_4096 - sliding_context_4096 | source_present | 0.818 [0.745, 0.902] | 0.782 [0.700, 0.868] |
 | structured_memory_4096 - sliding_context_4096 | source_absent | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
-| structured_memory_16384 - sliding_context_16384 | overall | 0.108 [0.058, 0.167] | 0.075 [0.046, 0.104] |
-| structured_memory_16384 - sliding_context_16384 | delayed | 0.375 [0.250, 0.500] | 0.292 [0.167, 0.396] |
-| structured_memory_16384 - sliding_context_16384 | source_present | 0.295 [0.159, 0.462] | 0.205 [0.120, 0.287] |
+| structured_memory_16384 - sliding_context_16384 | overall | 0.108 [0.058, 0.158] | 0.084 [0.053, 0.111] |
+| structured_memory_16384 - sliding_context_16384 | delayed | 0.292 [0.167, 0.417] | 0.271 [0.146, 0.396] |
+| structured_memory_16384 - sliding_context_16384 | source_present | 0.295 [0.167, 0.435] | 0.228 [0.146, 0.307] |
 | structured_memory_16384 - sliding_context_16384 | source_absent | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
 
 ## A: Full-Context Comparisons
 
 | Contrast | Stratum | EM delta [95% CI] | F1 delta [95% CI] |
 |---|---|---:|---:|
-| full_qwen_context - sliding_context_16384 | overall | 0.133 [0.067, 0.225] | 0.096 [0.046, 0.150] |
-| full_qwen_context - sliding_context_16384 | delayed | 0.417 [0.292, 0.500] | 0.333 [0.229, 0.438] |
-| full_qwen_context - sliding_context_16384 | source_present | 0.318 [0.191, 0.467] | 0.227 [0.152, 0.302] |
-| full_qwen_context - sliding_context_16384 | source_absent | 0.026 [-0.027, 0.096] | 0.020 [-0.027, 0.079] |
-| full_qwen_context - structured_memory_16384 | overall | 0.025 [-0.017, 0.067] | 0.021 [-0.013, 0.058] |
-| full_qwen_context - structured_memory_16384 | delayed | 0.042 [0.000, 0.125] | 0.042 [0.000, 0.125] |
-| full_qwen_context - structured_memory_16384 | source_present | 0.023 [0.000, 0.070] | 0.023 [0.000, 0.070] |
-| full_qwen_context - structured_memory_16384 | source_absent | 0.026 [-0.027, 0.096] | 0.020 [-0.026, 0.078] |
+| full_qwen_context - sliding_context_16384 | overall | 0.050 [0.008, 0.092] | 0.046 [0.011, 0.078] |
+| full_qwen_context - sliding_context_16384 | delayed | 0.208 [0.000, 0.375] | 0.222 [0.056, 0.375] |
+| full_qwen_context - sliding_context_16384 | source_present | 0.159 [0.043, 0.279] | 0.148 [0.052, 0.245] |
+| full_qwen_context - sliding_context_16384 | source_absent | -0.013 [-0.039, 0.000] | -0.013 [-0.039, 0.000] |
+| full_qwen_context - structured_memory_16384 | overall | -0.058 [-0.125, 0.000] | -0.037 [-0.079, 0.000] |
+| full_qwen_context - structured_memory_16384 | delayed | -0.083 [-0.208, 0.000] | -0.049 [-0.125, 0.000] |
+| full_qwen_context - structured_memory_16384 | source_present | -0.136 [-0.326, 0.000] | -0.080 [-0.189, 0.000] |
+| full_qwen_context - structured_memory_16384 | source_absent | -0.013 [-0.039, 0.000] | -0.013 [-0.040, 0.000] |
 
 ## B: Structured Minus Sliding
 
 | Contrast | Stratum | EM delta [95% CI] | F1 delta [95% CI] |
 |---|---|---:|---:|
-| structured_memory_4096 - sliding_context_4096 | overall | 0.317 [0.283, 0.350] | 0.304 [0.271, 0.342] |
-| structured_memory_4096 - sliding_context_4096 | delayed | 0.792 [0.667, 0.917] | 0.771 [0.604, 0.917] |
-| structured_memory_4096 - sliding_context_4096 | source_present | 0.864 [0.776, 0.951] | 0.830 [0.723, 0.933] |
+| structured_memory_4096 - sliding_context_4096 | overall | 0.308 [0.267, 0.350] | 0.296 [0.250, 0.333] |
+| structured_memory_4096 - sliding_context_4096 | delayed | 0.750 [0.625, 0.875] | 0.750 [0.624, 0.875] |
+| structured_memory_4096 - sliding_context_4096 | source_present | 0.841 [0.750, 0.932] | 0.807 [0.707, 0.902] |
 | structured_memory_4096 - sliding_context_4096 | source_absent | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
-| structured_memory_16384 - sliding_context_16384 | overall | 0.083 [0.050, 0.125] | 0.062 [0.033, 0.092] |
-| structured_memory_16384 - sliding_context_16384 | delayed | 0.292 [0.167, 0.417] | 0.271 [0.125, 0.417] |
-| structured_memory_16384 - sliding_context_16384 | source_present | 0.227 [0.116, 0.348] | 0.170 [0.085, 0.263] |
+| structured_memory_16384 - sliding_context_16384 | overall | 0.075 [0.008, 0.142] | 0.060 [0.020, 0.096] |
+| structured_memory_16384 - sliding_context_16384 | delayed | 0.250 [0.042, 0.417] | 0.229 [0.083, 0.375] |
+| structured_memory_16384 - sliding_context_16384 | source_present | 0.205 [0.023, 0.383] | 0.164 [0.049, 0.263] |
 | structured_memory_16384 - sliding_context_16384 | source_absent | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] |
 
 ## B: Full-Context Comparisons
 
 | Contrast | Stratum | EM delta [95% CI] | F1 delta [95% CI] |
 |---|---|---:|---:|
-| full_qwen_context - sliding_context_16384 | overall | 0.075 [-0.025, 0.158] | 0.050 [-0.050, 0.125] |
-| full_qwen_context - sliding_context_16384 | delayed | 0.250 [-0.042, 0.500] | 0.208 [-0.083, 0.458] |
-| full_qwen_context - sliding_context_16384 | source_present | 0.182 [-0.083, 0.390] | 0.114 [-0.135, 0.297] |
-| full_qwen_context - sliding_context_16384 | source_absent | 0.013 [0.000, 0.039] | 0.013 [0.000, 0.039] |
-| full_qwen_context - structured_memory_16384 | overall | -0.008 [-0.092, 0.050] | -0.013 [-0.096, 0.054] |
-| full_qwen_context - structured_memory_16384 | delayed | -0.042 [-0.250, 0.125] | -0.062 [-0.271, 0.104] |
-| full_qwen_context - structured_memory_16384 | source_present | -0.045 [-0.267, 0.093] | -0.057 [-0.272, 0.089] |
-| full_qwen_context - structured_memory_16384 | source_absent | 0.013 [0.000, 0.039] | 0.013 [0.000, 0.040] |
+| full_qwen_context - sliding_context_16384 | overall | 0.042 [-0.042, 0.117] | 0.036 [-0.031, 0.089] |
+| full_qwen_context - sliding_context_16384 | delayed | 0.250 [0.083, 0.417] | 0.263 [0.113, 0.408] |
+| full_qwen_context - sliding_context_16384 | source_present | 0.182 [0.044, 0.333] | 0.166 [0.064, 0.266] |
+| full_qwen_context - sliding_context_16384 | source_absent | -0.039 [-0.118, 0.000] | -0.039 [-0.118, 0.000] |
+| full_qwen_context - structured_memory_16384 | overall | -0.033 [-0.108, 0.033] | -0.024 [-0.082, 0.020] |
+| full_qwen_context - structured_memory_16384 | delayed | 0.000 [-0.125, 0.125] | 0.033 [-0.050, 0.113] |
+| full_qwen_context - structured_memory_16384 | source_present | -0.023 [-0.200, 0.133] | 0.002 [-0.103, 0.087] |
+| full_qwen_context - structured_memory_16384 | source_absent | -0.039 [-0.120, 0.000] | -0.039 [-0.118, 0.000] |
 
 ## v1: Structured Minus Sliding
 
@@ -140,26 +140,26 @@ A+B uses 12 base-history bootstrap clusters; each sampled history retains both a
 
 ## Descriptive Difference-in-Paired-Differences vs v1
 
-CONTAMINATION WARNING: A and B are deterministic surface derivations of the same v1 histories, facts, and evaluation structure, not independent replications. These difference-in-paired-differences estimates are descriptive only and do not support causal, independence, or out-of-sample generalization claims.
+CONTAMINATION WARNING: A and B use separately Kimi-generated, pair-conditioned surfaces and dialogue over the same v1 histories, facts, and evaluation structure, not independent latent replications. These difference-in-paired-differences estimates are descriptive only and do not support causal, independence, or out-of-sample generalization claims.
 
 | Budget | Stratum | EM | F1 |
 |---:|---|---:|---:|
-| 16384 | delayed | 0.000 | -0.073 |
-| 16384 | overall | 0.004 | -0.019 |
+| 16384 | delayed | -0.062 | -0.104 |
+| 16384 | overall | 0.000 | -0.016 |
 | 16384 | source_absent | 0.000 | 0.000 |
-| 16384 | source_present | 0.011 | -0.051 |
-| 4096 | delayed | 0.000 | -0.042 |
-| 4096 | overall | 0.004 | -0.010 |
+| 16384 | source_present | 0.000 | -0.043 |
+| 4096 | delayed | -0.104 | -0.125 |
+| 4096 | overall | -0.021 | -0.038 |
 | 4096 | source_absent | 0.000 | 0.000 |
-| 4096 | source_present | 0.011 | -0.028 |
+| 4096 | source_present | -0.057 | -0.103 |
 
 ## Authentication
 
-- Result JSON SHA-256: `d451a0f9329bc76acf6b1c3b423e1321f973e2c6938e7bb37056898fdd9de801`
-- A manifest SHA-256: `116bfebb1b968286ef12ae7ab15f821b5efac3e3b85667fa3b59ac5cf1629db2`
-- A predictions SHA-256: `e54a650705adb5c479c1232530a50f851e5f3e90840417c51532347779052f1d`
-- B manifest SHA-256: `42a73474ae513ca68dabbc6920d8658db30d7f910d7d8d11146faed88ab9956a`
-- B predictions SHA-256: `316c860cfcd6591312c0dbcf2baa8e8cbb4852329a154d80d045e32e2e2cc68f`
+- Result JSON SHA-256: `d298adfe2bd4566284d083159f339a5a8c992dac21667834d13b3204ed6b4c84`
+- A manifest SHA-256: `bf33313ea3ee1adc9ea9fe5c89a0715afd89a1ec47be95fe9f1300ddbefd0a2b`
+- A predictions SHA-256: `38fd82c092ac796913b807fbaf29ad92cab8eb71a9d84f36f62afbb3c5a4322d`
+- B manifest SHA-256: `d9485e32163fef9a3ec178a4d581cdd1e7f9847cf64c6a0df6f9f2ca9936874a`
+- B predictions SHA-256: `c66ae165f7e444b908672723287b847b940f6e05175feabe149fa2100bde9683`
 - v1 manifest SHA-256: `b53a29f137de639fd09656b2efe681011f1083034ca7842cb270b19ed848f9dd`
 - v1 predictions SHA-256: `f6c4afe028d54c37e85694649ab7d4d8827db16201edda018855e2e7f0e5957b`
 
@@ -170,4 +170,4 @@ CONTAMINATION WARNING: A and B are deterministic surface derivations of the same
 - Source-absent structured-minus-sliding effects are required to be exactly zero.
 - Hashes and invariants authenticate internal consistency and corpus-semantic binding; they do not prove execution or provide hostile artifact-origin attestation.
 - Exact A/B gold semantics are bound to authenticated v1 corpus checkpoints through causal resolution and each assignment corpus's canonical surface mapping.
-- CONTAMINATION WARNING: A and B are deterministic surface derivations of the same v1 histories, facts, and evaluation structure, not independent replications. These difference-in-paired-differences estimates are descriptive only and do not support causal, independence, or out-of-sample generalization claims.
+- CONTAMINATION WARNING: A and B use separately Kimi-generated, pair-conditioned surfaces and dialogue over the same v1 histories, facts, and evaluation structure, not independent latent replications. These difference-in-paired-differences estimates are descriptive only and do not support causal, independence, or out-of-sample generalization claims.

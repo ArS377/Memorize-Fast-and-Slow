@@ -12,15 +12,14 @@ from pathlib import Path
 from statistics import fmean
 from typing import Any, Mapping, Sequence
 
-from experiments.persona_end_to_end_benchmark import _score_short_answer
+from experiments.persona_end_to_end_benchmark import _aggregate_rows, _score_short_answer
 from experiments.persona_interference_schedule import (
     _authenticate_dataset,
     _read_jsonl_bytes,
     _surface_gold,
 )
 from experiments.persona_surface_derivation import (
-    DERIVATION_ALGORITHM,
-    DERIVATION_VERSION,
+    DERIVATION_METHOD,
     SURFACE_ASSIGNMENT_SEEDS,
 )
 from experiments.synthetic_temporal_preferences import resolve_query
@@ -52,8 +51,60 @@ def _canonical_sha256(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _authenticated_metric_controls(manifest: Mapping[str, Any], label: str) -> tuple[
+    list[tuple[str, str]], int, int
+]:
+    """Resolve metric controls from the exact repository config hash in a result manifest."""
+    config_sha256 = manifest.get("config_sha256")
+    if not isinstance(config_sha256, str) or len(config_sha256) != 64:
+        raise ValueError(f"{label}: benchmark manifest lacks config_sha256")
+    config_root = Path(__file__).resolve().parents[1] / "configs"
+    matches = [
+        path
+        for path in config_root.glob("persona_end_to_end*.json")
+        if _sha256(path) == config_sha256
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"{label}: config_sha256 resolves to {len(matches)} benchmark configs"
+        )
+    try:
+        payload = json.loads(matches[0].read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{label}: authenticated benchmark config is invalid JSON") from error
+    analysis = payload.get("analysis") if isinstance(payload, Mapping) else None
+    comparisons_payload = analysis.get("paired_comparisons") if isinstance(analysis, Mapping) else None
+    bootstrap_samples = analysis.get("bootstrap_samples") if isinstance(analysis, Mapping) else None
+    bootstrap_seed = analysis.get("bootstrap_seed") if isinstance(analysis, Mapping) else None
+    if (
+        not isinstance(comparisons_payload, list)
+        or not comparisons_payload
+        or any(
+            not isinstance(pair, list)
+            or len(pair) != 2
+            or any(not isinstance(arm, str) or arm not in ARM_NAMES for arm in pair)
+            for pair in comparisons_payload
+        )
+        or isinstance(bootstrap_samples, bool)
+        or not isinstance(bootstrap_samples, int)
+        or bootstrap_samples < 1
+        or isinstance(bootstrap_seed, bool)
+        or not isinstance(bootstrap_seed, int)
+    ):
+        raise ValueError(f"{label}: authenticated benchmark config has invalid analysis controls")
+    return (
+        [(pair[0], pair[1]) for pair in comparisons_payload],
+        bootstrap_samples,
+        bootstrap_seed,
+    )
+
+
 def _authenticate_corpus(
-    path: Path, label: str, expected_assignment: str | None
+    path: Path,
+    label: str,
+    expected_assignment: str | None,
+    pair_gate_path: Path | None = None,
+    pair_gate_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Authenticate one explicit corpus and return its result-facing identity."""
     path = Path(path)
@@ -87,29 +138,35 @@ def _authenticate_corpus(
         verified[name] = actual
 
     manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
-    provenance, artifact_bytes, authenticated_parent = _authenticate_dataset(
-        path, manifest_sha256
-    )
-    allowed_targets_by_history: dict[str, set[str]] | None = None
-    surface_mapping_by_history: dict[str, dict[str, str]] | None = None
     if expected_assignment is None:
         model_identity = manifest.get("model_identity")
         if (
             not isinstance(model_identity, str)
             or "kimi" not in model_identity.casefold()
-            or manifest.get("derivation") is not None
+            or manifest.get("method") is not None
             or manifest.get("parent") is not None
-            or authenticated_parent is not None
         ):
             raise ValueError("v1 corpus must be completed Kimi-authored and non-derived")
+    provenance, artifact_bytes, authenticated_parent = _authenticate_dataset(
+        path,
+        manifest_sha256,
+        pair_gate_path,
+        pair_gate_sha256,
+        expected_assignment,
+    )
+    allowed_targets_by_history: dict[str, set[str]] | None = None
+    surface_mapping_by_history: dict[str, dict[str, str]] | None = None
+    if expected_assignment is None:
+        if authenticated_parent is not None:
+            raise ValueError("v1 corpus must be completed Kimi-authored and non-derived")
     else:
-        expected_derivation = {
-            "algorithm": DERIVATION_ALGORITHM,
-            "seed": SURFACE_ASSIGNMENT_SEEDS[expected_assignment.lower()],
-            "version": DERIVATION_VERSION,
-        }
-        if manifest.get("derivation") != expected_derivation or authenticated_parent is None:
-            raise ValueError(f"{label} corpus has an unexpected derivation assignment")
+        if (
+            manifest.get("method") != DERIVATION_METHOD
+            or manifest.get("assignment") != expected_assignment
+            or manifest.get("seed") != SURFACE_ASSIGNMENT_SEEDS[expected_assignment]
+            or authenticated_parent is None
+        ):
+            raise ValueError(f"{label} corpus has an unexpected Kimi assignment")
         mapping = manifest.get("surface_mapping")
         if not isinstance(mapping, list):
             raise ValueError(f"{label} corpus lacks its canonical surface mapping")
@@ -142,6 +199,10 @@ def _authenticate_corpus(
         "generation_manifest_sha256": manifest_sha256,
         "result_artifact_sha256": provenance["artifact_sha256"],
         "verified_artifact_sha256": verified,
+        "pair_gate_sha256": provenance.get("pair_gate_sha256"),
+        "parent_generation_manifest_sha256": provenance.get(
+            "parent_generation_manifest_sha256"
+        ),
         "allowed_targets_by_history": allowed_targets_by_history,
         "surface_mapping_by_history": surface_mapping_by_history,
         "artifact_bytes": artifact_bytes,
@@ -160,6 +221,14 @@ def _bind_result_to_corpus(
         "generation_manifest_sha256"
     ] or dataset.get("artifact_sha256") != corpus["result_artifact_sha256"]:
         raise ValueError(f"{label}: result dataset does not match the supplied corpus")
+    if corpus.get("pair_gate_sha256") is not None and (
+        dataset.get("pair_gate_sha256") != corpus["pair_gate_sha256"]
+        or dataset.get("parent_generation_manifest_sha256")
+        != corpus["parent_generation_manifest_sha256"]
+    ):
+        raise ValueError(
+            f"{label}: result dataset does not match the authenticated pair gate and parent"
+        )
 
 
 def _validate_assignment_golds(
@@ -465,6 +534,7 @@ def _load_source(
     required_artifacts = {
         "generation_manifest.json",
         "generations.jsonl",
+        "metrics.json",
         "predictions.jsonl",
     }
     if not isinstance(declared, dict) or not required_artifacts.issubset(declared):
@@ -586,6 +656,28 @@ def _load_source(
         raise ValueError(f"{label}: predictions.jsonl is empty")
     if prediction_keys != set(generation_rows):
         raise ValueError(f"{label}: prediction and generation key sets differ")
+    try:
+        metrics = json.loads((path / "metrics.json").read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{label}: invalid metrics.json") from error
+    aggregates = metrics.get("aggregates") if isinstance(metrics, Mapping) else None
+    comparisons, bootstrap_samples, bootstrap_seed = _authenticated_metric_controls(
+        manifest, label
+    )
+    expected_aggregates = _aggregate_rows(
+        rows,
+        comparisons=comparisons,
+        bootstrap_samples=bootstrap_samples,
+        seed=bootstrap_seed,
+    )
+    if (
+        not isinstance(metrics, Mapping)
+        or metrics.get("evaluator_version") != manifest.get("evaluator_version")
+        or metrics.get("condition_count") != len({row["evaluation_input_id"] for row in rows})
+        or metrics.get("generation_count") != len(rows)
+        or aggregates != expected_aggregates
+    ):
+        raise ValueError(f"{label}: metrics.json disagrees with authenticated predictions")
     arms = manifest.get("arms")
     if (
         not isinstance(arms, list)
@@ -628,29 +720,34 @@ def _validate_assignments(
     if Path(assignment_paths["A"]).resolve() == Path(assignment_paths["B"]).resolve():
         raise ValueError("A and B must be distinct directories")
 
-    for label, assignment in (("A", "a"), ("B", "b")):
+    for label in ("A", "B"):
         manifest = manifests[label]
         if manifest.get("status") != "completed":
             raise ValueError(f"{label}: benchmark manifest is not completed")
         dataset = manifest.get("dataset")
         if not isinstance(dataset, Mapping):
             raise ValueError(f"{label}: manifest lacks dataset provenance")
-        expected_derivation = {
-            "algorithm": DERIVATION_ALGORITHM,
-            "seed": SURFACE_ASSIGNMENT_SEEDS[assignment],
-            "version": DERIVATION_VERSION,
-        }
-        if dataset.get("derivation") != expected_derivation:
-            raise ValueError(f"{label}: unexpected derivation assignment")
+        if (
+            dataset.get("method") != DERIVATION_METHOD
+            or dataset.get("assignment") != label
+            or dataset.get("seed") != SURFACE_ASSIGNMENT_SEEDS[label]
+        ):
+            raise ValueError(f"{label}: unexpected Kimi assignment")
         if dataset.get("checkpoint_policy") != "authenticated_parent_exact_indices":
             raise ValueError(f"{label}: unexpected checkpoint policy")
         parent_hash = dataset.get("parent_generation_manifest_sha256")
         if not isinstance(parent_hash, str) or not parent_hash:
             raise ValueError(f"{label}: missing authenticated parent identity")
+        if not isinstance(dataset.get("pair_gate_sha256"), str):
+            raise ValueError(f"{label}: missing authenticated pair gate identity")
     if manifests["A"]["dataset"].get("parent_generation_manifest_sha256") != manifests[
         "B"
     ]["dataset"].get("parent_generation_manifest_sha256"):
         raise ValueError("A and B must share the same authenticated parent")
+    if manifests["A"]["dataset"].get("pair_gate_sha256") != manifests["B"][
+        "dataset"
+    ].get("pair_gate_sha256"):
+        raise ValueError("A and B must share the same authenticated pair gate")
     prediction_hashes = {
         source_authentication[label]["verified_artifact_sha256"]["predictions.jsonl"]
         for label in ("A", "B")
@@ -940,6 +1037,8 @@ def analyze_sources(
     assignment_paths: Mapping[str, Path],
     baseline_corpus_path: Path | None,
     assignment_corpus_paths: Mapping[str, Path],
+    pair_gate_path: Path | None = None,
+    pair_gate_sha256: str | None = None,
     bootstrap_samples: int = 5000,
     bootstrap_seed: int = 73,
 ) -> dict[str, Any]:
@@ -956,10 +1055,16 @@ def analyze_sources(
         raise ValueError("bootstrap_samples must be positive")
     if Path(assignment_paths["A"]).resolve() == Path(assignment_paths["B"]).resolve():
         raise ValueError("A and B must be distinct directories")
+    if pair_gate_path is None or pair_gate_sha256 is None:
+        raise ValueError("A/B analysis requires pair_gate_path and pair_gate_sha256")
 
     corpus_authentication = {
         label: _authenticate_corpus(
-            Path(assignment_corpus_paths[label]), label, label
+            Path(assignment_corpus_paths[label]),
+            label,
+            label,
+            pair_gate_path,
+            pair_gate_sha256,
         )
         for label in ("A", "B")
     }
@@ -1091,8 +1196,9 @@ def analyze_sources(
                 }
             )
         warning = (
-            "CONTAMINATION WARNING: A and B are deterministic surface derivations of the same "
-            "v1 histories, facts, and evaluation structure, not independent replications. These "
+            "CONTAMINATION WARNING: A and B use separately Kimi-generated, pair-conditioned surfaces and dialogue "
+            "over the same v1 histories, facts, and evaluation structure, not independent latent "
+            "replications. These "
             "difference-in-paired-differences estimates are descriptive only and do not support "
             "causal, independence, or out-of-sample generalization claims."
         )
@@ -1285,6 +1391,8 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="authenticated surface B corpus directory",
     )
     parser.add_argument("--output", type=Path, required=True, help="output directory")
+    parser.add_argument("--pair-gate", type=Path, required=True)
+    parser.add_argument("--pair-gate-sha256", required=True)
     parser.add_argument("--bootstrap-samples", type=int, default=5000)
     parser.add_argument("--bootstrap-seed", type=int, default=73)
     return parser.parse_args(argv)
@@ -1301,6 +1409,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "A": args.assignment_a_corpus,
             "B": args.assignment_b_corpus,
         },
+        pair_gate_path=args.pair_gate,
+        pair_gate_sha256=args.pair_gate_sha256,
         bootstrap_samples=args.bootstrap_samples,
         bootstrap_seed=args.bootstrap_seed,
     )

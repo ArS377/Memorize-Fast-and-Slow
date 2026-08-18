@@ -29,6 +29,7 @@ from experiments.persona_interference_schedule import (
     _read_jsonl_bytes,
     build_evaluation_schedule,
 )
+from experiments.persona_surface_derivation import authenticate_pair_gate
 from experiments.preference_stream_injection import PreferenceStreamInjectionClient
 
 
@@ -198,11 +199,48 @@ def load_benchmark_config(
         isinstance(value, int) and not isinstance(value, bool) for value in distances
     ):
         raise ValueError("schedule.token_distance_thresholds must be integers")
+    source_manifest_sha256 = schedule_payload.get("source_manifest_sha256")
+    source_manifest_sha256_env = schedule_payload.get("source_manifest_sha256_env")
+    if (source_manifest_sha256 is None) == (source_manifest_sha256_env is None):
+        raise ValueError(
+            "schedule must declare exactly one of source_manifest_sha256 or source_manifest_sha256_env"
+        )
+    if source_manifest_sha256_env is not None:
+        source_manifest_sha256 = _required_env(
+            environ,
+            _nonempty_string(
+                source_manifest_sha256_env, "schedule.source_manifest_sha256_env"
+            ),
+        )
+    gate_path_env = runtime.get("pair_gate_path_env")
+    gate_sha_env = runtime.get("pair_gate_sha256_env")
+    surface_assignment = runtime.get("surface_assignment")
+    gate_values = (gate_path_env, gate_sha_env, surface_assignment)
+    if any(value is not None for value in gate_values) and any(
+        value is None for value in gate_values
+    ):
+        raise ValueError(
+            "runtime pair_gate_path_env, pair_gate_sha256_env, and surface_assignment "
+            "must be declared together"
+        )
+    pair_gate_path = None
+    pair_gate_sha256 = None
+    if gate_path_env is not None:
+        pair_gate_path = Path(
+            _required_env(
+                environ,
+                _nonempty_string(gate_path_env, "runtime.pair_gate_path_env"),
+            )
+        )
+        pair_gate_sha256 = _required_env(
+            environ,
+            _nonempty_string(gate_sha_env, "runtime.pair_gate_sha256_env"),
+        )
     schedule = ScheduleConfig(
         source_split=_nonempty_string(schedule_payload.get("source_split"), "schedule.source_split"),
         source_profile=_nonempty_string(schedule_payload.get("source_profile"), "schedule.source_profile"),
         source_manifest_sha256=_nonempty_string(
-            schedule_payload.get("source_manifest_sha256"),
+            source_manifest_sha256,
             "schedule.source_manifest_sha256",
         ),
         seed=_positive_int(schedule_payload.get("seed"), "schedule.seed"),
@@ -220,6 +258,13 @@ def load_benchmark_config(
         ),
         query_suffixes=tuple(suffixes),
         token_distance_thresholds=tuple(distances),
+        pair_gate_path=pair_gate_path,
+        pair_gate_sha256=pair_gate_sha256,
+        surface_assignment=(
+            _nonempty_string(surface_assignment, "runtime.surface_assignment")
+            if surface_assignment is not None
+            else None
+        ),
     )
     endpoint_env = _nonempty_string(scallop.get("endpoint_env"), "scallop.endpoint_env")
     timeout = scallop.get("timeout_seconds")
@@ -924,7 +969,11 @@ def _load_source_and_rebuild(
     adapter = _ScheduleTokenizerAdapter(tokenizer, config.model_id, config.model_path)
     scheduled = build_evaluation_schedule(config.dataset_dir, adapter, config.schedule)
     provenance, artifacts, _ = _authenticate_dataset(
-        config.dataset_dir, config.schedule.source_manifest_sha256
+        config.dataset_dir,
+        config.schedule.source_manifest_sha256,
+        config.schedule.pair_gate_path,
+        config.schedule.pair_gate_sha256,
+        config.schedule.surface_assignment,
     )
     events = [
         row
@@ -1119,8 +1168,22 @@ def _validate_resume_manifest(
     return old_manifest
 
 
+def _preflight_pair_gate(config: BenchmarkConfig) -> dict[str, Any] | None:
+    """Authenticate a configured A/B pair before tokenizer or model libraries are loaded."""
+    if config.schedule.pair_gate_path is None:
+        return None
+    return authenticate_pair_gate(
+        config.schedule.pair_gate_path,
+        str(config.schedule.pair_gate_sha256),
+        dataset_dir=config.dataset_dir,
+        expected_assignment=config.schedule.surface_assignment,
+    )
+
+
 def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, Any]:
     """Run resumable local Qwen generation and write authenticated benchmark artifacts."""
+    _preflight_pair_gate(config)
+
     import torch
     import transformers
     from transformers import AutoModelForCausalLM, AutoTokenizer

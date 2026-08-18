@@ -4,12 +4,15 @@
     "output_dir_env": "PERSONA_SURFACE_B_BENCHMARK_OUTPUT_DIR",
     "model_path_env": "PERSONA_QWEN_MODEL_PATH",
     "model_id_env": "PERSONA_QWEN_MODEL_ID",
-    "device_env": "PERSONA_QWEN_DEVICE"
+    "device_env": "PERSONA_QWEN_DEVICE",
+    "pair_gate_path_env": "PERSONA_SURFACE_PAIR_GATE_PATH",
+    "pair_gate_sha256_env": "PERSONA_SURFACE_PAIR_GATE_SHA256",
+    "surface_assignment": "B"
   },
   "schedule": {
     "source_split": "test",
     "source_profile": "anti_shortcut_interleaved_v3",
-    "source_manifest_sha256": "07dbaa9698e282e67fe992f6f49282c5c2001ec8a99ad6fb472dd04772a5de92",
+    "source_manifest_sha256_env": "PERSONA_SURFACE_B_MANIFEST_SHA256",
     "seed": 73,
     "concurrent_accounts": 8,
     "min_segment_events": 4,

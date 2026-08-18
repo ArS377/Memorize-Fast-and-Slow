@@ -589,6 +589,68 @@ def _semantic_instruction(
     return "Do not invent facts, agreement, conflicts, or outcomes beyond the supplied event."
 
 
+def _semantic_polarity(
+    event: Mapping[str, Any], required_values: Sequence[str]
+) -> dict[str, Any]:
+    """Return deterministic claim polarity and direct-inversion rejection patterns."""
+    operation = str(event.get("operation", "")).casefold()
+    event_family = str(event.get("event_family", "")).casefold()
+    fact = event.get("fact")
+    predicate = str(fact.get("predicate", "")) if isinstance(fact, Mapping) else ""
+    qualifiers = fact.get("qualifiers", {}) if isinstance(fact, Mapping) else {}
+    authority = str(qualifiers.get("source_authority", "inferred"))
+    escaped = [re.escape(str(value).casefold()) for value in required_values]
+    forbidden = []
+    claim = "neutral_context"
+    if (
+        event.get("supersedes")
+        or event.get("corrects")
+        or event.get("transitions_from")
+    ) and len(escaped) >= 2:
+        old_value, new_value = escaped[0], escaped[-1]
+        claim = "correction_or_supersession"
+        forbidden.extend(
+            (
+                rf"{old_value}.{{0,48}}(?:remains|stays|is)\s+(?:the\s+)?(?:active|current)",
+                rf"{new_value}.{{0,48}}(?:is\s+not|isn't|not|no\s+longer)\s+(?:active|current|applicable)",
+            )
+        )
+        if operation == "backdated_correction":
+            forbidden.append(rf"{old_value}.{{0,48}}applies\s+(?:after|later)")
+    elif "retract" in operation:
+        claim = "retraction"
+        if escaped:
+            forbidden.append(
+                rf"{escaped[-1]}.{{0,48}}(?:remains|stays|is)\s+(?:available|active|recallable)"
+            )
+    elif "hard_constraint" in operation:
+        claim = "hard_constraint"
+        if escaped:
+            forbidden.append(rf"{escaped[-1]}.{{0,48}}(?:is\s+)?(?:allowed|feasible)")
+    elif "rectification" in event_family:
+        claim = "conflict_resolution"
+        forbidden.extend((r"\bunresolved\b", r"\bnot\s+settled\b", r"\bstill\s+conflict"))
+    elif event_family == "contradiction_opening" and event.get("conflicts_with"):
+        claim = "conflict_opening"
+        forbidden.extend((r"\bresolved\b", r"\bsettled\b", r"\bfinal\s+choice\b"))
+    elif "duplicate" in operation:
+        claim = "private_lineage_duplicate" if event_family == "private_lineage" else "duplicate"
+        forbidden.extend((r"\bnew\s+(?:preference|note)\b", r"\bdifferent\s+(?:preference|note)\b"))
+    elif event_family == "private_lineage" or predicate == "PRIVATE_NOTE":
+        claim = "private_lineage_or_note"
+        forbidden.extend((r"\bpublic\s+preference\b", r"\brecommendation\s+signal\b"))
+    if authority == "inferred":
+        forbidden.append(r"\b(?:i|we)\s+(?:confirm|prefer|choose|selected)\b")
+    elif authority == "direct_user":
+        forbidden.append(r"\b(?:inferred|tentative|reportedly)\b")
+    return {
+        "claim": claim,
+        "expected_polarity": "affirmed",
+        "authority": authority,
+        "forbidden_inversion_patterns": forbidden,
+    }
+
+
 def _forbidden_surface_phrases(event: Mapping[str, Any]) -> tuple[str, ...]:
     """Return high-risk unsupported claims that invalidate generated dialogue."""
     operation = str(event.get("operation", "")).casefold()
@@ -794,12 +856,83 @@ def validate_generation_response(
             raise ValueError(
                 f"generated event {event['event_id']} inverted or omitted its operation semantics"
             )
+        polarity = expected_events[index].get("semantic_polarity")
+        if polarity is not None:
+            if (
+                not isinstance(polarity, Mapping)
+                or polarity.get("expected_polarity") != "affirmed"
+                or not isinstance(polarity.get("forbidden_inversion_patterns"), list)
+            ):
+                raise ValueError(
+                    f"generated event {event['event_id']} has invalid semantic polarity metadata"
+                )
+            for pattern in polarity["forbidden_inversion_patterns"]:
+                if not isinstance(pattern, str):
+                    raise ValueError(
+                        f"generated event {event['event_id']} has malformed polarity pattern"
+                    )
+                if re.search(pattern, visible_text):
+                    raise ValueError(
+                        f"generated event {event['event_id']} directly inverted its "
+                        f"{polarity.get('claim')} semantic claim"
+                    )
     return payload
 
 
 def _render_dialogue(turns: Sequence[Mapping[str, str]]) -> str:
     """Serialize generated roles into the existing event model_text seam."""
     return "\n".join(f"{turn['role'].title()}: {turn['content']}" for turn in turns)
+
+
+def build_generation_messages(
+    expected_events: Sequence[Mapping[str, Any]],
+    *,
+    prompt_schema_version: str,
+    turn_pairs_per_event: int,
+    minimum_words_per_turn: int,
+) -> list[dict[str, str]]:
+    """Build the canonical Kimi dialogue realization prompt."""
+    return [
+        {
+            "role": "system",
+            "content": (
+                "Render each supplied event as an ordinary, realistic memory interaction. "
+                "The user should discuss their situation directly, never ask how to word, "
+                "annotate, summarize, or record a benchmark statement. "
+                "Follow each speaker_instruction exactly so direct statements and inferred "
+                "third-party evidence remain distinct. "
+                "Use names, first-person pronouns, or singular they; never invent gendered pronouns. "
+                "Use extra turns for practical context or tradeoffs, not repetitive "
+                "paraphrase or recordkeeping; use at most three recordkeeping terms per event. "
+                "Keep the supplied event order and meaning exactly. Return strict JSON only. "
+                "Return exactly one top-level key named events. Each events item must contain "
+                "exactly the supplied event_id and a turns array of alternating role/content "
+                f"objects beginning with user and ending with assistant, with exactly "
+                f"{turn_pairs_per_event} user-assistant pairs per event and at least "
+                f"{minimum_words_per_turn} words per turn. Mention every supplied "
+                "required_surface_value naturally and preserve conflict, correction, and "
+                "resolution relationships explicitly. Follow each semantic_instruction "
+                "and do not use any forbidden_surface_phrases. Never mention prompts, "
+                "supplied events, benchmarks, generation, or source instructions. Preserve event_id only "
+                "as metadata; do not expose IDs or benchmark labels inside dialogue content. "
+                "Required shape: {\"events\":[{\"event_id\":\"the supplied ID\","
+                "\"turns\":[{\"role\":\"user\",\"content\":\"...\"},"
+                "{\"role\":\"assistant\",\"content\":\"...\"}]}]}."
+            ),
+        },
+        {
+            "role": "user",
+            "content": json.dumps(
+                {
+                    "schema_version": prompt_schema_version,
+                    "turn_pairs_per_event": turn_pairs_per_event,
+                    "minimum_words_per_turn": minimum_words_per_turn,
+                    "events": list(expected_events),
+                },
+                sort_keys=True,
+            ),
+        },
+    ]
 
 
 def _request_parameters(config: GenerationConfig) -> dict[str, Any]:
@@ -1024,6 +1157,9 @@ def generate_persona_conversations(
                         "semantic_instruction": _semantic_instruction(
                             event, required_values
                         ),
+                        "semantic_polarity": _semantic_polarity(
+                            event, required_values
+                        ),
                         "forbidden_surface_phrases": list(
                             _forbidden_surface_phrases(event)
                         ),
@@ -1034,47 +1170,12 @@ def generate_persona_conversations(
             ):
                 batch_expected = expected[offset : offset + config.events_per_request]
                 batch_events = history_events[offset : offset + config.events_per_request]
-                messages = [
-                    {
-                        "role": "system",
-                        "content": (
-                            "Render each supplied event as an ordinary, realistic memory interaction. "
-                            "The user should discuss their situation directly, never ask how to word, "
-                            "annotate, summarize, or record a benchmark statement. "
-                            "Follow each speaker_instruction exactly so direct statements and inferred "
-                            "third-party evidence remain distinct. "
-                            "Use names, first-person pronouns, or singular they; never invent gendered pronouns. "
-                            "Use extra turns for practical context or tradeoffs, not repetitive "
-                            "paraphrase or recordkeeping; use at most three recordkeeping terms per event. "
-                            "Keep the supplied event order and meaning exactly. Return strict JSON only. "
-                            "Return exactly one top-level key named events. Each events item must contain "
-                            "exactly the supplied event_id and a turns array of alternating role/content "
-                            f"objects beginning with user and ending with assistant, with exactly "
-                            f"{config.turn_pairs_per_event} user-assistant pairs per event and at least "
-                            f"{config.minimum_words_per_turn} words per turn. Mention every supplied "
-                            "required_surface_value naturally and preserve conflict, correction, and "
-                            "resolution relationships explicitly. Follow each semantic_instruction "
-                            "and do not use any forbidden_surface_phrases. Never mention prompts, "
-                            "supplied events, benchmarks, generation, or source instructions. Preserve event_id only "
-                            "as metadata; do not expose IDs or benchmark labels inside dialogue content. "
-                            "Required shape: {\"events\":[{\"event_id\":\"the supplied ID\","
-                            "\"turns\":[{\"role\":\"user\",\"content\":\"...\"},"
-                            "{\"role\":\"assistant\",\"content\":\"...\"}]}]}."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": json.dumps(
-                            {
-                                "schema_version": config.prompt_schema_version,
-                                "turn_pairs_per_event": config.turn_pairs_per_event,
-                                "minimum_words_per_turn": config.minimum_words_per_turn,
-                                "events": batch_expected,
-                            },
-                            sort_keys=True,
-                        ),
-                    },
-                ]
+                messages = build_generation_messages(
+                    batch_expected,
+                    prompt_schema_version=config.prompt_schema_version,
+                    turn_pairs_per_event=config.turn_pairs_per_event,
+                    minimum_words_per_turn=config.minimum_words_per_turn,
+                )
                 base_prompt_sha256 = hashlib.sha256(
                     json.dumps(messages, ensure_ascii=True, sort_keys=True).encode("utf-8")
                 ).hexdigest()
