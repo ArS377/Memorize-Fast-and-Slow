@@ -12,7 +12,7 @@ from pathlib import Path
 from statistics import fmean
 from typing import Any, Mapping, Sequence
 
-from experiments.persona_end_to_end_benchmark import _score_short_answer
+from experiments.persona_end_to_end_benchmark import _aggregate_rows, _score_short_answer
 from experiments.persona_interference_schedule import (
     _authenticate_dataset,
     _read_jsonl_bytes,
@@ -49,6 +49,54 @@ def _canonical_sha256(value: Any) -> str:
     """Hash a JSON-compatible value using canonical serialization."""
     encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _authenticated_metric_controls(manifest: Mapping[str, Any], label: str) -> tuple[
+    list[tuple[str, str]], int, int
+]:
+    """Resolve metric controls from the exact repository config hash in a result manifest."""
+    config_sha256 = manifest.get("config_sha256")
+    if not isinstance(config_sha256, str) or len(config_sha256) != 64:
+        raise ValueError(f"{label}: benchmark manifest lacks config_sha256")
+    config_root = Path(__file__).resolve().parents[1] / "configs"
+    matches = [
+        path
+        for path in config_root.glob("persona_end_to_end*.json")
+        if _sha256(path) == config_sha256
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"{label}: config_sha256 resolves to {len(matches)} benchmark configs"
+        )
+    try:
+        payload = json.loads(matches[0].read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{label}: authenticated benchmark config is invalid JSON") from error
+    analysis = payload.get("analysis") if isinstance(payload, Mapping) else None
+    comparisons_payload = analysis.get("paired_comparisons") if isinstance(analysis, Mapping) else None
+    bootstrap_samples = analysis.get("bootstrap_samples") if isinstance(analysis, Mapping) else None
+    bootstrap_seed = analysis.get("bootstrap_seed") if isinstance(analysis, Mapping) else None
+    if (
+        not isinstance(comparisons_payload, list)
+        or not comparisons_payload
+        or any(
+            not isinstance(pair, list)
+            or len(pair) != 2
+            or any(not isinstance(arm, str) or arm not in ARM_NAMES for arm in pair)
+            for pair in comparisons_payload
+        )
+        or isinstance(bootstrap_samples, bool)
+        or not isinstance(bootstrap_samples, int)
+        or bootstrap_samples < 1
+        or isinstance(bootstrap_seed, bool)
+        or not isinstance(bootstrap_seed, int)
+    ):
+        raise ValueError(f"{label}: authenticated benchmark config has invalid analysis controls")
+    return (
+        [(pair[0], pair[1]) for pair in comparisons_payload],
+        bootstrap_samples,
+        bootstrap_seed,
+    )
 
 
 def _authenticate_corpus(
@@ -151,6 +199,10 @@ def _authenticate_corpus(
         "generation_manifest_sha256": manifest_sha256,
         "result_artifact_sha256": provenance["artifact_sha256"],
         "verified_artifact_sha256": verified,
+        "pair_gate_sha256": provenance.get("pair_gate_sha256"),
+        "parent_generation_manifest_sha256": provenance.get(
+            "parent_generation_manifest_sha256"
+        ),
         "allowed_targets_by_history": allowed_targets_by_history,
         "surface_mapping_by_history": surface_mapping_by_history,
         "artifact_bytes": artifact_bytes,
@@ -169,6 +221,14 @@ def _bind_result_to_corpus(
         "generation_manifest_sha256"
     ] or dataset.get("artifact_sha256") != corpus["result_artifact_sha256"]:
         raise ValueError(f"{label}: result dataset does not match the supplied corpus")
+    if corpus.get("pair_gate_sha256") is not None and (
+        dataset.get("pair_gate_sha256") != corpus["pair_gate_sha256"]
+        or dataset.get("parent_generation_manifest_sha256")
+        != corpus["parent_generation_manifest_sha256"]
+    ):
+        raise ValueError(
+            f"{label}: result dataset does not match the authenticated pair gate and parent"
+        )
 
 
 def _validate_assignment_golds(
@@ -474,6 +534,7 @@ def _load_source(
     required_artifacts = {
         "generation_manifest.json",
         "generations.jsonl",
+        "metrics.json",
         "predictions.jsonl",
     }
     if not isinstance(declared, dict) or not required_artifacts.issubset(declared):
@@ -595,6 +656,28 @@ def _load_source(
         raise ValueError(f"{label}: predictions.jsonl is empty")
     if prediction_keys != set(generation_rows):
         raise ValueError(f"{label}: prediction and generation key sets differ")
+    try:
+        metrics = json.loads((path / "metrics.json").read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"{label}: invalid metrics.json") from error
+    aggregates = metrics.get("aggregates") if isinstance(metrics, Mapping) else None
+    comparisons, bootstrap_samples, bootstrap_seed = _authenticated_metric_controls(
+        manifest, label
+    )
+    expected_aggregates = _aggregate_rows(
+        rows,
+        comparisons=comparisons,
+        bootstrap_samples=bootstrap_samples,
+        seed=bootstrap_seed,
+    )
+    if (
+        not isinstance(metrics, Mapping)
+        or metrics.get("evaluator_version") != manifest.get("evaluator_version")
+        or metrics.get("condition_count") != len({row["evaluation_input_id"] for row in rows})
+        or metrics.get("generation_count") != len(rows)
+        or aggregates != expected_aggregates
+    ):
+        raise ValueError(f"{label}: metrics.json disagrees with authenticated predictions")
     arms = manifest.get("arms")
     if (
         not isinstance(arms, list)

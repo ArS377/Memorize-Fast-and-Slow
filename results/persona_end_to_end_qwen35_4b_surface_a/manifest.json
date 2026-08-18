@@ -27,34 +27,33 @@
     }
   ],
   "artifact_sha256": {
-    "generation_manifest.json": "65462e9217efb51927dde6cbee9a8a607516d73d9a1c4ae91e4ea98f42b90ef0",
-    "generations.jsonl": "e3b324e70d3f3c04094d95b26b7c476ae2d0f0589df6d9ac9fc8a4419073eadd",
-    "metrics.json": "fb70aa681059f8b527e3704b4bc301628a6f190904043f030790b5e363c867df",
-    "predictions.jsonl": "e54a650705adb5c479c1232530a50f851e5f3e90840417c51532347779052f1d"
+    "generation_manifest.json": "2ea56e684b5e47b7f5128488ec1559bab1d665d9db6a3af77ccdb38da4f32345",
+    "generations.jsonl": "1c20240368509dd7f7cd051076293d9df3763268fd5d6e8ee2b048b9b0b8ca1c",
+    "metrics.json": "5c2e3e14c29ffb46f4ea557ac3bc05b09f1cf246123c0b0586938d5b846fadb8",
+    "predictions.jsonl": "38fd82c092ac796913b807fbaf29ad92cab8eb71a9d84f36f62afbb3c5a4322d"
   },
   "condition_count": 120,
-  "config_sha256": "dd9fd8c68ea5fb8011ed256d7c34b7eb36978e485a62c466c31fd3a5064967e5",
+  "config_sha256": "6d88099205b17c683161ba48d9e25cd40040f0eaa470bc957f6ed19dfa5b0b1b",
   "dataset": {
     "artifact_sha256": {
       "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
-      "dialogue.jsonl": "6abd3090a1e69f4cd3bef4388ce10051fd9bb753fcb8d2b17d3c55fd590adf39",
-      "events.jsonl": "930e95a49fff427db2303aad1f19b531dddb9c52aa3aee07cfa875b7c94fef25",
+      "dialogue.jsonl": "3324fbe6a91b8998ec05e932b862e8dbed68be49c583b0fdd6831f56d8fae8e3",
+      "events.jsonl": "fe0617008cbe0fcbce6b2a5c8cbd4d77b0ade1521b5d82ba791fa08e0509d656",
       "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
       "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
-      "queries.jsonl": "b01ceac57949a43600ddfb3c960754bf29f4487bd43b6ec1839e134ba1f3f40a",
+      "queries.jsonl": "cfe2d27b10350ed08c65823a34fd6f713be5f299d03027bc67a481b477a0a1e0",
       "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
     },
+    "assignment": "A",
     "checkpoint_policy": "authenticated_parent_exact_indices",
-    "derivation": {
-      "algorithm": "category_block_permutation",
-      "seed": 137,
-      "version": "persona-surface-derivation.v2"
-    },
-    "generation_manifest_sha256": "c64c5c4268d93691b9bdf12119fa31a91cc7e9a798182135593c85128fc89c89",
-    "generation_model": "deterministic-derived-surface",
+    "generation_manifest_sha256": "2cfdbf18705204a9ca7412e9e962ad3bb03bd08b2426f09270abbc387b047f65",
+    "generation_model": "kimi-k3",
+    "method": "kimi-pair-conditioned-surface-and-dialogue.v2",
+    "pair_gate_sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b",
     "parent_generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
     "parent_path": "/data1/kylezheng/aa-runtime/tmp/opencode/neurosym-persona-conflicts/results/persona_conflict_conversations_v1",
-    "path": "/data1/kylezheng/aa-runtime/tmp/opencode/neurosym-persona-conflicts/results/persona_conflict_conversations_surface_a"
+    "path": "/data1/kylezheng/aa-runtime/tmp/opencode/neurosym-persona-conflicts/results/persona_conflict_conversations_surface_a",
+    "seed": 137
   },
   "decoding": {
     "batch_size": 1,
@@ -62,14 +61,14 @@
     "enable_thinking": false,
     "max_new_tokens": 32
   },
-  "evaluator_script_sha256": "12752c191bd2b9458ba0339e303fdd134c2a77a0b0133abb2ad0ac156c882f94",
+  "evaluator_script_sha256": "2c12c5a39f8d59e1545dca60788b4e2f99850095abcae61afa6504e492dfd818",
   "evaluator_version": "persona_end_to_end_qwen.v1",
   "generation_count": 600,
-  "generation_manifest_sha256": "65462e9217efb51927dde6cbee9a8a607516d73d9a1c4ae91e4ea98f42b90ef0",
+  "generation_manifest_sha256": "2ea56e684b5e47b7f5128488ec1559bab1d665d9db6a3af77ccdb38da4f32345",
   "git": {
-    "dirty": true,
-    "dirty_diff_sha256": "22730369d835c9334b9d50be7a13f71924f7318e36d40116c45c8730c21ca4f7",
-    "git_head": "9576c2966546b818d69ed88cc886971b01cee5b1",
+    "dirty": false,
+    "dirty_diff_sha256": "33c2da2f369cc6a117055a71d327f41de48fe448131a6a62c936189bf2d3e4c3",
+    "git_head": "892a9241e614cc79a4c9fb4263d4acac5a627cf7",
     "untracked_file_count": 0
   },
   "injection_map_sha256": "bb59a1b066bdf2f560754fe1f320d38095bbfb0434459fd9c2d3dfecaecd205d",
@@ -96,7 +95,7 @@
     "torch_version": "2.6.0+cu124",
     "transformers_version": "5.15.0"
   },
-  "ordered_spec_sha256": "b6ffe0acaa6cdcbb39303735bd84aa0098aec0d7a7d07e524e358000df6daa05",
+  "ordered_spec_sha256": "140a216749f225d72c6565f6386f83f2ed9333aed6c6fc8d63cd94bd54ab3790",
   "prompt_instruction_sha256": "400af53cf6036c5686cda14691605aeaf36a19a209ae35b29dfe51bed96ca1cd",
   "relation_coverage_matrix": [
     {
@@ -1557,7 +1556,7 @@
     "rule_version": "preference_stream.v1",
     "version": "0.2.4"
   },
-  "schedule_sha256": "84378e41d41b0c2f767d12b5a68941d2df76acdaa1eeafd485ce3ef450b6976f",
+  "schedule_sha256": "f5365588c33ec6116a14ae1fbf61ba73722ac533dc0c177f217479c0b3242a95",
   "schedule_version": "persona-interference-schedule.v1",
   "status": "completed",
   "tokenizer": {

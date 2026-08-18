@@ -8,7 +8,7 @@ import shutil
 import pytest
 
 from conftest import FakeKimiClient
-from experiments.persona_end_to_end_benchmark import _score_short_answer
+from experiments.persona_end_to_end_benchmark import _aggregate_rows, _score_short_answer
 from experiments.persona_fixed_assignment_analysis import analyze_sources as _analyze_sources
 from experiments.persona_conversation_generator import SOURCE_ARTIFACTS
 from experiments.persona_surface_derivation import SurfacePairConfig, generate_surface_pair
@@ -173,9 +173,36 @@ def _write_source(path: Path, assignment: str, *, contaminate: bool = False) -> 
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in prediction_rows),
         encoding="utf-8",
     )
+    benchmark_config = (
+        _root() / "configs" / "persona_end_to_end_benchmark_surface_a.json"
+    )
+    benchmark_analysis = json.loads(benchmark_config.read_text(encoding="utf-8"))[
+        "analysis"
+    ]
+    metrics = path / "metrics.json"
+    metrics.write_text(
+        json.dumps(
+            {
+                "aggregates": _aggregate_rows(
+                    prediction_rows,
+                    comparisons=[
+                        tuple(pair) for pair in benchmark_analysis["paired_comparisons"]
+                    ],
+                    bootstrap_samples=benchmark_analysis["bootstrap_samples"],
+                    seed=benchmark_analysis["bootstrap_seed"],
+                ),
+                "condition_count": 12,
+                "evaluator_version": "persona_end_to_end_qwen.v1",
+                "generation_count": 60,
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
     common_manifest = {
         "arms": [{"name": arm} for arm in ARMS],
         "condition_count": 12,
+        "config_sha256": hashlib.sha256(benchmark_config.read_bytes()).hexdigest(),
         "dataset": _corpus_dataset(assignment),
         "decoding": {"do_sample": False, "max_new_tokens": 32},
         "evaluator_script_sha256": "evaluator-script",
@@ -208,6 +235,7 @@ def _write_source(path: Path, assignment: str, *, contaminate: bool = False) -> 
         "artifact_sha256": {
             "generation_manifest.json": generation_manifest_sha256,
             "generations.jsonl": hashlib.sha256(generations.read_bytes()).hexdigest(),
+            "metrics.json": hashlib.sha256(metrics.read_bytes()).hexdigest(),
             "predictions.jsonl": hashlib.sha256(predictions.read_bytes()).hexdigest(),
         },
     }
@@ -230,10 +258,41 @@ def _rewrite_predictions(path: Path, rows: list[dict]) -> None:
         predictions.read_bytes()
     ).hexdigest()
     manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+    _rewrite_metrics_summary(path, rows)
+
+
+def _rewrite_metrics_summary(path: Path, prediction_rows: list[dict]) -> None:
+    """Keep fixture headline metrics authenticated and consistent with predictions."""
+    metrics_path = path / "metrics.json"
+    metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    metrics["condition_count"] = len(
+        {str(row["evaluation_input_id"]) for row in prediction_rows}
+    )
+    metrics["generation_count"] = len(prediction_rows)
+    paired_deltas = metrics["aggregates"]["paired_deltas"]
+    metrics["aggregates"] = _aggregate_rows(
+        prediction_rows,
+        comparisons=[
+            (str(row["left_arm"]), str(row["right_arm"])) for row in paired_deltas
+        ],
+        bootstrap_samples=int(paired_deltas[0]["bootstrap_samples"]),
+        seed=int(paired_deltas[0]["bootstrap_seed"]),
+    )
+    metrics_path.write_text(json.dumps(metrics, sort_keys=True), encoding="utf-8")
+    manifest_path = path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["artifact_sha256"]["metrics.json"] = hashlib.sha256(
+        metrics_path.read_bytes()
+    ).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
 
 
 def _rewrite_generation_bundle(
-    path: Path, generation_rows: list[dict], prediction_rows: list[dict]
+    path: Path,
+    generation_rows: list[dict],
+    prediction_rows: list[dict],
+    *,
+    rewrite_metrics: bool = True,
 ) -> None:
     """Rewrite and re-authenticate matching generation and prediction rows."""
     generations = path / "generations.jsonl"
@@ -268,6 +327,8 @@ def _rewrite_generation_bundle(
         }
     )
     manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+    if rewrite_metrics:
+        _rewrite_metrics_summary(path, prediction_rows)
 
 
 def _relabel_as_b(path: Path) -> None:
@@ -308,6 +369,27 @@ def _bind_result_fixture_to_corpus(path: Path, assignment: str) -> None:
     manifest["dataset"] = dataset
     manifest["generation_manifest_sha256"] = generation_manifest_sha256
     manifest["artifact_sha256"]["generation_manifest.json"] = generation_manifest_sha256
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+
+
+def _resign_result_dataset_field(path: Path, field: str, value: str) -> None:
+    """Re-sign both benchmark manifests after changing one dataset identity field."""
+    generation_manifest_path = path / "generation_manifest.json"
+    generation_manifest = json.loads(generation_manifest_path.read_text(encoding="utf-8"))
+    generation_manifest["dataset"][field] = value
+    generation_manifest_path.write_text(
+        json.dumps(generation_manifest, sort_keys=True), encoding="utf-8"
+    )
+    generation_manifest_sha256 = hashlib.sha256(
+        generation_manifest_path.read_bytes()
+    ).hexdigest()
+    manifest_path = path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["dataset"][field] = value
+    manifest["generation_manifest_sha256"] = generation_manifest_sha256
+    manifest["artifact_sha256"]["generation_manifest.json"] = (
+        generation_manifest_sha256
+    )
     manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
 
 
@@ -400,6 +482,98 @@ def test_pooled_bootstrap_keeps_both_assignments_in_12_history_clusters(
     )
 
 
+@pytest.mark.parametrize(
+    "field",
+    ("pair_gate_sha256", "parent_generation_manifest_sha256"),
+)
+def test_analysis_rejects_result_identity_not_bound_to_authenticated_gate(
+    tmp_path: Path, field: str
+) -> None:
+    sources = {
+        label: _write_source(tmp_path / label.lower(), label) for label in ("A", "B")
+    }
+    for source in sources.values():
+        _resign_result_dataset_field(source, field, "0" * 64)
+
+    with pytest.raises(ValueError, match="authenticated pair gate and parent"):
+        analyze_sources(
+            baseline_path=None,
+            assignment_paths=sources,
+            baseline_corpus_path=None,
+            assignment_corpus_paths=_assignment_corpora(),
+            bootstrap_samples=1,
+            bootstrap_seed=7,
+        )
+
+
+def test_analysis_rejects_authenticated_metrics_disagreeing_with_predictions(
+    tmp_path: Path,
+) -> None:
+    source_a = _write_source(tmp_path / "a", "A")
+    source_b = _write_source(tmp_path / "b", "B")
+    metrics_path = source_a / "metrics.json"
+    metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    metrics["aggregates"]["by_arm_condition"][0]["exact_match"] = 0.5
+    metrics_path.write_text(json.dumps(metrics, sort_keys=True), encoding="utf-8")
+    manifest_path = source_a / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["artifact_sha256"]["metrics.json"] = hashlib.sha256(
+        metrics_path.read_bytes()
+    ).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="metrics.json disagrees"):
+        analyze_sources(
+            baseline_path=None,
+            assignment_paths={"A": source_a, "B": source_b},
+            baseline_corpus_path=None,
+            assignment_corpus_paths=_assignment_corpora(),
+            bootstrap_samples=1,
+            bootstrap_seed=7,
+        )
+
+
+def test_analysis_rejects_resigned_reduced_metric_comparison_universe(
+    tmp_path: Path,
+) -> None:
+    source_a = _write_source(tmp_path / "a", "A")
+    source_b = _write_source(tmp_path / "b", "B")
+    prediction_rows = [
+        json.loads(line)
+        for line in (source_a / "predictions.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    metrics_path = source_a / "metrics.json"
+    metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    controls = json.loads(
+        (
+            _root() / "configs" / "persona_end_to_end_benchmark_surface_a.json"
+        ).read_text(encoding="utf-8")
+    )["analysis"]
+    metrics["aggregates"] = _aggregate_rows(
+        prediction_rows,
+        comparisons=[tuple(controls["paired_comparisons"][0])],
+        bootstrap_samples=controls["bootstrap_samples"],
+        seed=controls["bootstrap_seed"],
+    )
+    metrics_path.write_text(json.dumps(metrics, sort_keys=True), encoding="utf-8")
+    manifest_path = source_a / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["artifact_sha256"]["metrics.json"] = hashlib.sha256(
+        metrics_path.read_bytes()
+    ).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="metrics.json disagrees"):
+        analyze_sources(
+            baseline_path=None,
+            assignment_paths={"A": source_a, "B": source_b},
+            baseline_corpus_path=None,
+            assignment_corpus_paths=_assignment_corpora(),
+            bootstrap_samples=1,
+            bootstrap_seed=7,
+        )
+
+
 def test_source_absent_nonzero_effect_fails_loudly(tmp_path: Path) -> None:
     source_a = _write_source(tmp_path / "a", "A", contaminate=True)
     source_b = _write_source(tmp_path / "b", "B")
@@ -455,9 +629,17 @@ def test_incomplete_assignment_b_fails_loudly(tmp_path: Path) -> None:
             and row["arm"] == "full_qwen_context"
         )
     )
-    _rewrite_generation_bundle(source_b, generation_rows, rows)
+    _rewrite_generation_bundle(
+        source_b, generation_rows, rows, rewrite_metrics=False
+    )
 
-    with pytest.raises(ValueError, match="evaluation-input key sets differ|missing arms"):
+    with pytest.raises(
+        ValueError,
+        match=(
+            "evaluation-input key sets differ|missing arms|metrics.json disagrees|"
+            "paired comparison.*lacks identical conditions"
+        ),
+    ):
         analyze_sources(
             baseline_path=None,
             assignment_paths={"A": source_a, "B": source_b},

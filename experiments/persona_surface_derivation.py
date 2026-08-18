@@ -1907,6 +1907,12 @@ def _validate_fresh_provenance(
     _validate_monotonic_attempts(responses)
     if len(requests) != len(responses) or not requests:
         raise ValueError(f"{assignment} request/response coverage differs")
+    if (
+        manifest.get("request_count") != len(requests)
+        or manifest.get("response_count") != len(responses)
+        or manifest.get("effective_generation") != _usage_token_totals(responses)
+    ):
+        raise ValueError(f"{assignment} manifest request/token summaries differ from logs")
     def provenance_key(row: Mapping[str, Any]) -> tuple[str, int, int]:
         return (
             str(row.get("stage")),

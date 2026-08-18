@@ -2124,6 +2124,49 @@ def test_pair_gate_rejects_resigned_sibling_tampering(
         authenticate_pair_gate(tampered_path, digest)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("request_count", 0),
+        ("response_count", 0),
+        (
+            "effective_generation",
+            {
+                "provider_reported_completion_tokens": 0,
+                "provider_reported_reasoning_tokens": 0,
+                "provider_reported_visible_tokens": 0,
+                "requested_non_thinking_honored": True,
+            },
+        ),
+    ),
+)
+def test_pair_gate_rejects_resigned_false_provenance_summaries(
+    generated_pair: tuple[Path, Path, Path, Path],
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    _, _, _, gate = generated_pair
+    copied_root = tmp_path / "pair"
+    shutil.copytree(gate.parent, copied_root)
+    copied_gate = copied_root / gate.name
+    gate_payload = json.loads(copied_gate.read_text())
+    assignment_a = copied_root / gate_payload["paths"]["A"]
+    manifest_path = assignment_a / "generation_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest[field] = value
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    gate_payload["variants"]["A"]["generation_manifest_sha256"] = hashlib.sha256(
+        manifest_path.read_bytes()
+    ).hexdigest()
+    copied_gate.write_text(json.dumps(gate_payload, indent=2, sort_keys=True) + "\n")
+
+    with pytest.raises(ValueError, match="request/token summaries"):
+        authenticate_pair_gate(
+            copied_gate, hashlib.sha256(copied_gate.read_bytes()).hexdigest()
+        )
+
+
 def test_partial_b_failure_leaves_no_completed_pair_gate(tmp_path: Path) -> None:
     class MismatchedBClient(FakeKimiClient):
         def complete(self, **kwargs: object) -> LLMResponse:
