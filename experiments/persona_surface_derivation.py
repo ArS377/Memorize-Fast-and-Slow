@@ -1254,7 +1254,17 @@ def _complete_with_validation(
         transient_error = dict(prior_errors[0]["provider_error"])
         last_failure = _transient_retry_instruction(transient_error)
     attempt_start = authorized_epoch * attempt_limit
-    for attempt in range(attempt_start, attempt_start + attempt_limit):
+    cached_attempt_stop = max(
+        (
+            int(row.get("attempt_index", -1)) + 1
+            for row in request_rows
+            if row.get("stage") == request_context.get("stage")
+            and row.get("request_index") == request_context.get("request_index")
+        ),
+        default=0,
+    )
+    attempt_stop = max(attempt_start + attempt_limit, cached_attempt_stop)
+    for attempt in range(attempt_start, attempt_stop):
         retry_epoch, epoch_attempt_index = divmod(attempt, attempt_limit)
         attempt_messages = list(messages)
         if validation_error is not None:

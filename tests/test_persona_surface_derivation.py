@@ -1033,8 +1033,9 @@ class FinalPairCollisionClient(FakeKimiClient):
 class Pk5InternalServerClient(FakeKimiClient):
     """Raise real OpenAI 502 errors for B history-012 and record live calls."""
 
-    def __init__(self, fail: bool) -> None:
+    def __init__(self, fail: bool, history_id: str = "history-012") -> None:
         self.fail = fail
+        self.history_id = history_id
         self.calls: list[tuple[dict[str, object], int, list[dict[str, str]]]] = []
 
     def complete(self, **kwargs: object) -> LLMResponse:
@@ -1045,7 +1046,7 @@ class Pk5InternalServerClient(FakeKimiClient):
             self.fail
             and "mapping" in payload
             and "surface-b" in str(payload["realization_id"])
-            and payload["history_ids"] == ["history-012"]
+            and payload["history_ids"] == [self.history_id]
         ):
             import httpx
             from openai import InternalServerError
@@ -1828,6 +1829,29 @@ def test_pk5_exhausted_502_epoch_resume_starts_at_attempt_three_only(
     )
     assert manifest["retry_epoch"] == 1
     assert manifest["retry_epochs"]["mapping:11"] == 1
+    assert config.gate_path.exists()
+
+
+def test_later_retry_epoch_replays_an_earlier_accepted_epoch(
+    tmp_path: Path,
+) -> None:
+    config = replace(_launch_order_fixture(tmp_path, attempts=3), resume_existing=True)
+    with pytest.raises(ValueError, match="failed after 3 attempts"):
+        generate_surface_pair(config, Pk5InternalServerClient(True))
+    with pytest.raises(ValueError, match="failed after 3 attempts"):
+        generate_surface_pair(
+            config,
+            Pk5InternalServerClient(True, history_id="history-016"),
+        )
+
+    final = Pk5InternalServerClient(False)
+    generate_surface_pair(config, final)
+
+    mapping_calls = [call for call in final.calls if "mapping" in call[0]]
+    assert mapping_calls[0][0]["history_ids"] == ["history-016"]
+    assert not any(
+        call[0]["history_ids"] == ["history-012"] for call in mapping_calls
+    )
     assert config.gate_path.exists()
 
 
