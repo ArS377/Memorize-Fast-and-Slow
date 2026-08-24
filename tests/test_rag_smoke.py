@@ -3,14 +3,8 @@ from __future__ import annotations
 
 import json
 import sys
-import types
 import unittest.mock as mock
 from pathlib import Path
-
-if "openai" not in sys.modules:
-    fake_openai = types.ModuleType("openai")
-    fake_openai.OpenAI = mock.MagicMock
-    sys.modules["openai"] = fake_openai
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import evaluator  # noqa: E402

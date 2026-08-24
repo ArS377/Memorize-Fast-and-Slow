@@ -7,7 +7,7 @@ non-default choice was made, and what a reader must not conclude.
 
 | Source | Role | Integrity check |
 |---|---|---|
-| `results/persona_conflict_conversations_surface_a/` | Corpus. Account-unique surface values | `dataset.generation_manifest_sha256` in `manifest.json` (`c64c5c4268d9…`) |
+| `results/persona_conflict_conversations_surface_a_graphiti_build2/` | Historical corpus used by this run. Account-unique surface values | `dataset.generation_manifest_sha256` in `manifest.json` (`c64c5c4268d9…`) |
 | `generations.jsonl` | One row per (condition, arm), raw decode | `manifest.artifact_sha256` |
 | `predictions.jsonl` | Generations plus EM/F1 scoring | `manifest.artifact_sha256` |
 | `metrics.json` | Per-arm aggregates and paired bootstrap deltas | `manifest.artifact_sha256` |
@@ -127,7 +127,7 @@ off-the-shelf Graphiti. Deviations are enumerated in
 # Analysis artifacts (README.md, analysis.md, diagnostics.json, error_taxonomy.json)
 python -m experiments.persona_graphiti_analysis \
     --run-dir results/persona_joint_surface_a_build2 \
-    --corpus-dir results/persona_conflict_conversations_surface_a
+    --corpus-dir results/persona_conflict_conversations_surface_a_graphiti_build2
 
 # Memoryless and recency oracle floors quoted in the README
 python scripts/shortcut_oracle_probe.py

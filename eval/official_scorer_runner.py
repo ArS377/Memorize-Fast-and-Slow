@@ -13,6 +13,7 @@ def run_official_scorer(
     *,
     output_json_path: Optional[Path] = None,
     cwd: Optional[Path] = None,
+    timeout_seconds: float = 300.0,
 ) -> Dict[str, Any]:
     if not scorer_script.exists():
         raise FileNotFoundError(f"Scorer script not found: {scorer_script}")
@@ -28,7 +29,17 @@ def run_official_scorer(
         cwd=str(cwd) if cwd else None,
         text=True,
         capture_output=True,
+        timeout=timeout_seconds,
     )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"official scorer failed with exit code {completed.returncode}: "
+            f"{completed.stderr.strip()}"
+        )
+    if output_json_path is not None and not output_json_path.exists():
+        raise RuntimeError(
+            f"official scorer exited successfully but did not write {output_json_path}"
+        )
     return {
         "command": command,
         "returncode": completed.returncode,
@@ -42,4 +53,3 @@ def write_scorer_summary(path: Path, payload: Dict[str, Any]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return path
-

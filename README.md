@@ -99,6 +99,8 @@ python -m dashboard.server --host 0.0.0.0 --port 8080
 
 Open `http://127.0.0.1:8080/` on the host. See `dashboard/README.md` for
 configuration, endpoints, and tests.
+The consolidated August evidence index, including runs that predate the
+dashboard artifact contract, is [`docs/recent-results.md`](docs/recent-results.md).
 
 ### Differentiable admission benchmark
 

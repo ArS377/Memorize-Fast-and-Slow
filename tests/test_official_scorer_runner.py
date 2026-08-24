@@ -22,7 +22,11 @@ def main() -> int:
     fake_proc.stdout = '{"score": 0.5}\n'
     fake_proc.stderr = ""
 
-    with mock.patch("eval.official_scorer_runner.subprocess.run", return_value=fake_proc) as run_mock:
+    def successful_run(*args: object, **kwargs: object) -> mock.MagicMock:
+        out_json.write_text('{"score": 0.5}\n', encoding="utf-8")
+        return fake_proc
+
+    with mock.patch("eval.official_scorer_runner.subprocess.run", side_effect=successful_run) as run_mock:
         payload = run_official_scorer(scorer_script, pred_path, output_json_path=out_json)
 
     assert payload["returncode"] == 0, "runner return code mismatch"
@@ -31,6 +35,16 @@ def main() -> int:
     called_command = run_mock.call_args[0][0]
     assert "--pred" in called_command, "missing --pred flag"
     assert "--out" in called_command, "missing --out flag"
+    assert run_mock.call_args.kwargs["timeout"] == 300.0, "missing scorer timeout"
+
+    failed_proc = mock.MagicMock(returncode=9, stdout="", stderr="scorer failed")
+    with mock.patch("eval.official_scorer_runner.subprocess.run", return_value=failed_proc):
+        try:
+            run_official_scorer(scorer_script, pred_path)
+        except RuntimeError as error:
+            assert "exit code 9" in str(error), "failure did not name scorer exit code"
+        else:
+            raise AssertionError("nonzero scorer exit was accepted")
 
     summary_path = Path("official_runner_summary.json")
     write_scorer_summary(summary_path, payload)
@@ -42,4 +56,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
