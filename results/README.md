@@ -1,5 +1,11 @@
 # results/
 
+Start with the [consolidated August results index](../docs/recent-results.md).
+It separates current evidence from historical, smoke-only, and incomplete runs and links each conclusion to its supporting artifacts.
+
+Result directories may contain scored runs, analyses, smoke tests, or incomplete execution provenance.
+`synthetic_temporal_preferences_*` and `persona_*conversations*` are input corpora, `persona_neurosym_preflight_*` records retrieval preflights, and `dense_indexes/` contains retrieval-cache metadata rather than benchmark outcomes.
+
 Two naming conventions are in use, from two different eras of the harness:
 
 **Harness convention** (`experiments/run_all.py`, `experiments/aggregate.py`):
