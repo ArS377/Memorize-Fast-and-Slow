@@ -1,0 +1,28 @@
+{
+  "dense_raw_event": 0.8,
+  "metadata": {
+    "embedding": {
+      "max_sequence_length": 512,
+      "model_name": "BAAI/bge-small-en-v1.5",
+      "requested_revision": null,
+      "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+      "sentence_transformers_version": "5.3.0",
+      "vector_dimension": 384
+    },
+    "embedding_batch_size": 32,
+    "embedding_device": "cpu",
+    "embedding_requested_model": "BAAI/bge-small-en-v1.5",
+    "embedding_requested_revision": null,
+    "query_fields": [
+      "kind",
+      "subject",
+      "date",
+      "scope",
+      "candidate",
+      "fact_id"
+    ],
+    "query_template": "bge_query.v1",
+    "retrieval_k": 5,
+    "retrieval_unit": "raw_event_support_text"
+  }
+}

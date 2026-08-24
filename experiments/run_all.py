@@ -150,19 +150,25 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
         "--no-aggregate",
     ]
     if cell_id in KG_CELL_IDS:
-        retrieval_mode = (
-            getattr(args, "cell6_retrieval_mode", "dense_ppr")
-            if cell_id == 6
-            else getattr(args, "retrieval_mode", "hybrid")
-        )
+        retrieval_mode = getattr(args, "retrieval_mode", "hybrid")
         if args.neo4j_uri:
             base += ["--neo4j-uri", args.neo4j_uri]
         if args.neo4j_user:
             base += ["--neo4j-user", args.neo4j_user]
         session_id = getattr(args, "kg_sessions", KG_SESSIONS)[cell_id]
         base += ["--session-id", session_id]
-        facts_file = args.results_dir / "kg_builds" / f"{session_id}_facts.jsonl"
-        if facts_file.exists():
+        explicit_facts_file = (
+            getattr(args, "facts_file_noscallop", None)
+            if cell_id in {2, 5}
+            else getattr(args, "facts_file_scallop", None)
+        )
+        if explicit_facts_file is not None:
+            facts_file = Path(explicit_facts_file)
+            if not facts_file.exists():
+                raise FileNotFoundError(f"facts file does not exist: {facts_file}")
+        else:
+            facts_file = args.results_dir / "kg_builds" / f"{session_id}_facts.jsonl"
+        if Path(facts_file).exists():
             base += ["--facts-file", str(facts_file)]
         if args.hops is not None:
             base += ["--hops", str(args.hops)]
@@ -221,9 +227,8 @@ def _common_cell_args(args, cell_id: int) -> List[str]:
             if not getattr(args, "fixed_kg_retrieval", False):
                 base += [
                     "--qwen-tool-retrieval",
-                    "--max-tool-calls", str(
-                        2 if cell_id == 6 else args.max_tool_calls
-                    ),
+                    "--max-tool-calls", str(args.max_tool_calls),
+                    "--no-allow-unsupported-fallback",
                     "--tool-choice", args.tool_choice,
                     "--tool-timeout", str(args.tool_timeout),
                     "--tool-max-tokens", str(args.tool_max_tokens),
@@ -256,8 +261,26 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--neo4j-password", default=os.getenv("NEO4J_PASSWORD"))
     parser.add_argument("--rebuild-kg", action="store_true")
     parser.add_argument("--skip-kg-build", action="store_true")
+    parser.add_argument("--chunk-chars", type=int, default=12000)
+    parser.add_argument("--max-chunks-per-example", type=int, default=None)
+    parser.add_argument("--chunk-selection", choices=["first", "hybrid"], default="hybrid")
+    parser.add_argument("--chunk-selection-rrf-k", type=int, default=60)
+    parser.add_argument("--kg-build-max-tokens", type=int, default=2048)
+    parser.add_argument("--verify-batch-size", type=int, default=20)
     parser.add_argument("--kg-session-noscallop", default=None)
     parser.add_argument("--kg-session-scallop", default=None)
+    parser.add_argument(
+        "--facts-file-noscallop",
+        type=Path,
+        default=None,
+        help="Existing no-Scallop facts JSONL used when --skip-kg-build is set.",
+    )
+    parser.add_argument(
+        "--facts-file-scallop",
+        type=Path,
+        default=None,
+        help="Existing Scallop-validated facts JSONL used when --skip-kg-build is set.",
+    )
     parser.add_argument("--cells", default="all",
                         help="Comma-separated cell ids, e.g. '1,3,5'. Default: all six.")
     parser.add_argument("--results-dir", type=Path, default=None)
@@ -286,12 +309,6 @@ def main(argv: Optional[List[str]] = None) -> None:
         "--retrieval-mode",
         choices=["sparse", "dense", "hybrid", "dense_ppr"],
         default="hybrid",
-    )
-    parser.add_argument(
-        "--cell6-retrieval-mode",
-        choices=["sparse", "dense", "hybrid", "dense_ppr"],
-        default="dense_ppr",
-        help="Cell 6 retrieval mode; defaults to HippoRAG-style dense PPR.",
     )
     parser.add_argument("--embedding-model", default="BAAI/bge-small-en-v1.5")
     parser.add_argument("--embedding-revision", default=None)
@@ -380,6 +397,11 @@ def main(argv: Optional[List[str]] = None) -> None:
     }
 
     cells = _parse_cells(args.cells)
+    if 6 in cells and args.facts_file_scallop is not None:
+        parser.error(
+            "Cell 6 requires Neo4j and an actual Scallop validator; "
+            "--facts-file-scallop is unsupported."
+        )
     args.results_dir.mkdir(parents=True, exist_ok=True)
     args.pilot_input = args.results_dir / "pilot_input.jsonl"
     pilot_input = _materialize_pilot_input(
@@ -418,7 +440,6 @@ def main(argv: Optional[List[str]] = None) -> None:
         "memory_scope": args.memory_scope,
         "retrieval_config": retrieval_config.to_dict(),
         "retrieval_mode": args.retrieval_mode,
-        "cell6_retrieval_mode": args.cell6_retrieval_mode,
         "embedding_model": args.embedding_model,
         "embedding_revision": args.embedding_revision,
         "embedding_device": args.embedding_device,
@@ -442,12 +463,22 @@ def main(argv: Optional[List[str]] = None) -> None:
         "order_gap_window": args.order_gap_window,
         "order_gap_min_iterations": args.order_gap_min_iterations,
         "kg_sessions": args.kg_sessions,
+        "facts_file_noscallop": str(args.facts_file_noscallop) if args.facts_file_noscallop else None,
+        "facts_file_scallop": str(args.facts_file_scallop) if args.facts_file_scallop else None,
         "scallop_validator_url": args.scallop_validator_url,
         "tool_contract_version": f"{SEARCH_TOOL_VERSION}+{MEMORY_TOOL_VERSION}",
         "rule_version": DEFAULT_RULE_PARAMETERS.version,
         "cell_status": {str(cell): "pending" for cell in cells},
         "cell_retrieval": {},
         "skip_kg_build": args.skip_kg_build,
+        "kg_build": {
+            "chunk_chars": args.chunk_chars,
+            "max_chunks_per_example": args.max_chunks_per_example,
+            "chunk_selection": args.chunk_selection,
+            "chunk_selection_rrf_k": args.chunk_selection_rrf_k,
+            "max_tokens": args.kg_build_max_tokens,
+            "verify_batch_size": args.verify_batch_size,
+        },
         "kg_artifacts": {},
     }
     if retrieval_config.mode == "dense_ppr":
@@ -483,6 +514,12 @@ def main(argv: Optional[List[str]] = None) -> None:
                     neo4j_password=args.neo4j_password,
                     limit=args.limit,
                     rebuild=args.rebuild_kg,
+                    chunk_chars=args.chunk_chars,
+                    max_chunks_per_example=args.max_chunks_per_example,
+                    chunk_selection=args.chunk_selection,
+                    chunk_selection_rrf_k=args.chunk_selection_rrf_k,
+                    max_tokens=args.kg_build_max_tokens,
+                    verify_batch_size=args.verify_batch_size,
                     facts_out_dir=args.results_dir / "kg_builds",
                     scallop_validator_url=args.scallop_validator_url,
                     candidate_facts_path=candidate_path if validate else None,

@@ -1,0 +1,9 @@
+{
+  "batch_size": 256,
+  "confidence_noise_stddevs": [0.05, 0.15, 0.3],
+  "epochs": 60,
+  "hidden_dim": 24,
+  "learning_rate": 0.03,
+  "seed": 17,
+  "stress_repeats": 5
+}

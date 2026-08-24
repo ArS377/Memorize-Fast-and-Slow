@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NeuroSym: Architecture and Evaluation Brief</title>
+  <style>
+    :root { --ink: #172033; --muted: #5e6878; --paper: #f7f5ef; --panel: #fffdfa; --line: #d8d2c4; --blue: #155e75; --teal: #0f766e; --red: #b45309; --violet: #6d28d9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.55 Georgia, "Times New Roman", serif; }
+    main { max-width: 1120px; margin: auto; padding: 48px 26px 72px; }
+    header { border-bottom: 4px solid var(--ink); padding-bottom: 26px; margin-bottom: 34px; }
+    h1, h2, h3, nav, th, .tag, .metric { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    h1 { font-size: clamp(2.2rem, 6vw, 4.6rem); letter-spacing: -0.06em; line-height: .95; margin: 0 0 18px; }
+    h2 { font-size: 1.55rem; letter-spacing: -.035em; margin: 42px 0 12px; }
+    h3 { font-size: 1.05rem; margin: 0 0 8px; }
+    p { margin: 9px 0; }
+    .dek { font-size: 1.25rem; max-width: 850px; color: var(--muted); }
+    nav { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
+    nav a, .tag { border: 1px solid var(--line); padding: 5px 9px; border-radius: 99px; color: var(--ink); text-decoration: none; font-size: .82rem; }
+    .callout { border-left: 5px solid var(--blue); background: #e8f4f5; padding: 16px 19px; margin: 18px 0; }
+    .warning { border-left-color: var(--red); background: #fff3e4; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .card { background: var(--panel); border: 1px solid var(--line); padding: 17px; }
+    .metric { display: block; font-size: 2rem; font-weight: 750; letter-spacing: -.07em; color: var(--blue); }
+    .flow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: stretch; margin: 20px 0; }
+    .step { min-height: 128px; background: var(--panel); border: 1px solid var(--line); padding: 13px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: .84rem; }
+    .step strong { display: block; margin-bottom: 6px; }
+    .arrow { align-self: center; text-align: center; font: 24px/1 ui-sans-serif, system-ui, sans-serif; color: var(--blue); }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); margin: 14px 0; font-size: .93rem; }
+    th { text-align: left; background: #e9e5da; font-size: .8rem; letter-spacing: .02em; }
+    th, td { border: 1px solid var(--line); padding: 10px; vertical-align: top; }
+    code { font: .86em ui-monospace, SFMono-Regular, Consolas, monospace; background: #ebe7dd; padding: 1px 4px; }
+    ul { padding-left: 21px; }
+    li { margin: 5px 0; }
+    a { color: var(--blue); }
+    .small { color: var(--muted); font-size: .88rem; }
+    footer { margin-top: 46px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+    @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } .flow { grid-template-columns: 1fr; } .arrow { transform: rotate(90deg); min-height: 18px; } main { padding: 28px 16px 48px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="tag">REPOSITORY BRIEF / 2026-08-02</p>
+    <h1>NeuroSym</h1>
+    <p class="dek">An audit-oriented neuro-symbolic memory system for LLMs: constrain noisy persistent-memory writes, retrieve provenance-bearing evidence, and measure whether the resulting memory remains useful.</p>
+    <nav><a href="#thesis">Thesis</a><a href="#architecture">Architecture</a><a href="#evidence">Evidence</a><a href="#scallop">Scallop</a><a href="#evaluation">Evaluation</a><a href="#setup">Setup gaps</a></nav>
+  </header>
+
+  <section id="thesis">
+    <h2>Core problem statement</h2>
+    <div class="callout"><strong>Research question.</strong> Given a stream of LLM-extracted, provenance-bearing candidate facts, can explicit symbolic admission control improve the correctness, consistency, and utility of persistent external memory relative to the identical memory and retrieval system without that control?</div>
+    <p>At time <em>t</em>, maintain memory <em>M</em><sub>t</sub> by accepting supported facts, rejecting or resolving incompatible updates under explicit schema and temporal constraints, retrieving evidence under a bounded tool/context budget, and preserving an auditable ledger of each state transition. This is more specific and testable than simply replacing long context with a knowledge graph.</p>
+    <p><strong>Workshop framing:</strong> NeuroSym should claim <em>auditable constrained memory transitions</em>, not generic KG-RAG or contradiction-free long-horizon reasoning. Current rules govern a narrow set of normalized triples; they do not establish truth, correct entity resolution, global consistency, or answer correctness.</p>
+  </section>
+
+  <section id="architecture">
+    <h2>Current architecture</h2>
+    <div class="flow">
+      <div class="step"><strong>1. Context</strong>LongBench-v2 primary data; HotpotQA and 2Wiki normalizers are present.</div><div class="arrow">&#8594;</div>
+      <div class="step"><strong>2. Fact build</strong>LLM extracts triples, then an LLM self-reflection pass filters them.</div><div class="arrow">&#8594;</div>
+      <div class="step"><strong>3. Admission gate</strong>Scallop validates candidate writes; Python handles time overlap and replacement policy.</div><div class="arrow">&#8594;</div>
+      <div class="step"><strong>4. Memory</strong>Neo4j holds scoped facts and a decision ledger; JSONL mirrors support offline retrieval.</div><div class="arrow">&#8594;</div>
+      <div class="step"><strong>5. Answering</strong>Sparse, dense, hybrid/RRF, or entity-fact PPR retrieval feeds flat or Qwen-native RLM tools.</div>
+    </div>
+    <table><thead><tr><th>Layer</th><th>Relevant implementation</th><th>Role</th></tr></thead><tbody>
+      <tr><td>Domain/application</td><td><code>neurosym/domain</code>, <code>neurosym/application</code></td><td>Typed facts, memory writes, working-memory artifacts, experiment contracts.</td></tr>
+      <tr><td>Adapters</td><td><code>neurosym/adapters/scallop.py</code>, <code>neo4j_graph.py</code>, <code>qwen_rlm.py</code></td><td>Validator, durable graph, native tools, and retrieval backends.</td></tr>
+      <tr><td>Experiment runner</td><td><code>experiments/run_all.py</code></td><td>Freezes one candidate corpus and builds unvalidated/validated KG variants before six-cell evaluation.</td></tr>
+      <tr><td>Reporting</td><td><code>experiments/aggregate.py</code>, <code>retrieval_report.py</code>, <code>compliance.py</code></td><td>Accuracy/latency summaries, retrieval diagnostics, and run-contract audit.</td></tr>
+    </tbody></table>
+    <h3>Six-cell grid</h3>
+    <p>1: raw/flat. 2: unconstrained KG/flat. 3: Scallop-built KG/flat. 4: raw/RLM. 5: unconstrained KG/native-tool RLM. 6: Scallop-gated KG/native-tool RLM. The runner now makes Cells 5 and 6 share retrieval mode and tool-call budget by default, so validation is the intended experimental difference.</p>
+  </section>
+
+  <section id="evidence">
+    <h2>What the current data says</h2>
+    <div class="grid">
+      <div class="card"><span class="metric">26/50</span>Best reported Cell 6 accuracy (52%).</div>
+      <div class="card"><span class="metric">0/87</span>Scallop rejections in that run's accepted candidate corpus.</div>
+      <div class="card"><span class="metric">3/50</span>Examples with nonzero retrieved triples in that run.</div>
+    </div>
+    <div class="callout warning"><strong>Conclusion:</strong> the existing Cell 6 result cannot show that Scallop improved accuracy. The validator accepted all 87 facts, and 47/50 questions received no graph triples. The run was effectively mostly raw RLM inference. The repository's own research note correctly states this limitation.</div>
+    <p>There is also no evaluated Cell 3/Cell 5 population in the aggregate summary needed for the flat and native-tool control comparisons. LongBench-v2 lacks gold evidence labels, so it cannot by itself diagnose extraction, retrieval, or update correctness.</p>
+  </section>
+
+  <section id="scallop">
+    <h2>How Scallop is used</h2>
+    <p><a href="https://www.scallop-lang.org/">Scallop</a> is a Datalog-based neuro-symbolic language supporting discrete, probabilistic, and differentiable inference. NeuroSym uses it as a <strong>discrete write validator</strong>, not as a differentiable or probabilistic learning component.</p>
+    <table><thead><tr><th>Current rule/policy</th><th>Engine</th><th>Limitation</th></tr></thead><tbody>
+      <tr><td>Functional predicate conflict</td><td>Scallop</td><td>Replacement is a Python confidence heuristic; multiple rival facts are not atomically reconciled.</td></tr>
+      <tr><td>Two-edge <code>PART_OF</code> cycle</td><td>Scallop</td><td>Does not reject cycles longer than two edges.</td></tr>
+      <tr><td><code>IS_ALIVE</code> true/false conflict</td><td>Scallop</td><td>Only this predicate family is covered.</td></tr>
+      <tr><td>Temporal overlap, shape checks, generic/self-reference</td><td>Python</td><td>Time/provenance/confidence are not declarative logic relations.</td></tr>
+    </tbody></table>
+    <p>The production code creates a fresh Scallop context for a candidate and locally relevant existing facts. It can silently use a Python symbolic fallback outside fail-closed Cell 6 paths. Therefore every claimed constrained run should persist the actual engine identity, and paper results should require actual <code>scallopy</code>.</p>
+    <h3>High-value extensions</h3>
+    <ul>
+      <li>Encode fact IDs, intervals, provenance, confidence, and rule version as relations and emit a declarative violation explanation.</li>
+      <li>Add recursive reachability for arbitrary containment cycles.</li>
+      <li>Use Scallop provenance to return minimal supports for accept/reject decisions and populate the existing decision ledger.</li>
+      <li>Model claim status and temporal validity explicitly rather than collapsing conflicts through an uncalibrated winner rule.</li>
+      <li>Make entity linking uncertainty explicit; string equality currently affects both validation and graph connectivity.</li>
+    </ul>
+    <p>Only pursue differentiable Scallop if there is a defined supervised target, such as calibrating extraction confidence against gold conflict/support labels. Hard-rule satisfaction and QA must remain separately measured.</p>
+  </section>
+
+  <section id="evaluation">
+    <h2>Credible evaluation plan</h2>
+    <h3>Baselines</h3>
+    <table><thead><tr><th>Baseline</th><th>Question answered</th></tr></thead><tbody>
+      <tr><td>Question-only and full source context</td><td>Parametric floor and long-context reference ceiling.</td></tr>
+      <tr><td>BM25, dense BGE, hybrid RRF</td><td>Does graph/logic help beyond standard retrieval on identical facts?</td></tr>
+      <tr><td>Flat extracted-fact store</td><td>Does graph structure help beyond extracted fact compression?</td></tr>
+      <tr><td>Unconstrained dynamic KG (Cell 2/5)</td><td>Direct causal control for symbolic admission.</td></tr>
+      <tr><td>RLM over raw context (Cell 4)</td><td>Does recursive inference alone explain any gain?</td></tr>
+      <tr><td><a href="https://github.com/OSU-NLP-Group/HippoRAG">HippoRAG/HippoRAG 2</a></td><td>Strong KG/PPR continual-memory retrieval baseline; use the official implementation.</td></tr>
+      <tr><td><a href="https://github.com/mem0ai/mem0">Mem0 OSS</a></td><td>Modern extraction/consolidation/retrieval memory baseline.</td></tr>
+    </tbody></table>
+    <h3>Ceilings and diagnostics</h3>
+    <table><thead><tr><th>Ceiling</th><th>Separates</th></tr></thead><tbody>
+      <tr><td>Gold supporting sentences to answerer</td><td>Reader/reasoner error.</td></tr>
+      <tr><td>Gold relevant extracted facts</td><td>Retrieval error after extraction.</td></tr>
+      <tr><td>Gold facts directly from source</td><td>Extraction loss.</td></tr>
+      <tr><td>Oracle entity linking</td><td>Canonicalization/connectivity error.</td></tr>
+      <tr><td>Oracle conflict labels and replacements</td><td>Validator/policy limitation.</td></tr>
+      <tr><td>Full context</td><td>Compression/retrieval loss.</td></tr>
+    </tbody></table>
+    <h3>Datasets and metrics</h3>
+    <p>Use <a href="https://hotpotqa.github.io/">HotpotQA</a> for sentence-level evidence and answer/supporting-fact/joint EM/F1. Use <a href="https://arxiv.org/abs/2011.01060">2WikiMultiHopQA</a> for evidence-path coverage. Use <a href="https://github.com/xiaowu0162/LongMemEval">LongMemEval</a> for persistent updates, temporal reasoning, and abstention; use <a href="https://github.com/snap-research/locomo">LoCoMo</a> for long conversational memory. Keep LongBench-v2 as a transfer setting, not the primary validation of memory updates.</p>
+    <p>Add a controlled update stream: duplicate, functional conflict, temporal non-conflict/conflict, containment cycle, unsupported claim, alias collision, and abstention cases. Gold-label <code>accept</code>, <code>reject</code>, or <code>replace</code> with rule family and evidence span. Report unsafe acceptance, false rejection, replacement precision/recall, per-rule macro-F1, answer EM/F1, evidence recall/citation precision, latency, tokens, and memory size.</p>
+    <p><strong>Required ablations:</strong> matched Cell 5 vs 6; actual Scallop vs Python fallback; remove one rule family at a time; reject-only vs replacement; self-reflection only vs rules only vs both; no provenance score; raw/flat/sparse/dense/hybrid/PPR retrieval; derived writes on/off. Use three or more paired runs, confidence intervals, and paired tests.</p>
+  </section>
+
+  <section id="setup">
+    <h2>Reproducibility and documentation gaps</h2>
+    <div class="callout warning"><strong>Required downloads/services are underdocumented.</strong> The project needs Qwen model weights, BGE embedding weights, datasets, Neo4j, a vLLM server, and actual Scallop for constrained Cell 6. The repository has no lockfile, Docker Compose configuration, pinned vLLM/GPU specification, or fully reproducible two-environment procedure.</div>
+    <ul>
+      <li><code>Qwen/Qwen3-4B</code> is downloaded by vLLM; native tool parsing uses Hermes.</li>
+      <li><code>BAAI/bge-small-en-v1.5</code> downloads lazily through sentence-transformers.</li>
+      <li>LongBench-v2, HotpotQA, and 2Wiki downloads require Hugging Face data access; <code>datasets</code> is used but omitted from <code>requirements.txt</code>.</li>
+      <li><code>matplotlib</code> is optional for aggregation but also omitted from <code>requirements.txt</code>.</li>
+      <li><code>scallopy</code> is pinned to CPython 3.10 while <code>rlms</code> requires Python 3.11+, requiring split environments or a validated compatibility workaround.</li>
+      <li>The README contains legacy macOS/Rosetta instructions alongside Linux-only package requirements and helper scripts.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>References</h2>
+    <p class="small">Li, Huang, Naik. <a href="https://doi.org/10.1145/3591280">Scallop: A Language for Neurosymbolic Programming</a>, PLDI 2023. Gutiérrez et al. <a href="https://arxiv.org/abs/2405.14831">HippoRAG</a>, NeurIPS 2024; <a href="https://arxiv.org/abs/2502.14802">From RAG to Memory</a>, ICML 2025. Wu et al. <a href="https://arxiv.org/abs/2410.10813">LongMemEval</a>, ICLR 2025. Maharana et al. <a href="https://arxiv.org/abs/2402.17753">LoCoMo</a>, ACL 2024. Chhikara et al. <a href="https://arxiv.org/abs/2504.19413">Mem0</a>. Yang et al. <a href="https://arxiv.org/abs/1809.09600">HotpotQA</a>, EMNLP 2018. Bai et al. <a href="https://arxiv.org/abs/2412.15204">LongBench v2</a>.</p>
+  </section>
+  <footer>Generated from the repository at <code>/home/kylezheng/NeuroSym</code>. Findings describe the current checkout and are not claims of validated benchmark performance.</footer>
+</main>
+</body>
+</html>

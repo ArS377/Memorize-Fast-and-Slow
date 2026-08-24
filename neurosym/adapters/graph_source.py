@@ -135,7 +135,8 @@ def extract_seed_entities(ex: Dict[str, Any]) -> List[str]:
     ``rlm_graph_baseline.extract_seed_entities`` to avoid an ``rlm`` import).
     """
     question = ex.get("question", "")
-    entities = re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b", question)
+    name = r"[A-Z][a-z]+(?:[A-Z][A-Za-z0-9]*)*"
+    entities = re.findall(rf"\b{name}(?:\s+{name})*\b", question)
     entities += re.findall(r'"([^"]+)"', question)
     seen, out = set(), []
     for e in entities:

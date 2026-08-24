@@ -1434,11 +1434,13 @@ def test_run_all_propagates_one_integrated_mode(tmp_path: Path) -> None:
     assert cell6[cell6.index("--scallop-validator-url") + 1] == "http://validator:8765"
     assert "--max-tool-calls" in enabled
     assert enabled[enabled.index("--max-tool-calls") + 1] == "3"
-    assert cell6[cell6.index("--max-tool-calls") + 1] == "2"
+    assert cell6[cell6.index("--max-tool-calls") + 1] == "3"
+    assert "--no-allow-unsupported-fallback" in enabled
+    assert "--no-allow-unsupported-fallback" in cell6
     assert "--rlm-retrieval" not in enabled
     assert enabled[enabled.index("--retrieval-mode") + 1] == "hybrid"
-    assert cell6[cell6.index("--retrieval-mode") + 1] == "dense_ppr"
-    assert "--ppr-seed-count" in cell6
+    assert cell6[cell6.index("--retrieval-mode") + 1] == "hybrid"
+    assert "--ppr-seed-count" not in cell6
     assert enabled[enabled.index("--dense-failure-policy") + 1] == "error"
     assert enabled[enabled.index("--termination-mode") + 1] == "order_gap"
     assert enabled[enabled.index("--order-gap-epsilon") + 1] == "0.025"

@@ -12,6 +12,7 @@ from experiments.persona_end_to_end_benchmark import (
     _derive_condition_sources,
     _fit_sliding_prompt,
     _fit_structured_prompt,
+    _fit_hybrid_kg_prompt,
     _git_provenance,
     _load_resumable_jsonl,
     _load_source_and_rebuild,
@@ -122,6 +123,70 @@ def test_config_declares_exact_five_qwen_arms_and_env_paths() -> None:
     assert config.dataset_dir == Path("/dataset")
     assert config.output_dir == Path("/output")
     assert config.model_path == Path("/model")
+    assert config.hybrid_memory is None
+
+
+def test_neurosym_config_adds_pinned_hybrid_kg_arms() -> None:
+    root = Path(__file__).parents[1]
+    config = load_benchmark_config(
+        root / "configs" / "persona_end_to_end_neurosym.json",
+        environ={
+            "PERSONA_DATASET_DIR": "/dataset",
+            "PERSONA_BENCHMARK_OUTPUT_DIR": "/output",
+            "PERSONA_QWEN_MODEL_PATH": "/model",
+            "PERSONA_QWEN_MODEL_ID": "Qwen/fixture",
+            "PERSONA_QWEN_DEVICE": "cuda",
+            "PERSONA_SCALLOP_ENDPOINT": "http://scallop.invalid",
+            "PERSONA_RETRIEVAL_INDEX_ROOT": "/indexes",
+            "PERSONA_EMBEDDING_MODEL_ID": "BAAI/fixture",
+            "PERSONA_EMBEDDING_MODEL_PATH": "/embedding-model",
+            "PERSONA_EMBEDDING_REVISION": "revision-1",
+            "PERSONA_EMBEDDING_DEVICE": "cpu",
+            "PERSONA_NEO4J_URI": "bolt://neo4j.invalid:7687",
+            "PERSONA_NEO4J_USER": "neo4j",
+            "PERSONA_NEO4J_PASSWORD": "fixture-password",
+            "PERSONA_NEO4J_DATABASE": "neo4j",
+        },
+    )
+
+    assert [arm.name for arm in config.arms[-2:]] == [
+        "hybrid_kg_memory_4096",
+        "hybrid_kg_memory_16384",
+    ]
+    assert config.hybrid_memory is not None
+    assert config.hybrid_memory.embedding_model_id == "BAAI/fixture"
+    assert config.hybrid_memory.embedding_model_path == Path("/embedding-model")
+    assert config.hybrid_memory.neo4j_uri == "bolt://neo4j.invalid:7687"
+    assert config.hybrid_memory.neo4j_user == "neo4j"
+    assert config.hybrid_memory.neo4j_password == "fixture-password"
+    assert config.hybrid_memory.neo4j_database == "neo4j"
+    assert config.hybrid_memory.rrf_k == 60
+
+
+def test_neurosym_config_requires_live_neo4j() -> None:
+    root = Path(__file__).parents[1]
+    environ = {
+        "PERSONA_DATASET_DIR": "/dataset",
+        "PERSONA_BENCHMARK_OUTPUT_DIR": "/output",
+        "PERSONA_QWEN_MODEL_PATH": "/model",
+        "PERSONA_QWEN_MODEL_ID": "Qwen/fixture",
+        "PERSONA_QWEN_DEVICE": "cuda",
+        "PERSONA_SCALLOP_ENDPOINT": "http://scallop.invalid",
+        "PERSONA_RETRIEVAL_INDEX_ROOT": "/indexes",
+        "PERSONA_EMBEDDING_MODEL_ID": "BAAI/fixture",
+        "PERSONA_EMBEDDING_MODEL_PATH": "/embedding-model",
+        "PERSONA_EMBEDDING_REVISION": "revision-1",
+        "PERSONA_EMBEDDING_DEVICE": "cpu",
+        "PERSONA_NEO4J_USER": "neo4j",
+        "PERSONA_NEO4J_PASSWORD": "fixture-password",
+        "PERSONA_NEO4J_DATABASE": "neo4j",
+    }
+
+    with pytest.raises(ValueError, match="PERSONA_NEO4J_URI"):
+        load_benchmark_config(
+            root / "configs" / "persona_end_to_end_neurosym.json",
+            environ=environ,
+        )
 
 
 def test_benchmark_authenticates_and_rebuilds_all_120_conditions(tmp_path: Path) -> None:
@@ -254,6 +319,37 @@ def test_structured_prompt_is_causal_same_history_deduplicated_and_maximal() -> 
             cap=48,
             tokenizer=tokenizer,
         )
+
+
+def test_hybrid_kg_prompt_preserves_ranked_facts_without_identifiers() -> None:
+    tokenizer = WordChatTokenizer()
+    prefix = [_turn(1), _turn(2, "account-b"), _turn(3)]
+    rows = [
+        {
+            "fact_id": "hidden-fact-1",
+            "subject": "AsterArc",
+            "predicate": "PREFERS",
+            "object": "mint tea",
+            "support_text": "AsterArc directly chose mint tea.",
+        }
+    ]
+
+    suffix, retained, prompt, count = _fit_hybrid_kg_prompt(
+        prefix,
+        retrieved_rows=rows,
+        history_id="account-a",
+        query_text="What does AsterArc prefer?",
+        prompt_instruction="Answer briefly.",
+        cap=80,
+        tokenizer=tokenizer,
+    )
+
+    assert count <= 80
+    assert retained == rows
+    assert suffix
+    assert "AsterArc -PREFERS-> mint tea" in prompt
+    assert "hidden-fact-1" not in prompt
+    assert "account-a" not in prompt
 
 
 def test_zero_source_structured_prompt_is_identical_to_sliding() -> None:

@@ -1,0 +1,18 @@
+{
+  "ablation_id": "e2e-smoke",
+  "modes": [
+    "sparse",
+    "dense",
+    "hybrid"
+  ],
+  "schema_version": "retrieval_ablation.v1",
+  "shared_kg_sessions": {
+    "noscallop": "e2e-smoke_noscallop",
+    "scallop": "e2e-smoke_scallop"
+  },
+  "statuses": {
+    "dense": 0,
+    "hybrid": 0,
+    "sparse": 0
+  }
+}
