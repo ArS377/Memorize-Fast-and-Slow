@@ -46,6 +46,15 @@ def main() -> int:
         else:
             raise AssertionError("nonzero scorer exit was accepted")
 
+    out_json.write_text('{"score": "stale"}\n', encoding="utf-8")
+    with mock.patch("eval.official_scorer_runner.subprocess.run", return_value=fake_proc):
+        try:
+            run_official_scorer(scorer_script, pred_path, output_json_path=out_json)
+        except RuntimeError as error:
+            assert "did not write" in str(error), "stale output failure was unclear"
+        else:
+            raise AssertionError("stale scorer output was accepted")
+
     summary_path = Path("official_runner_summary.json")
     write_scorer_summary(summary_path, payload)
     parsed = json.loads(summary_path.read_text(encoding="utf-8"))

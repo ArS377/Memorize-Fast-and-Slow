@@ -22,6 +22,7 @@ def run_official_scorer(
 
     command = [sys.executable, str(scorer_script), "--pred", str(pred_path)]
     if output_json_path is not None:
+        output_json_path.unlink(missing_ok=True)
         command.extend(["--out", str(output_json_path)])
 
     completed = subprocess.run(
