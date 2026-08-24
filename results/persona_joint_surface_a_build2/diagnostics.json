@@ -1,0 +1,93 @@
+{
+  "constant_rule_baseline": {
+    "best_single_constant_em": 0.1,
+    "condition_count": 120,
+    "distinct_gold_count": 37,
+    "distinct_gold_values": [
+      "Friday delivery",
+      "Saturday delivery",
+      "Sunday delivery",
+      "Thursday delivery",
+      "UNKNOWN",
+      "afternoon delivery",
+      "apple spice tea",
+      "blackcurrant tea",
+      "blueberry tea",
+      "breakfast delivery",
+      "chrysanthemum tea",
+      "coconut tea",
+      "courier delivery",
+      "doorstep delivery",
+      "elderflower tea",
+      "fortnightly delivery",
+      "ginger turmeric tea",
+      "holiday delivery",
+      "honeybush tea",
+      "magnolia tea",
+      "midday delivery",
+      "monthly delivery",
+      "next-day delivery",
+      "night delivery",
+      "office delivery",
+      "osmanthus tea",
+      "porch delivery",
+      "priority delivery",
+      "raspberry leaf tea",
+      "reception delivery",
+      "same-day delivery",
+      "scheduled delivery",
+      "standard delivery",
+      "sunrise delivery",
+      "sunset delivery",
+      "twilight delivery",
+      "verbena tea"
+    ],
+    "per_family_choice": {
+      "preference_change": {
+        "answer": "UNKNOWN",
+        "correct": 12,
+        "n": 60
+      },
+      "preference_incongruity": {
+        "answer": "same-day delivery",
+        "correct": 4,
+        "n": 60
+      }
+    },
+    "per_family_constant_em": 0.1333
+  },
+  "evidence_availability": {
+    "graphiti_memory_16384": {
+      "accuracy_given_gold_in_prompt": 0.6849,
+      "correct_given_gold_in_prompt": 50,
+      "correct_without_gold_in_prompt": 19,
+      "gold_in_prompt": 73,
+      "retrieval_coverage": 0.6759,
+      "scored_rows": 108
+    },
+    "graphiti_memory_4096": {
+      "accuracy_given_gold_in_prompt": 0.5479,
+      "correct_given_gold_in_prompt": 40,
+      "correct_without_gold_in_prompt": 7,
+      "gold_in_prompt": 73,
+      "retrieval_coverage": 0.6759,
+      "scored_rows": 108
+    },
+    "hybrid_kg_memory_16384": {
+      "accuracy_given_gold_in_prompt": 0.7778,
+      "correct_given_gold_in_prompt": 84,
+      "correct_without_gold_in_prompt": 0,
+      "gold_in_prompt": 108,
+      "retrieval_coverage": 1.0,
+      "scored_rows": 108
+    },
+    "hybrid_kg_memory_4096": {
+      "accuracy_given_gold_in_prompt": 0.7963,
+      "correct_given_gold_in_prompt": 86,
+      "correct_without_gold_in_prompt": 0,
+      "gold_in_prompt": 108,
+      "retrieval_coverage": 1.0,
+      "scored_rows": 108
+    }
+  }
+}
