@@ -29,6 +29,13 @@ from experiments.persona_interference_schedule import (
     _read_jsonl_bytes,
     build_evaluation_schedule,
 )
+from experiments import persona_graphiti_baseline
+from experiments import persona_neurosym_retrieval
+from experiments.persona_graphiti_baseline import (
+    GraphitiMemoryConfig,
+    prepare_graphiti_memory,
+    render_graphiti_facts,
+)
 from experiments.persona_neurosym_retrieval import (
     HybridMemoryConfig,
     build_validated_condition_facts,
@@ -53,6 +60,45 @@ _HYBRID_ARMS = (
     ("hybrid_kg_memory_4096", "hybrid_kg_memory", 4096),
     ("hybrid_kg_memory_16384", "hybrid_kg_memory", 16384),
 )
+_GRAPHITI_ARMS = (
+    ("graphiti_memory_4096", "graphiti_memory", 4096),
+    ("graphiti_memory_16384", "graphiti_memory", 16384),
+)
+# Arms that need no Scallop injection, for runs on hosts without scallopy.
+_UNGATED_ARMS = tuple(
+    row for row in _EXPECTED_ARMS if row[1] != "structured_memory"
+)
+# Sliding-only base, for models whose context cannot hold the full causal
+# prefix; full_qwen_context is defined to fail rather than truncate.
+_SLIDING_ARMS = tuple(
+    row for row in _UNGATED_ARMS if row[1] == "sliding_context"
+)
+# Capped arms only. full_qwen_context needs the whole causal prefix resident,
+# which exceeds 24 GB of KV cache on this corpus even when the model's context
+# window is large enough to admit the prompt.
+_CAPPED_ARMS = tuple(
+    row for row in _EXPECTED_ARMS if row[1] != "full_qwen_context"
+)
+_ARM_LAYOUTS = frozenset(
+    {
+        _EXPECTED_ARMS,
+        (*_EXPECTED_ARMS, *_HYBRID_ARMS),
+        (*_EXPECTED_ARMS, *_GRAPHITI_ARMS),
+        (*_EXPECTED_ARMS, *_HYBRID_ARMS, *_GRAPHITI_ARMS),
+        (*_UNGATED_ARMS, *_GRAPHITI_ARMS),
+        (*_SLIDING_ARMS, *_GRAPHITI_ARMS),
+        (*_CAPPED_ARMS, *_GRAPHITI_ARMS),
+        # Joint run: our hybrid KG and the external graphiti arm together on
+        # one schedule, which is the only layout that yields a paired interval
+        # between them rather than a cross-run difference.
+        (*_CAPPED_ARMS, *_HYBRID_ARMS, *_GRAPHITI_ARMS),
+    }
+)
+# Every retrieval arm renders its evidence under the same neutral header.
+# A header that advertised one arm's provenance ("Scallop-validated") would
+# let the answer model weight that arm's evidence differently, which is a
+# framing advantage inside the very comparison the benchmark exists to make.
+_RETRIEVED_FACTS_HEADER = "Retrieved memory facts:"
 _ANSWER_PREFIX = re.compile(r"^\s*(?:final\s+)?answer\s*:\s*", re.IGNORECASE)
 
 
@@ -112,6 +158,7 @@ class BenchmarkConfig:
     use_kernels: bool
     comparisons: tuple[tuple[str, str], ...]
     hybrid_memory: HybridMemoryConfig | None
+    graphiti_memory: GraphitiMemoryConfig | None
 
 
 class _ScheduleTokenizerAdapter:
@@ -200,13 +247,16 @@ def load_benchmark_config(
         if arm.prompt_token_cap is not None:
             _positive_int(arm.prompt_token_cap, f"{arm.name}.prompt_token_cap")
     arm_layout = tuple((arm.name, arm.kind, arm.prompt_token_cap) for arm in arms)
-    if arm_layout not in {_EXPECTED_ARMS, (*_EXPECTED_ARMS, *_HYBRID_ARMS)}:
+    if arm_layout not in _ARM_LAYOUTS:
         raise ValueError(
-            "arms must declare the five base arms and optional matched hybrid KG arms"
+            "arms must declare the five base arms and optional matched hybrid KG "
+            "and Graphiti arms, in that order"
         )
+    has_hybrid_arms = _HYBRID_ARMS[0] in arm_layout
+    has_graphiti_arms = _GRAPHITI_ARMS[0] in arm_layout
     retrieval = payload.get("retrieval")
     hybrid_memory = None
-    if arm_layout == (*_EXPECTED_ARMS, *_HYBRID_ARMS):
+    if has_hybrid_arms:
         if not isinstance(retrieval, Mapping):
             raise ValueError("hybrid KG arms require a retrieval configuration")
         string_fields = {
@@ -255,6 +305,101 @@ def load_benchmark_config(
         )
     elif retrieval is not None:
         raise ValueError("retrieval configuration requires hybrid KG arms")
+
+    graphiti_payload = payload.get("graphiti")
+    graphiti_memory = None
+    if has_graphiti_arms:
+        if not isinstance(graphiti_payload, Mapping):
+            raise ValueError("graphiti memory arms require a graphiti configuration")
+        graphiti_env = {
+            name: _nonempty_string(graphiti_payload.get(name), f"graphiti.{name}")
+            for name in (
+                "build_id_env",
+                "neo4j_uri_env",
+                "neo4j_user_env",
+                "neo4j_password_env",
+                "neo4j_database_env",
+                "llm_base_url_env",
+                "llm_api_key_env",
+                "llm_model_env",
+                "llm_small_model_env",
+                "embedding_model_id_env",
+                "embedding_model_path_env",
+                "embedding_revision_env",
+                "embedding_device_env",
+            )
+        }
+        max_episode_failures = graphiti_payload.get("max_episode_failures")
+        if (
+            isinstance(max_episode_failures, bool)
+            or not isinstance(max_episode_failures, int)
+            or max_episode_failures < 0
+        ):
+            raise ValueError("graphiti.max_episode_failures must be a non-negative integer")
+        graphiti_memory = GraphitiMemoryConfig(
+            graphiti_core_version=_nonempty_string(
+                graphiti_payload.get("graphiti_core_version"),
+                "graphiti.graphiti_core_version",
+            ),
+            episode_variant=_nonempty_string(
+                graphiti_payload.get("episode_variant"), "graphiti.episode_variant"
+            ),
+            retrieval_state=_nonempty_string(
+                graphiti_payload.get("retrieval_state"), "graphiti.retrieval_state"
+            ),
+            timestamp_base=_nonempty_string(
+                graphiti_payload.get("timestamp_base"), "graphiti.timestamp_base"
+            ),
+            timestamp_step_seconds=_positive_int(
+                graphiti_payload.get("timestamp_step_seconds"),
+                "graphiti.timestamp_step_seconds",
+            ),
+            num_results=_positive_int(
+                graphiti_payload.get("num_results"), "graphiti.num_results"
+            ),
+            llm_max_tokens=_positive_int(
+                graphiti_payload.get("llm_max_tokens"), "graphiti.llm_max_tokens"
+            ),
+            max_episode_failures=max_episode_failures,
+            max_concurrent_histories=_positive_int(
+                graphiti_payload.get("max_concurrent_histories"),
+                "graphiti.max_concurrent_histories",
+            ),
+            embedding_batch_size=_positive_int(
+                graphiti_payload.get("embedding_batch_size"),
+                "graphiti.embedding_batch_size",
+            ),
+            build_id=_required_env(environ, graphiti_env["build_id_env"]),
+            neo4j_uri=_required_env(environ, graphiti_env["neo4j_uri_env"]),
+            neo4j_user=_required_env(environ, graphiti_env["neo4j_user_env"]),
+            neo4j_password=_required_env(environ, graphiti_env["neo4j_password_env"]),
+            neo4j_database=_required_env(environ, graphiti_env["neo4j_database_env"]),
+            llm_base_url=_required_env(environ, graphiti_env["llm_base_url_env"]),
+            llm_api_key=_required_env(environ, graphiti_env["llm_api_key_env"]),
+            llm_model=_required_env(environ, graphiti_env["llm_model_env"]),
+            llm_small_model=_required_env(environ, graphiti_env["llm_small_model_env"]),
+            embedding_model_id=_required_env(
+                environ, graphiti_env["embedding_model_id_env"]
+            ),
+            embedding_model_path=Path(
+                _required_env(environ, graphiti_env["embedding_model_path_env"])
+            ),
+            embedding_revision=_required_env(
+                environ, graphiti_env["embedding_revision_env"]
+            ),
+            embedding_device=_required_env(
+                environ, graphiti_env["embedding_device_env"]
+            ),
+        )
+        if hybrid_memory is not None and (
+            hybrid_memory.neo4j_uri == graphiti_memory.neo4j_uri
+            and hybrid_memory.neo4j_database == graphiti_memory.neo4j_database
+        ):
+            raise ValueError(
+                "graphiti must use its own Neo4j database, not the hybrid KG database"
+            )
+    elif graphiti_payload is not None:
+        raise ValueError("graphiti configuration requires graphiti memory arms")
 
     suffixes = schedule_payload.get("query_suffixes")
     distances = schedule_payload.get("token_distance_thresholds")
@@ -350,6 +495,7 @@ def load_benchmark_config(
         use_kernels=use_kernels,
         comparisons=comparisons,
         hybrid_memory=hybrid_memory,
+        graphiti_memory=graphiti_memory,
     )
 
 
@@ -486,8 +632,10 @@ def _fit_hybrid_kg_prompt(
     prompt_instruction: str,
     cap: int,
     tokenizer: ChatTokenizer,
+    fact_header: str = _RETRIEVED_FACTS_HEADER,
+    fact_renderer: Any = render_retrieved_facts,
 ) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]], str, int]:
-    """Fit RRF-ranked KG facts plus a maximal recent conversation suffix."""
+    """Fit ranked memory facts plus a maximal recent conversation suffix."""
     _positive_int(cap, "hybrid KG prompt cap")
     facts = [dict(row) for row in retrieved_rows]
 
@@ -496,9 +644,9 @@ def _fit_hybrid_kg_prompt(
         suffix: Sequence[Mapping[str, Any]],
     ) -> str:
         sections = []
-        fact_context = render_retrieved_facts(retained_facts)
+        fact_context = fact_renderer(retained_facts)
         if fact_context:
-            sections.append("Scallop-validated retrieved memory facts:\n" + fact_context)
+            sections.append(fact_header + "\n" + fact_context)
         if suffix:
             sections.append("Recent conversation suffix:\n" + _render_turns(suffix, history_id))
         return "\n\n".join(sections)
@@ -641,6 +789,7 @@ def _build_arm_specs(
     arms: Sequence[ArmConfig | Sequence[Any]],
     injections: Mapping[str, Mapping[str, Any]],
     hybrid_retrievals: Mapping[str, Mapping[str, Any]] | None = None,
+    graphiti_retrievals: Mapping[str, Mapping[str, Any]] | None = None,
     prompt_instruction: str,
     tokenizer: ChatTokenizer,
 ) -> list[dict[str, Any]]:
@@ -709,6 +858,33 @@ def _build_arm_specs(
                     prompt_instruction=prompt_instruction,
                     cap=int(cap),
                     tokenizer=tokenizer,
+                )
+                retrieved_rows = retained_rows
+            elif kind == "graphiti_memory":
+                if cap is None:
+                    raise ValueError(f"graphiti arm {arm_name} lacks a cap")
+                retrieval = (graphiti_retrievals or {}).get(
+                    str(condition["evaluation_input_id"])
+                )
+                if not isinstance(retrieval, Mapping):
+                    raise ValueError(
+                        f"graphiti arm {arm_name} lacks retrieval for "
+                        f"{condition['evaluation_input_id']}"
+                    )
+                raw_rows = retrieval.get("rows")
+                if not isinstance(raw_rows, list):
+                    raise ValueError("graphiti retrieval rows must be a list")
+                seed_entities = [str(value) for value in retrieval.get("seed_entities", [])]
+                retrieval_metadata = dict(retrieval.get("metadata", {}))
+                selected, retained_rows, prompt, token_count = _fit_hybrid_kg_prompt(
+                    prefix,
+                    retrieved_rows=raw_rows,
+                    history_id=history_id,
+                    query_text=query_text,
+                    prompt_instruction=prompt_instruction,
+                    cap=int(cap),
+                    tokenizer=tokenizer,
+                    fact_renderer=render_graphiti_facts,
                 )
                 retrieved_rows = retained_rows
             elif kind == "full_qwen_context":
@@ -1096,12 +1272,19 @@ def _git_provenance(
 
 
 def _write_json(path: Path, value: Any) -> None:
-    """Write and fsync one stable JSON artifact."""
-    with path.open("w", encoding="utf-8") as handle:
+    """Write one stable JSON artifact atomically.
+
+    Writing in place would leave a truncated manifest or retrieval cache if the
+    process is signalled mid-write, which on this host has happened repeatedly;
+    a corrupted cache would destroy the evidence a resume depends on.
+    """
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8") as handle:
         json.dump(value, handle, indent=2, sort_keys=True, default=str)
         handle.write("\n")
         handle.flush()
         os.fsync(handle.fileno())
+    temporary.replace(path)
 
 
 def _load_source_and_rebuild(
@@ -1260,6 +1443,7 @@ def _resume_manifest_fields(
     evaluator_script_sha256: str,
     git_provenance: Mapping[str, Any],
     hybrid_memory: Mapping[str, Any] | None = None,
+    graphiti_memory: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return immutable generation provenance checked on every resume."""
     fields = {
@@ -1297,6 +1481,8 @@ def _resume_manifest_fields(
     }
     if hybrid_memory is not None:
         fields["hybrid_memory"] = dict(hybrid_memory)
+    if graphiti_memory is not None:
+        fields["graphiti_memory"] = dict(graphiti_memory)
     return fields
 
 
@@ -1409,6 +1595,151 @@ def _prepare_hybrid_memory(
     return hybrid_retrievals, identity, condition_facts, admission_ledgers
 
 
+def _cached_hybrid_memory(
+    config: BenchmarkConfig,
+    scheduled: Mapping[str, Any],
+    turns: Sequence[Mapping[str, Any]],
+) -> tuple[
+    dict[str, dict[str, Any]],
+    dict[str, Any] | None,
+    list[dict[str, Any]],
+    dict[str, list[dict[str, Any]]],
+]:
+    """Build hybrid memory, optionally replaying a cached retrieval map.
+
+    Hybrid retrieval is deterministic within a process but not across runs:
+    committed facts persist in the graph session between runs, so the first
+    build sees an empty database and later ones do not, which changes the
+    retrieval map hash and makes the resume guard reject a partial run. Caching
+    the map lets a crashed run resume by replaying exactly the memory it was
+    scored against, the same way the graphiti arm does.
+    """
+    if config.hybrid_memory is None:
+        return {}, None, [], {}
+    cache_path = os.environ.get("PERSONA_HYBRID_RETRIEVAL_CACHE", "").strip()
+    key = _stable_hash(
+        {
+            "schedule": _stable_hash(
+                {"turns": scheduled["turns"], "inputs": scheduled["inputs"]}
+            ),
+            "hybrid": asdict(config.hybrid_memory),
+            "retrieval_sha256": _sha256(
+                Path(persona_neurosym_retrieval.__file__).resolve()
+            ),
+        }
+    )
+    if cache_path and Path(cache_path).exists():
+        payload = json.loads(Path(cache_path).read_text(encoding="utf-8"))
+        if payload.get("key") != key:
+            raise ValueError(
+                "hybrid retrieval cache was built for a different schedule, "
+                "configuration, or retrieval implementation"
+            )
+        return (
+            payload["retrievals"],
+            payload["identity"],
+            payload["condition_facts"],
+            payload["admission_ledgers"],
+        )
+    retrievals, identity, facts, ledgers = _prepare_hybrid_memory(
+        config, scheduled, turns
+    )
+    if cache_path:
+        _write_json(
+            Path(cache_path),
+            {
+                "key": key,
+                "retrievals": retrievals,
+                "identity": identity,
+                "condition_facts": facts,
+                "admission_ledgers": ledgers,
+            },
+        )
+    return retrievals, identity, facts, ledgers
+
+
+def _prepare_graphiti_memory(
+    config: BenchmarkConfig,
+    scheduled: Mapping[str, Any],
+    turns: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any] | None, dict[str, Any]]:
+    """Build Graphiti stores, run retrieval, and capture store state.
+
+    Ingestion is LLM-nondeterministic, so a rebuilt store yields different
+    retrieval and a different ordered-spec hash, which makes the resume guard
+    reject a rerun after a mid-generation crash. Setting
+    PERSONA_GRAPHITI_RETRIEVAL_CACHE to a path caches the built retrieval map,
+    identity, and store state, so a rerun replays the same memory instead of
+    re-ingesting and a crash costs only the generations. The cache is keyed by
+    the schedule and graphiti configuration, so it refuses to serve a stale
+    build for different conditions.
+    """
+    if config.graphiti_memory is None:
+        return {}, None, {}
+    cache_path = os.environ.get("PERSONA_GRAPHITI_RETRIEVAL_CACHE", "").strip()
+    # The key must cover the adapter implementation too. A cache built before a
+    # retrieval or filter fix would otherwise be replayed under provenance that
+    # looks identical, silently reviving the very behaviour the fix removed.
+    adapter_path = Path(persona_graphiti_baseline.__file__).resolve()
+    key = _stable_hash(
+        {
+            "schedule": _stable_hash(
+                {"turns": scheduled["turns"], "inputs": scheduled["inputs"]}
+            ),
+            "graphiti": asdict(config.graphiti_memory),
+            "adapter_sha256": _sha256(adapter_path),
+        }
+    )
+    if cache_path:
+        cached = Path(cache_path)
+        if cached.exists():
+            payload = json.loads(cached.read_text(encoding="utf-8"))
+            if payload.get("key") != key:
+                raise ValueError(
+                    "graphiti retrieval cache was built for a different schedule "
+                    "or configuration; delete it or point at a new path"
+                )
+            return (
+                payload["retrievals"],
+                payload["identity"],
+                payload["store_states"],
+            )
+    retrievals, identity, store_states = prepare_graphiti_memory(
+        scheduled["inputs"], turns, config.graphiti_memory
+    )
+    if cache_path:
+        _write_json(
+            Path(cache_path),
+            {
+                "key": key,
+                "retrievals": retrievals,
+                "identity": identity,
+                "store_states": store_states,
+            },
+        )
+    return retrievals, identity, store_states
+
+
+def _assert_graphiti_memory_usable(
+    retrievals: Mapping[str, Mapping[str, Any]], *, min_nonempty_fraction: float = 0.5
+) -> None:
+    """Reject a degenerate graphiti store before any generation is spent.
+
+    The post-run gate cannot prevent 960 generations being spent on a store
+    that retrieved nothing, so the check belongs here, before the answer model
+    is even loaded.
+    """
+    total = len(retrievals)
+    if not total:
+        raise ValueError("graphiti retrieval map is empty")
+    nonempty = sum(1 for value in retrievals.values() if value.get("rows"))
+    if nonempty / total < min_nonempty_fraction:
+        raise ValueError(
+            f"only {nonempty} of {total} graphiti conditions retrieved any fact; "
+            "refusing to spend generations on a degenerate store"
+        )
+
+
 def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, Any]:
     """Run resumable local Qwen generation and write authenticated benchmark artifacts."""
     import torch
@@ -1425,21 +1756,40 @@ def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, A
         config.model_path, local_files_only=config.local_files_only
     )
     scheduled, turns, _ = _load_source_and_rebuild(config, tokenizer)
-    client = PreferenceStreamInjectionClient(
-        config.scallop_endpoint, config.scallop_timeout_seconds
+    # The Scallop canary and injections exist to serve the structured_memory
+    # arms. A run without them needs no validator, so do not require one.
+    needs_scallop = any(arm.kind == "structured_memory" for arm in config.arms)
+    if needs_scallop:
+        client = PreferenceStreamInjectionClient(
+            config.scallop_endpoint, config.scallop_timeout_seconds
+        )
+        canary = _run_scallop_canary(client)
+        injections = _derive_condition_sources(scheduled["inputs"], turns, client)
+        relation_coverage = _relation_coverage_matrix(scheduled["inputs"], injections)
+    else:
+        canary = {
+            "engine": "not_required",
+            "scallopy_version": "not_required",
+            "rule_version": "not_required",
+            "injections": [],
+        }
+        injections = {}
+        relation_coverage = []
+    hybrid_retrievals, hybrid_identity, hybrid_facts, hybrid_ledgers = (
+        _cached_hybrid_memory(config, scheduled, turns)
     )
-    canary = _run_scallop_canary(client)
-    injections = _derive_condition_sources(scheduled["inputs"], turns, client)
-    relation_coverage = _relation_coverage_matrix(scheduled["inputs"], injections)
-    hybrid_retrievals, hybrid_identity, _, _ = _prepare_hybrid_memory(
-        config, scheduled, turns
+    graphiti_retrievals, graphiti_identity, graphiti_store_states = (
+        _prepare_graphiti_memory(config, scheduled, turns)
     )
+    if graphiti_retrievals:
+        _assert_graphiti_memory_usable(graphiti_retrievals)
     specs = _build_arm_specs(
         scheduled["inputs"],
         turns,
         arms=config.arms,
         injections=injections,
         hybrid_retrievals=hybrid_retrievals,
+        graphiti_retrievals=graphiti_retrievals,
         prompt_instruction=config.prompt_instruction,
         tokenizer=tokenizer,
     )
@@ -1500,6 +1850,7 @@ def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, A
         evaluator_script_sha256=evaluator_script_sha256,
         git_provenance=git_provenance,
         hybrid_memory=hybrid_identity,
+        graphiti_memory=graphiti_identity,
     )
     generation_manifest_path = config.output_dir / "generation_manifest.json"
     generations_path = config.output_dir / "generations.jsonl"
@@ -1549,6 +1900,18 @@ def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, A
         for field, expected in spec.items():
             if field != "prompt" and row.get(field) != expected:
                 raise ValueError(f"cannot resume {key}: field {field} differs")
+    # Evidence is written only once the resume guard has accepted this run, so
+    # a refused resume cannot first overwrite the artifacts it was scored on.
+    if hybrid_retrievals:
+        _write_json(config.output_dir / "hybrid_retrievals.json", hybrid_retrievals)
+        _write_json(config.output_dir / "hybrid_condition_facts.json", hybrid_facts)
+        _write_json(config.output_dir / "hybrid_admission_ledgers.json", hybrid_ledgers)
+    if graphiti_store_states:
+        _write_json(
+            config.output_dir / "graphiti_store_states.json", graphiti_store_states
+        )
+    if graphiti_retrievals:
+        _write_json(config.output_dir / "graphiti_retrievals.json", graphiti_retrievals)
     _write_json(generation_manifest_path, generation_manifest)
     try:
         with generations_path.open("a", encoding="utf-8") as handle:
@@ -1637,6 +2000,20 @@ def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, A
                 generations_path.name: _sha256(generations_path),
                 predictions_path.name: _sha256(predictions_path),
                 metrics_path.name: _sha256(metrics_path),
+                # Memory artifacts are part of the result: without them the
+                # evidence each arm was scored on cannot be re-derived, since
+                # the live stores are torn down or mutated by later runs.
+                **{
+                    name: _sha256(config.output_dir / name)
+                    for name in (
+                        "graphiti_retrievals.json",
+                        "graphiti_store_states.json",
+                        "hybrid_retrievals.json",
+                        "hybrid_condition_facts.json",
+                        "hybrid_admission_ledgers.json",
+                    )
+                    if (config.output_dir / name).exists()
+                },
             },
         }
         _write_json(manifest_path, manifest)
