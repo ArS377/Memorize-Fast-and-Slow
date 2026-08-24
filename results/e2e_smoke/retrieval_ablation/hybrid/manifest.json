@@ -1,0 +1,137 @@
+{
+  "timestamp": "2026-08-02T20:51:16.662054+00:00",
+  "run_id": "e2e-smoke_hybrid",
+  "git_sha": "a0678d85304b9ccca3604bcbdefc65753cd1170e",
+  "input": "/home/kylezheng/NeuroSym/data_e2e_smoke.jsonl",
+  "input_sha256": "6cbe8c7c1e34f375a5b1c99d967dfea8abde05ee4fa60c2951a86d013ad93de0",
+  "pilot_input": {
+    "path": "/home/kylezheng/NeuroSym/results/e2e_smoke/retrieval_ablation/hybrid/pilot_input.jsonl",
+    "sha256": "148040c7e3447ecae16f48ae6959a7d9cff4fc10bc4f21ce1a6ac7534148e86b",
+    "example_count": 1,
+    "example_ids": [
+      "66ead7bd5a08c7b9b35dca7a"
+    ]
+  },
+  "limit": 1,
+  "seed": 0,
+  "model": "Qwen3-4B-Instruct-2507",
+  "vllm_base_url": "http://127.0.0.1:8000/v1",
+  "neo4j_uri": "bolt://localhost:7687",
+  "cells": [
+    2
+  ],
+  "raw_max_chars": 32000,
+  "hops": 2,
+  "limit_triples": 50,
+  "memory_scope": "example",
+  "retrieval_config": {
+    "mode": "hybrid",
+    "rrf_k": 60,
+    "branch_candidate_multiplier": 3,
+    "branch_candidate_cap": 50,
+    "index_root": "/home/kylezheng/NeuroSym/results/e2e_smoke/retrieval_ablation/hybrid/dense_indexes",
+    "embedding": {
+      "model": "BAAI/bge-small-en-v1.5",
+      "requested_revision": null,
+      "device": "cpu",
+      "batch_size": 32,
+      "normalize": true,
+      "fact_template_version": "fact_text.v1",
+      "query_template_version": "bge_query.v1"
+    },
+    "failure_policy": "error"
+  },
+  "retrieval_mode": "hybrid",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "embedding_revision": null,
+  "embedding_device": "cpu",
+  "embedding_batch_size": 32,
+  "dense_index_root": "/home/kylezheng/NeuroSym/results/e2e_smoke/retrieval_ablation/hybrid/dense_indexes",
+  "dense_failure_policy": "error",
+  "rrf_k": 60,
+  "max_depth": 2,
+  "max_iterations": 10,
+  "max_tokens": 64000,
+  "orchestration_mode": "qwen_native_tools_inside_rlm",
+  "qwen_tool_retrieval": false,
+  "fixed_kg_retrieval": false,
+  "max_tool_calls": 3,
+  "tool_choice": "required",
+  "tool_timeout": 30.0,
+  "tool_trace_dir": null,
+  "tool_max_tokens": 2048,
+  "termination_mode": "order_gap",
+  "order_gap_epsilon": 0.025,
+  "order_gap_window": 2,
+  "order_gap_min_iterations": 2,
+  "kg_sessions": {
+    "2": "e2e-smoke_noscallop",
+    "3": "e2e-smoke_scallop",
+    "5": "e2e-smoke_noscallop",
+    "6": "e2e-smoke_scallop"
+  },
+  "facts_file_noscallop": "/home/kylezheng/NeuroSym/results/kg_builds/pilot_scallop_facts.jsonl",
+  "facts_file_scallop": null,
+  "scallop_validator_url": null,
+  "tool_contract_version": "search_knowledge_graph.v3+update_working_memory.v1",
+  "rule_version": "rules.v1",
+  "cell_status": {
+    "2": "complete"
+  },
+  "cell_retrieval": {
+    "2": [
+      {
+        "example_id": "66ead7bd5a08c7b9b35dca7a",
+        "configured_mode": "hybrid",
+        "effective_mode": "hybrid",
+        "degraded": false,
+        "dense_index_identity": [
+          {
+            "schema_version": "dense_fact_index.v1",
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "5.3.0",
+            "embedding_device": "cpu",
+            "embedding_batch_size": 32,
+            "fact_template_version": "fact_text.v1",
+            "query_template_version": "bge_query.v1",
+            "vector_dimension": 384,
+            "dtype": "float32",
+            "normalized": true,
+            "similarity": "cosine_dot_product",
+            "source_session_id": "e2e-smoke_noscallop",
+            "source_snapshot_sha256": "8a054d78232b59453c5297f8f0d175999e236d8d4f35cf03ca62981bcedff1ac",
+            "ordered_fact_digest": "9470f295d97905798df2abdf5329411d486c4848b0e33a90d2b9b465f933150b",
+            "fact_count": 22
+          }
+        ],
+        "branch_counts": {
+          "sparse": 0,
+          "dense": 3
+        },
+        "branch_latency_seconds": {
+          "sparse": 0.0,
+          "dense": 0.022
+        },
+        "rrf": {
+          "k": 60,
+          "branch_candidate_multiplier": 3,
+          "branch_candidate_cap": 50
+        }
+      }
+    ]
+  },
+  "skip_kg_build": true,
+  "kg_artifacts": {},
+  "cell_artifacts": {
+    "2": {
+      "results_path": "/home/kylezheng/NeuroSym/results/e2e_smoke/retrieval_ablation/hybrid/cell2_flat_kg_noscallop/results.jsonl",
+      "results_sha256": "454907476eabd9267bd28402f345dbea4b423b057fbe15b43ed828bb267a7581"
+    }
+  },
+  "retrieval_report": {
+    "json": "/home/kylezheng/NeuroSym/results/e2e_smoke/retrieval_ablation/hybrid/retrieval_report.json",
+    "markdown": "/home/kylezheng/NeuroSym/results/e2e_smoke/retrieval_ablation/hybrid/retrieval_report.md"
+  }
+}

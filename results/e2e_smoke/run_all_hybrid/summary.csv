@@ -1,0 +1,7 @@
+cell_id,label,retrieval,validator,recursion,n_examples,n_answered,accuracy,n_grounded,grounded_accuracy,grounded_coverage,n_fallback,fallback_accuracy,mean_latency_s,mean_triples,n_errors,n_diagnostic_answered,diagnostic_accuracy
+1,flat_raw,raw,n/a,flat,1,1,1.0000,0,,0.0000,0,,0.9000,0.0000,0,0,
+2,flat_kg_noscallop,kg,none,flat,1,1,1.0000,0,,0.0000,0,,0.7000,3.0000,0,0,
+3,flat_kg_scallop,kg,scallop,flat,0,0,,0,,,0,,,,0,0,
+4,rlm_raw,raw,n/a,rlm,0,0,,0,,,0,,,,0,0,
+5,rlm_kg_noscallop,kg,none,rlm,0,0,,0,,,0,,,,0,0,
+6,rlm_kg_scallop,kg,scallop,rlm,0,0,,0,,,0,,,,0,0,

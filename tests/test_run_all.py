@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from experiments._cli import build_arg_parser
 from neurosym.adapters.rlm import FULL_CONTEXT_TOTAL_TOKEN_BUDGET
+import pytest
 from neurosym.domain.retrieval_config import RetrievalConfig
 from experiments.run_all import _common_cell_args, _materialize_pilot_input
 
@@ -97,7 +98,7 @@ def test_run_all_passes_no_cell4_cap_unless_explicitly_requested(tmp_path: Path)
     assert capped_cell4[capped_cell4.index("--raw-max-chars") + 1] == "48000"
 
 
-def test_cell6_arguments_default_to_dense_ppr(tmp_path: Path) -> None:
+def test_cell6_arguments_match_shared_retrieval_mode_by_default(tmp_path: Path) -> None:
     args = SimpleNamespace(
         input=tmp_path / "input.jsonl",
         pilot_input=tmp_path / "pilot.jsonl",
@@ -132,9 +133,82 @@ def test_cell6_arguments_default_to_dense_ppr(tmp_path: Path) -> None:
     cell6 = _common_cell_args(args, 6)
     other_cell = _common_cell_args(args, 5)
 
-    assert cell6[cell6.index("--retrieval-mode") + 1] == "dense_ppr"
-    assert "--ppr-seed-count" in cell6
+    assert cell6[cell6.index("--retrieval-mode") + 1] == "hybrid"
+    assert not any(value.startswith("--ppr-") for value in cell6)
     assert other_cell[other_cell.index("--retrieval-mode") + 1] == "hybrid"
     assert not any(value.startswith("--ppr-") for value in other_cell)
     assert "ppr" not in RetrievalConfig().to_dict()
     assert RetrievalConfig(mode="dense_ppr").to_dict()["ppr"]["seed_count"] == 20
+
+
+def test_cell_arguments_use_explicit_facts_file_for_skipped_kg_build(tmp_path: Path) -> None:
+    facts_file = tmp_path / "noscallop_facts.jsonl"
+    facts_file.write_text("{}\n", encoding="utf-8")
+    args = SimpleNamespace(
+        input=tmp_path / "input.jsonl",
+        pilot_input=tmp_path / "pilot.jsonl",
+        limit=1,
+        seed=0,
+        model="Qwen/Qwen3-4B",
+        vllm_base_url="http://localhost:8000/v1",
+        results_dir=tmp_path / "results",
+        run_id="run",
+        neo4j_uri=None,
+        neo4j_user=None,
+        kg_sessions={2: "noscallop", 3: "scallop"},
+        hops=2,
+        limit_triples=50,
+        memory_scope="example",
+        retrieval_mode="sparse",
+        embedding_model="fake/bge",
+        embedding_device="cpu",
+        embedding_batch_size=32,
+        dense_index_root=tmp_path / "indexes",
+        dense_failure_policy="error",
+        rrf_k=60,
+        embedding_revision=None,
+        source_session=[],
+        scallop_validator_url=None,
+        facts_file_noscallop=facts_file,
+        facts_file_scallop=None,
+        fixed_kg_retrieval=True,
+    )
+
+    cell2 = _common_cell_args(args, 2)
+
+    assert cell2[cell2.index("--facts-file") + 1] == str(facts_file)
+
+
+def test_cell_arguments_reject_missing_explicit_facts_file(tmp_path: Path) -> None:
+    args = SimpleNamespace(
+        input=tmp_path / "input.jsonl",
+        pilot_input=tmp_path / "pilot.jsonl",
+        limit=1,
+        seed=0,
+        model="Qwen/Qwen3-4B",
+        vllm_base_url="http://localhost:8000/v1",
+        results_dir=tmp_path / "results",
+        run_id="run",
+        neo4j_uri=None,
+        neo4j_user=None,
+        kg_sessions={2: "noscallop"},
+        hops=2,
+        limit_triples=50,
+        memory_scope="example",
+        retrieval_mode="sparse",
+        embedding_model="fake/bge",
+        embedding_device="cpu",
+        embedding_batch_size=32,
+        dense_index_root=tmp_path / "indexes",
+        dense_failure_policy="error",
+        rrf_k=60,
+        embedding_revision=None,
+        source_session=[],
+        scallop_validator_url=None,
+        facts_file_noscallop=tmp_path / "missing.jsonl",
+        facts_file_scallop=None,
+        fixed_kg_retrieval=True,
+    )
+
+    with pytest.raises(FileNotFoundError, match="facts file does not exist"):
+        _common_cell_args(args, 2)

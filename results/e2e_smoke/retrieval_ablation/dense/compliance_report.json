@@ -1,0 +1,73 @@
+{
+  "run_id": "e2e-smoke_dense",
+  "passed": true,
+  "checks": [
+    {
+      "id": "manifest",
+      "passed": true,
+      "detail": "run and Git identity are recorded"
+    },
+    {
+      "id": "dataset_hash",
+      "passed": true,
+      "detail": "input SHA-256 is recorded"
+    },
+    {
+      "id": "typed_scope",
+      "passed": true,
+      "detail": "memory scope is explicit"
+    },
+    {
+      "id": "tool_contract",
+      "passed": true,
+      "detail": "tool schema version is recorded"
+    },
+    {
+      "id": "rule_version",
+      "passed": true,
+      "detail": "symbolic rule version is recorded"
+    },
+    {
+      "id": "cell_2_output",
+      "passed": true,
+      "detail": "/home/kylezheng/NeuroSym/results/e2e_smoke/retrieval_ablation/dense/cell2_flat_kg_noscallop/results.jsonl contains 1 rows"
+    },
+    {
+      "id": "cell_2_run_identity",
+      "passed": true,
+      "detail": "every row belongs to this run"
+    },
+    {
+      "id": "cell_2_execution",
+      "passed": true,
+      "detail": "0 execution errors"
+    },
+    {
+      "id": "cell_2_retrieval_configuration",
+      "passed": true,
+      "detail": "expected 'dense'; configured modes: ['dense']"
+    },
+    {
+      "id": "cell_2_retrieval_execution",
+      "passed": true,
+      "detail": "effective modes: ['dense']; degraded rows: 0; dense identities present: True"
+    },
+    {
+      "id": "identical_example_population",
+      "passed": true,
+      "detail": "requested cells use the same ordered example IDs"
+    }
+  ],
+  "requirement_implementation_map": {
+    "qwen_first_tool_loop": "cells 5/6 native orchestration and tool traces",
+    "persistent_graph_state": "run-specific Neo4j sessions and persisted working-memory transitions",
+    "true_cross_session_scope": "typed session_set scope with a trusted allowlist",
+    "compiled_working_memory": "update_working_memory artifacts with selected/excluded facts",
+    "ranking_confidence_provenance": "structured search scores and compact working memory",
+    "temporal_facts": "validity fields and overlap-aware symbolic rules",
+    "full_provenance": "fact IDs, document/sentence spans, graph paths, and decision metadata",
+    "audit_and_consolidation": "decision ledger, rejection artifacts, manifests, and this compliance report",
+    "six_cell_pilot": "run-local six-cell results with identical-population checks",
+    "feedback_updates": "Qwen-proposed update_working_memory transitions; Cell 6 is Scallop-gated"
+  }
+}

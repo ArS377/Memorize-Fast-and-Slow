@@ -1,0 +1,178 @@
+{
+  "artifact_sha256": {
+    "episodes.jsonl": "25c2f041a4c6283e032426fa508f4b1a876d59c74f0034955c80599615e45815",
+    "metrics.json": "06987b229f34a516c8ba374e48be4738a2ef7ade05614d986bb66279cd5be6b2",
+    "predictions.jsonl": "9f75e648757018238e10475230bca3bab11c655db88f850ec10c1652b9a0162b",
+    "report.md": "1b66875cbdd76faa5a8417cdb3519d459b9ef6f9fb0f0d404fdae191c1c50049"
+  },
+  "artifacts": [
+    "episodes.jsonl",
+    "predictions.jsonl",
+    "metrics.json",
+    "report.md"
+  ],
+  "benchmark_version": "continual_memory_without_online_learning.v1",
+  "completed_at": "2026-08-10T05:19:18.948013+00:00",
+  "config": {
+    "benchmark_version": "continual_memory_without_online_learning.v1",
+    "dense_embedding": {
+      "batch_size": 32,
+      "device": "cpu",
+      "enabled": true,
+      "local_files_only": true,
+      "model": "BAAI/bge-small-en-v1.5",
+      "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a"
+    },
+    "history_limit": 30,
+    "interference_tiers": [
+      {
+        "distractor_turn_percentage": 0.0,
+        "distractor_turns_per_target_event": 0,
+        "name": "no_interference"
+      },
+      {
+        "distractor_turn_percentage": 66.66666666666667,
+        "distractor_turns_per_target_event": 2,
+        "name": "light_interference"
+      },
+      {
+        "distractor_turn_percentage": 88.88888888888889,
+        "distractor_turns_per_target_event": 8,
+        "name": "heavy_interference"
+      },
+      {
+        "distractor_turn_percentage": 96.96969696969697,
+        "distractor_turns_per_target_event": 32,
+        "name": "extreme_interference"
+      }
+    ],
+    "metric_bins": {
+      "stream_position_upper_bounds_percent": [
+        25.0,
+        50.0,
+        75.0
+      ],
+      "token_age_upper_bounds": [
+        256,
+        1024,
+        4096,
+        16384
+      ],
+      "turn_age_upper_bounds": [
+        2,
+        8,
+        32,
+        128
+      ]
+    },
+    "model_parameter_tiers": [
+      {
+        "max_billions": 4.0,
+        "min_billions": 1.0,
+        "name": "small_local"
+      },
+      {
+        "max_billions": 14.0,
+        "min_billions": 4.0,
+        "name": "mid_local"
+      },
+      {
+        "max_billions": 72.0,
+        "min_billions": 14.0,
+        "name": "large_open"
+      },
+      {
+        "max_billions": null,
+        "min_billions": 72.0,
+        "name": "frontier_scale"
+      }
+    ],
+    "retrieval_k": 5,
+    "seed": 23,
+    "sliding_token_windows": [
+      {
+        "max_tokens": 4096,
+        "name": "window_4k"
+      },
+      {
+        "max_tokens": 16384,
+        "name": "window_16k"
+      },
+      {
+        "max_tokens": 65536,
+        "name": "window_64k"
+      },
+      {
+        "max_tokens": 131072,
+        "name": "window_128k"
+      }
+    ],
+    "source_split": "test",
+    "tokenizer": {
+      "local_files_only": true,
+      "name": "Qwen/Qwen3-4B",
+      "revision": "1cfa9a7208912126459214e8b04321603b3df60c"
+    }
+  },
+  "config_path": "configs/continual_memory_benchmark.json",
+  "config_sha256": "44b893a82655665fbe31b500c98b7e3d2bd8471a5728c78a8ad33dc6560b0052",
+  "dataset": {
+    "history_limit": 30,
+    "path": "results/synthetic_temporal_preferences_1000_v2",
+    "sha256": {
+      "events.jsonl": "99b387fb08927dc7d3684694c43090e91e0e026ddfc031916e774a070f48dbd2",
+      "queries.jsonl": "88a707a869ef90028b3a7f82036ebcd4b1ab59d091ffae8ecd37080897cde9c4"
+    },
+    "split": "test"
+  },
+  "dense": {
+    "configuration": {
+      "batch_size": 32,
+      "device": "cpu",
+      "enabled": true,
+      "local_files_only": true,
+      "model": "BAAI/bge-small-en-v1.5",
+      "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a"
+    },
+    "provider": {
+      "max_sequence_length": 512,
+      "model_name": "BAAI/bge-small-en-v1.5",
+      "requested_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+      "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+      "sentence_transformers_version": "3.4.1",
+      "vector_dimension": 384
+    }
+  },
+  "preexisting_artifacts": [],
+  "run_id": "continual_memory_benchmark_v1",
+  "runtime": {
+    "numpy": "2.2.6",
+    "python": "3.12.9",
+    "rank_bm25": "0.2.2",
+    "sentence_transformers": "3.4.1",
+    "tokenizers": "0.22.2",
+    "transformers": "4.57.6"
+  },
+  "source": {
+    "git_dirty": true,
+    "git_sha": "a0678d85304b9ccca3604bcbdefc65753cd1170e"
+  },
+  "source_sha256": {
+    "experiments/continual_memory_benchmark.py": "5b182e773f972fc2da64438a5aad25de2a1cb18853ef08ccaf52cecd3f383f6c",
+    "experiments/synthetic_temporal_baselines.py": "8a678d783828a9d3f6c324948612995de2b44623dc85814e745a11009ad54105",
+    "experiments/synthetic_temporal_preferences.py": "d685365f0b10b6688386327842be06e44f57f073761653aa6b1e8e3b6f33824a",
+    "neurosym/adapters/dense_index.py": "2e2cb5458c1eb9a88c46fce71987fce3135f10c7a56511a72de03a2ff801bfda",
+    "neurosym/domain/retrieval_config.py": "b68c5550ac199277755f91ac1f03e3c0958f8dbedce956c98f57110429f9ec6d"
+  },
+  "started_at": "2026-08-10T05:17:54.308247+00:00",
+  "status": "completed",
+  "tokenizer": {
+    "add_special_tokens": false,
+    "implementation": "Qwen2TokenizerFast",
+    "local_files_only": true,
+    "requested_name": "Qwen/Qwen3-4B",
+    "requested_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "resolved_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "transformers_version": "4.57.6"
+  }
+}

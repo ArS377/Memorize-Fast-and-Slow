@@ -1,0 +1,65 @@
+{
+  "baselines": [
+    "no_history",
+    "recency",
+    "full_history",
+    "bm25"
+  ],
+  "benchmark_version": "synthetic_temporal_preferences.v1",
+  "bm25_k": 5,
+  "history_count": 100,
+  "policies": [
+    "accept_all",
+    "scallop_fail_closed"
+  ],
+  "rule_parameters": {
+    "confidence_multiplier": 10,
+    "confidence_weights": {
+      "rejected": 1,
+      "supported": 3,
+      "uncertain": 2
+    },
+    "functional_predicates": [
+      "CAPITAL_IS",
+      "BORN_IN",
+      "BIRTH_DATE",
+      "DEATH_DATE",
+      "DIED_IN",
+      "FOUNDED_IN",
+      "LOCATED_IN",
+      "HAS_ISO_CODE",
+      "HAS_GLOTTOCODE",
+      "PREFERS"
+    ],
+    "generic_objects": [
+      "unknown",
+      "n/a",
+      "none",
+      "various",
+      "multiple",
+      "several",
+      "many",
+      "some",
+      "thing",
+      "entity"
+    ],
+    "provenance_weight": 1,
+    "version": "synthetic_temporal_preferences.v1"
+  },
+  "scallop_validator_url": "http://127.0.0.1:8765",
+  "status": "completed",
+  "timeout_seconds": 30.0,
+  "validator": {
+    "endpoint": "http://127.0.0.1:8765",
+    "engine": "scallopy-http",
+    "name": "scallop",
+    "rule_version": "rules.v1",
+    "scallop_available": true
+  },
+  "validator_health": {
+    "engine": "scallopy",
+    "rule_version": "rules.v1",
+    "scallop_available": true,
+    "status": "ok"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "artifacts": [
+    "metrics.json",
+    "predictions.jsonl",
+    "report.md"
+  ],
+  "completed_at": "2026-08-09T23:55:46.741485+00:00",
+  "config": {
+    "batch_size": 256,
+    "epochs": 60,
+    "hidden_dim": 24,
+    "learning_rate": 0.03,
+    "seed": 17
+  },
+  "config_sha256": "b56071926fae57fc239a37989157ac3d92434b6338b7657d8d6249dbe452b483",
+  "dataset": "results/synthetic_temporal_preferences_1000",
+  "dataset_sha256": {
+    "candidate_updates.jsonl": "a8c93c38c9b39c02036636e52a4f35fad01ecd5a5555705c145dd03c9feed615",
+    "events.jsonl": "99b387fb08927dc7d3684694c43090e91e0e026ddfc031916e774a070f48dbd2"
+  },
+  "git_dirty": true,
+  "git_sha": "a0678d85304b9ccca3604bcbdefc65753cd1170e",
+  "run_id": "differentiable_admission_v1",
+  "source_sha256": {
+    "configs/differentiable_admission.json": "32f7040cb4de3d425025ddb3e6e81d31a2739ad2f345b1f5f1295379feaba051",
+    "experiments/differentiable_admission.py": "15ed559e7572274862f58a80a4dbcc487075572202e73a175cae46468f6f2166",
+    "experiments/synthetic_temporal_preferences.py": "3bb8764c00973b097d6da182f82e135b868a815df8635eacbdd00d77cd86360e",
+    "neurosym/domain/hard_gate_admission.py": "d9da03f8e1163d915e1ab30e271773ce55eddda03b3b4c18630ca38679b9e1bb"
+  },
+  "started_at": "2026-08-09T23:54:10.241707+00:00",
+  "status": "completed"
+}

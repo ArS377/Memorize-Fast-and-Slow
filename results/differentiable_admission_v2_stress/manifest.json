@@ -1,0 +1,45 @@
+{
+  "artifact_sha256": {
+    "metrics.json": "69c5e80441d89383a2b5015a33c75541a5a7b52c51a797856d27de722f58a4da",
+    "predictions.jsonl": "c3168e7f46436b577d7a78e53aac51511cd3ace3506bdc88b489fc0ac6927b92",
+    "report.md": "ab2124f8de7ae7e42355dcf571b1ed8f9ec0900fee7f2e8265be9c50ac0c6196",
+    "stress_predictions.jsonl": "ebdcc00bdf8cd6690b6f67284264a50e6898e512fdfd237c0e087cb236f5e496"
+  },
+  "artifacts": [
+    "metrics.json",
+    "predictions.jsonl",
+    "stress_predictions.jsonl",
+    "report.md"
+  ],
+  "completed_at": "2026-08-10T01:41:10.038290+00:00",
+  "config": {
+    "batch_size": 256,
+    "confidence_noise_stddevs": [
+      0.05,
+      0.15,
+      0.3
+    ],
+    "epochs": 60,
+    "hidden_dim": 24,
+    "learning_rate": 0.03,
+    "seed": 17,
+    "stress_repeats": 5
+  },
+  "config_sha256": "c9f69863b7fd20f91a2768d81ebee70da10e0ba344ac7e6bfc64699e0fc11a59",
+  "dataset": "results/synthetic_temporal_preferences_1000_v2",
+  "dataset_sha256": {
+    "candidate_updates.jsonl": "702939554b8bfc1b513ace9796fdd6b4e129b0c8e0ca316538ef975ee8d6c3f4",
+    "events.jsonl": "99b387fb08927dc7d3684694c43090e91e0e026ddfc031916e774a070f48dbd2"
+  },
+  "git_dirty": true,
+  "git_sha": "a0678d85304b9ccca3604bcbdefc65753cd1170e",
+  "run_id": "differentiable_admission_v2_stress",
+  "source_sha256": {
+    "configs/differentiable_admission.json": "e6a210aa9eb3addc729c9a722639e11a9a9b2c67551d50484787793e6ac2544b",
+    "experiments/differentiable_admission.py": "bc31ff7f581f1458ecd4e9d871727dd083d2b24611b22b98499644d782785705",
+    "experiments/synthetic_temporal_preferences.py": "d685365f0b10b6688386327842be06e44f57f073761653aa6b1e8e3b6f33824a",
+    "neurosym/domain/hard_gate_admission.py": "95137be4b790f892a98e3a0cd7df88c9d496a8024737e44c694d6139a0191bed"
+  },
+  "started_at": "2026-08-10T01:34:53.202866+00:00",
+  "status": "completed"
+}
