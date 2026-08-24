@@ -1,4 +1,6 @@
-# Rows 1-4 baselines, full 500-example LongBench-v2
+# Rows 1-4 baselines, nominal 500-example LongBench-v2 run
+
+The published artifacts contain 503 evaluated rows per arm.
 
 5-way sharded, sequential per cell, Qwen3-4B via vLLM.
 
