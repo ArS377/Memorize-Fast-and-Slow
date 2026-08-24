@@ -470,14 +470,38 @@ def _model_file_hashes(model_path: Path) -> dict[str, str]:
         "tokenizer.json",
         "vocab.json",
         "merges.txt",
-        "chat_template.jinja",
         "model.safetensors.index.json",
     )
     paths = [model_path / name for name in names]
-    paths.extend(sorted(model_path.glob("model.safetensors-*.safetensors")))
-    missing = [path.name for path in paths[: len(names)] if not path.is_file()]
+    missing = [path.name for path in paths if not path.is_file()]
     if missing:
         raise ValueError(f"model snapshot is missing required files: {missing}")
+
+    # Prompt rendering must be hashed, but releases place the chat template
+    # differently: some ship a standalone chat_template.jinja, others embed a
+    # chat_template field inside tokenizer_config.json. Require one or the
+    # other so the prompt source is always covered, and hash the standalone
+    # file whenever it exists.
+    template_file = model_path / "chat_template.jinja"
+    if template_file.is_file():
+        paths.append(template_file)
+    else:
+        try:
+            tokenizer_config = json.loads(
+                (model_path / "tokenizer_config.json").read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(
+                f"cannot read tokenizer_config.json for prompt provenance: {error}"
+            ) from error
+        if not str(tokenizer_config.get("chat_template", "")).strip():
+            raise ValueError(
+                "model snapshot has neither chat_template.jinja nor a "
+                "chat_template embedded in tokenizer_config.json, so prompt "
+                "rendering cannot be authenticated"
+            )
+
+    paths.extend(sorted(model_path.glob("model.safetensors-*.safetensors")))
     return {path.name: _sha256(path) for path in paths}
 
 

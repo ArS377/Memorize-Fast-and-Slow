@@ -359,20 +359,60 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def _write_json(path: Path, value: Any) -> None:
     """Write stable formatted JSON."""
-    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    temporary.replace(path)
 
 
 def _write_jsonl(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
     """Write stable JSONL records in supplied order."""
-    path.write_text(
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
         "".join(json.dumps(row, ensure_ascii=True, sort_keys=True) + "\n" for row in rows),
         encoding="utf-8",
     )
+    temporary.replace(path)
 
 
 def _sha256(path: Path) -> str:
     """Return one artifact's SHA-256 digest."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _source_plan_sha256(output_dir: Path) -> str:
+    """Hash source fields that determine generated dialogue and gold contracts."""
+    artifacts: dict[str, list[dict[str, Any]]] = {}
+    for name in SOURCE_ARTIFACTS:
+        rows = _read_jsonl(output_dir / name)
+        if name == "events.jsonl":
+            rows = [
+                {
+                    key: value
+                    for key, value in row.items()
+                    if key
+                    not in {
+                        "dialogue_speaker",
+                        "dialogue_subject",
+                        "model_text",
+                        "surface_object",
+                    }
+                }
+                for row in rows
+            ]
+        elif name == "queries.jsonl":
+            rows = [
+                {
+                    key: value
+                    for key, value in row.items()
+                    if key not in {"query_text", "surface_gold", "surface_query_text"}
+                }
+                for row in rows
+            ]
+        artifacts[name] = rows
+    payload = json.dumps(artifacts, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _surface_maps(events: Sequence[Mapping[str, Any]]) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
@@ -1089,6 +1129,18 @@ def generate_persona_conversations(
             "lineage_retraction": "retracts_lineage=true propagates through duplicate_of closure",
         },
     }
+    if config.resume_existing and manifest_path.exists():
+        try:
+            prior_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"cannot read prior generation manifest {manifest_path}: {error}") from error
+        if not isinstance(prior_manifest, Mapping) or any(
+            prior_manifest.get(key) != manifest[key]
+            for key in ("prompt_schema_version", "request_parameters", "source_generation")
+        ):
+            raise ValueError(
+                "cannot resume with generation parameters that differ from the prior manifest"
+            )
     prior_request_rows = (
         _read_jsonl(requests_path)
         if config.resume_existing and requests_path.exists()
@@ -1099,9 +1151,17 @@ def generate_persona_conversations(
         if config.resume_existing and raw_path.exists()
         else []
     )
+    prior_source_plan_sha256 = None
+    if prior_request_rows or prior_raw_rows:
+        missing_sources = [name for name in SOURCE_ARTIFACTS if not (output_dir / name).exists()]
+        if missing_sources:
+            raise ValueError(
+                f"cannot resume because source artifacts are missing: {missing_sources}"
+            )
+        prior_source_plan_sha256 = _source_plan_sha256(output_dir)
     _write_json(manifest_path, manifest)
-    raw_rows: list[dict[str, Any]] = []
-    request_rows: list[dict[str, Any]] = []
+    raw_rows = list(prior_raw_rows)
+    request_rows = list(prior_request_rows)
     _write_jsonl(raw_path, raw_rows)
     _write_jsonl(requests_path, request_rows)
     try:
@@ -1112,6 +1172,16 @@ def generate_persona_conversations(
             split_counts=config.split_counts,
             hardness_profile=config.hardness_profile,
         )
+        source_plan_sha256 = _source_plan_sha256(output_dir)
+        if (
+            prior_source_plan_sha256 is not None
+            and prior_source_plan_sha256 != source_plan_sha256
+        ):
+            raise ValueError(
+                "cannot resume because regenerated latent source artifacts differ from checkpoints"
+            )
+        manifest["source_plan_sha256"] = source_plan_sha256
+        _write_json(manifest_path, manifest)
         events = _read_jsonl(output_dir / "events.jsonl")
         queries = _read_jsonl(output_dir / "queries.jsonl")
         value_map, subject_map, scope_map = _surface_maps(events)
@@ -1181,20 +1251,33 @@ def generate_persona_conversations(
                 ).hexdigest()
                 parsed = None
                 validation_error: ValueError | None = None
-                cached_pairs = [
-                    (request, raw)
-                    for request, raw in zip(prior_request_rows, prior_raw_rows)
-                    if request.get("history_id") == history_id
-                    and int(request.get("batch_index", -1)) == batch_index
-                    and request.get("prompt_sha256") == base_prompt_sha256
-                    and raw.get("history_id") == history_id
-                    and int(raw.get("batch_index", -1)) == batch_index
-                ]
+                prior_raw_by_attempt = {
+                    (
+                        str(raw.get("history_id", "")),
+                        int(raw.get("batch_index", -1)),
+                        int(raw.get("attempt_index", -1)),
+                    ): raw
+                    for raw in prior_raw_rows
+                }
+                cached_pairs = []
+                for request in prior_request_rows:
+                    key = (
+                        str(request.get("history_id", "")),
+                        int(request.get("batch_index", -1)),
+                        int(request.get("attempt_index", -1)),
+                    )
+                    raw = prior_raw_by_attempt.get(key)
+                    if (
+                        key[0] == history_id
+                        and key[1] == batch_index
+                        and isinstance(request.get("messages"), list)
+                        and request["messages"][0] == messages[0]
+                        and request["messages"][-1] == messages[-1]
+                        and raw is not None
+                    ):
+                        cached_pairs.append((request, raw))
+                cached_pairs.sort(key=lambda pair: int(pair[0].get("attempt_index", -1)))
                 for cached_request, cached_raw in cached_pairs:
-                    request_rows.append({**cached_request, "resumed_from_prior_run": True})
-                    raw_rows.append({**cached_raw, "resumed_from_prior_run": True})
-                    _write_jsonl(requests_path, request_rows)
-                    _write_jsonl(raw_path, raw_rows)
                     try:
                         if cached_raw.get("finish_reason") != "stop":
                             raise ValueError(
@@ -1213,7 +1296,11 @@ def generate_persona_conversations(
                     resumed_response_count += 1
                     break
 
-                attempt_start = 1 if cached_pairs and parsed is None else 0
+                attempt_start = (
+                    max(int(request.get("attempt_index", -1)) for request, _ in cached_pairs) + 1
+                    if cached_pairs and parsed is None
+                    else 0
+                )
                 for attempt_index in range(attempt_start, config.max_validation_attempts):
                     if parsed is not None:
                         break
@@ -1235,18 +1322,30 @@ def generate_persona_conversations(
                             attempt_messages, ensure_ascii=True, sort_keys=True
                         ).encode("utf-8")
                     ).hexdigest()
-                    request_rows.append(
-                        {
-                            "history_id": history_id,
-                            "batch_index": batch_index,
-                            "attempt_index": attempt_index,
-                            "event_count": len(batch_expected),
-                            "seed": config.seed + attempt_index,
-                            "prompt_sha256": prompt_sha256,
-                            "messages": attempt_messages,
-                        }
-                    )
-                    _write_jsonl(requests_path, request_rows)
+                    request_row = {
+                        "history_id": history_id,
+                        "batch_index": batch_index,
+                        "attempt_index": attempt_index,
+                        "event_count": len(batch_expected),
+                        "seed": config.seed + attempt_index,
+                        "prompt_sha256": prompt_sha256,
+                        "messages": attempt_messages,
+                    }
+                    matching_requests = [
+                        row
+                        for row in request_rows
+                        if row.get("history_id") == history_id
+                        and int(row.get("batch_index", -1)) == batch_index
+                        and int(row.get("attempt_index", -1)) == attempt_index
+                    ]
+                    if matching_requests and matching_requests[-1] != request_row:
+                        raise ValueError(
+                            f"resume prompt mismatch for {history_id} batch {batch_index} "
+                            f"attempt {attempt_index}"
+                        )
+                    if not matching_requests:
+                        request_rows.append(request_row)
+                        _write_jsonl(requests_path, request_rows)
                     response = client.complete(
                         messages=attempt_messages,
                         model=config.model,

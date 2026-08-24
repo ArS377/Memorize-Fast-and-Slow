@@ -52,6 +52,8 @@ class ScheduleConfig:
     pair_gate_path: Path | None = None
     pair_gate_sha256: str | None = None
     surface_assignment: str | None = None
+    minimum_stream_tokens: int = 0
+    preserve_generated_dialogue: bool = False
 
     def __post_init__(self) -> None:
         """Reject incomplete or silently clamped scheduling requests."""
@@ -73,10 +75,15 @@ class ScheduleConfig:
             "concurrent_accounts": self.concurrent_accounts,
             "min_segment_events": self.min_segment_events,
             "max_segment_events": self.max_segment_events,
+            "minimum_stream_tokens": self.minimum_stream_tokens,
         }
         for name, value in integer_values.items():
             if isinstance(value, bool) or not isinstance(value, int):
                 raise ValueError(f"{name} must be an integer")
+        if self.minimum_stream_tokens < 0:
+            raise ValueError("minimum_stream_tokens must be non-negative")
+        if not isinstance(self.preserve_generated_dialogue, bool):
+            raise ValueError("preserve_generated_dialogue must be a boolean")
         if self.concurrent_accounts < 2:
             raise ValueError("concurrent_accounts must be at least two")
         if self.min_segment_events < 1 or self.max_segment_events < self.min_segment_events:
@@ -449,8 +456,12 @@ def build_evaluation_schedule(
             raise ValueError(
                 "derived query gold or causal contract differs from authenticated parent"
             )
+    scheduled_events = [
+        {**event, "preserve_model_text": config.preserve_generated_dialogue}
+        for event in events
+    ]
     schedule = build_interleaved_schedule(
-        events,
+        scheduled_events,
         tokenizer=tokenizer,
         seed=config.seed,
         concurrent_accounts=config.concurrent_accounts,
@@ -460,8 +471,12 @@ def build_evaluation_schedule(
     turns = list(schedule["turns"])
     checkpoint_turns = turns
     if parent_events is not None:
+        scheduled_parent_events = [
+            {**event, "preserve_model_text": config.preserve_generated_dialogue}
+            for event in parent_events
+        ]
         parent_schedule = build_interleaved_schedule(
-            parent_events,
+            scheduled_parent_events,
             tokenizer=tokenizer,
             seed=config.seed,
             concurrent_accounts=config.concurrent_accounts,
@@ -487,6 +502,12 @@ def build_evaluation_schedule(
         ]
         if turn_identity != parent_turn_identity:
             raise ValueError("derived interleaving differs from authenticated parent")
+    metrics = schedule_metrics(schedule)
+    if metrics["stream_token_count"] <= config.minimum_stream_tokens:
+        raise ValueError(
+            f"scheduled stream has {metrics['stream_token_count']} tokens; "
+            f"must exceed {config.minimum_stream_tokens} tokens"
+        )
     event_turn = {
         str(turn["stream_event"]["event_id"]): index for index, turn in enumerate(turns)
     }
@@ -614,7 +635,7 @@ def build_evaluation_schedule(
         "config": asdict(config),
         "dataset": provenance,
         "tokenizer": dict(tokenizer.metadata()),
-        "schedule_metrics": schedule_metrics(schedule),
+        "schedule_metrics": metrics,
         "turns": safe_turns,
         "inputs": inputs,
         "model_inputs": model_inputs,
@@ -704,11 +725,18 @@ def _load_cli_config(path: Path) -> tuple[ScheduleConfig, TokenizerConfig]:
         for value in schedule["token_distance_thresholds"]
     ):
         raise ValueError("schedule.token_distance_thresholds elements must be integers")
+    if not isinstance(schedule.get("preserve_generated_dialogue"), bool):
+        raise ValueError("schedule.preserve_generated_dialogue must be a boolean")
     integer_fields = (
-        "seed", "concurrent_accounts", "min_segment_events", "max_segment_events"
+        "seed",
+        "concurrent_accounts",
+        "min_segment_events",
+        "max_segment_events",
+        "minimum_stream_tokens",
     )
     for field in integer_fields:
-        if isinstance(schedule.get(field), bool) or not isinstance(schedule.get(field), int):
+        value = schedule.get(field)
+        if isinstance(value, bool) or not isinstance(value, int):
             raise ValueError(f"schedule.{field} must be an integer")
     if not isinstance(tokenizer.get("local_files_only"), bool):
         raise ValueError("tokenizer.local_files_only must be a boolean")
@@ -743,6 +771,8 @@ def _load_cli_config(path: Path) -> tuple[ScheduleConfig, TokenizerConfig]:
                 if schedule.get("surface_assignment") is not None
                 else None
             ),
+            minimum_stream_tokens=schedule.get("minimum_stream_tokens", 0),
+            preserve_generated_dialogue=schedule["preserve_generated_dialogue"],
         ),
         TokenizerConfig(
             name=str(tokenizer.get("name", "")),

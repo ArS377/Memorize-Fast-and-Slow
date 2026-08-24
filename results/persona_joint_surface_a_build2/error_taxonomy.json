@@ -1,0 +1,228 @@
+{
+  "graphiti_memory_16384": {
+    "by_query_family": {
+      "preference_change": {
+        "abstained": 9,
+        "correct": 34,
+        "cross_account_intrusion": 1,
+        "other": 3,
+        "stale_intrusion": 13
+      },
+      "preference_incongruity": {
+        "abstained": 8,
+        "correct": 46,
+        "cross_account_intrusion": 1,
+        "stale_intrusion": 5
+      }
+    },
+    "labels": {
+      "abstained": 17,
+      "correct": 80,
+      "cross_account_intrusion": 2,
+      "other": 3,
+      "stale_intrusion": 18
+    },
+    "rates": {
+      "abstained": 0.1417,
+      "correct": 0.6667,
+      "cross_account_intrusion": 0.0167,
+      "other": 0.025,
+      "stale_intrusion": 0.15
+    },
+    "total": 120
+  },
+  "graphiti_memory_4096": {
+    "by_query_family": {
+      "preference_change": {
+        "abstained": 11,
+        "correct": 29,
+        "cross_account_intrusion": 1,
+        "other": 4,
+        "stale_intrusion": 15
+      },
+      "preference_incongruity": {
+        "abstained": 19,
+        "correct": 29,
+        "cross_account_intrusion": 8,
+        "other": 2,
+        "stale_intrusion": 2
+      }
+    },
+    "labels": {
+      "abstained": 30,
+      "correct": 58,
+      "cross_account_intrusion": 9,
+      "other": 6,
+      "stale_intrusion": 17
+    },
+    "rates": {
+      "abstained": 0.25,
+      "correct": 0.4833,
+      "cross_account_intrusion": 0.075,
+      "other": 0.05,
+      "stale_intrusion": 0.1417
+    },
+    "total": 120
+  },
+  "hybrid_kg_memory_16384": {
+    "by_query_family": {
+      "preference_change": {
+        "abstained": 2,
+        "correct": 31,
+        "stale_intrusion": 27
+      },
+      "preference_incongruity": {
+        "correct": 60
+      }
+    },
+    "labels": {
+      "abstained": 2,
+      "correct": 91,
+      "stale_intrusion": 27
+    },
+    "rates": {
+      "abstained": 0.0167,
+      "correct": 0.7583,
+      "stale_intrusion": 0.225
+    },
+    "total": 120
+  },
+  "hybrid_kg_memory_4096": {
+    "by_query_family": {
+      "preference_change": {
+        "abstained": 3,
+        "correct": 34,
+        "stale_intrusion": 23
+      },
+      "preference_incongruity": {
+        "correct": 60
+      }
+    },
+    "labels": {
+      "abstained": 3,
+      "correct": 94,
+      "stale_intrusion": 23
+    },
+    "rates": {
+      "abstained": 0.025,
+      "correct": 0.7833,
+      "stale_intrusion": 0.1917
+    },
+    "total": 120
+  },
+  "sliding_context_16384": {
+    "by_query_family": {
+      "preference_change": {
+        "abstained": 11,
+        "correct": 30,
+        "other": 2,
+        "stale_intrusion": 17
+      },
+      "preference_incongruity": {
+        "abstained": 7,
+        "correct": 42,
+        "cross_account_intrusion": 3,
+        "stale_intrusion": 8
+      }
+    },
+    "labels": {
+      "abstained": 18,
+      "correct": 72,
+      "cross_account_intrusion": 3,
+      "other": 2,
+      "stale_intrusion": 25
+    },
+    "rates": {
+      "abstained": 0.15,
+      "correct": 0.6,
+      "cross_account_intrusion": 0.025,
+      "other": 0.0167,
+      "stale_intrusion": 0.2083
+    },
+    "total": 120
+  },
+  "sliding_context_4096": {
+    "by_query_family": {
+      "preference_change": {
+        "abstained": 31,
+        "correct": 22,
+        "stale_intrusion": 7
+      },
+      "preference_incongruity": {
+        "abstained": 34,
+        "correct": 20,
+        "cross_account_intrusion": 2,
+        "stale_intrusion": 4
+      }
+    },
+    "labels": {
+      "abstained": 65,
+      "correct": 42,
+      "cross_account_intrusion": 2,
+      "stale_intrusion": 11
+    },
+    "rates": {
+      "abstained": 0.5417,
+      "correct": 0.35,
+      "cross_account_intrusion": 0.0167,
+      "stale_intrusion": 0.0917
+    },
+    "total": 120
+  },
+  "structured_memory_16384": {
+    "by_query_family": {
+      "preference_change": {
+        "abstained": 10,
+        "correct": 30,
+        "other": 1,
+        "stale_intrusion": 19
+      },
+      "preference_incongruity": {
+        "abstained": 2,
+        "correct": 55,
+        "cross_account_intrusion": 1,
+        "stale_intrusion": 2
+      }
+    },
+    "labels": {
+      "abstained": 12,
+      "correct": 85,
+      "cross_account_intrusion": 1,
+      "other": 1,
+      "stale_intrusion": 21
+    },
+    "rates": {
+      "abstained": 0.1,
+      "correct": 0.7083,
+      "cross_account_intrusion": 0.0083,
+      "other": 0.0083,
+      "stale_intrusion": 0.175
+    },
+    "total": 120
+  },
+  "structured_memory_4096": {
+    "by_query_family": {
+      "preference_change": {
+        "abstained": 19,
+        "correct": 32,
+        "stale_intrusion": 9
+      },
+      "preference_incongruity": {
+        "abstained": 7,
+        "correct": 51,
+        "stale_intrusion": 2
+      }
+    },
+    "labels": {
+      "abstained": 26,
+      "correct": 83,
+      "stale_intrusion": 11
+    },
+    "rates": {
+      "abstained": 0.2167,
+      "correct": 0.6917,
+      "stale_intrusion": 0.0917
+    },
+    "total": 120
+  }
+}

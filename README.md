@@ -1,6 +1,6 @@
 # NeuroSymbolic LLM Context with Dynamic Knowledge Graphs
 
-> **Thesis**: Replace the LLM's unstructured context buffer with a symbolically constrained dynamic knowledge graph, where Scallop-enforced logical rules govern what facts persist, ensuring contradiction-free long-horizon reasoning without relying on the model's self-consistency.
+> **Thesis**: Complement the LLM's raw context with a dynamic knowledge graph whose validated cells use versioned Scallop rules to gate persistent facts and memory transitions. The rules prevent the encoded contradiction classes; they do not guarantee arbitrary semantic consistency.
 
 ---
 
@@ -9,8 +9,8 @@
 | File | Purpose |
 |------|---------|
 | `longbench_kg_pipeline.py` | Main pipeline: loads LongBench data, extracts facts via LLM, verifies them with self-reflection, and writes supported facts to JSONL and Neo4j |
-| `neo4j_graph.py` | `Neo4jGraph` class — all Neo4j operations (insert, query, propose/commit, conflict detection). Routes every insert through Scallop validation |
-| `scallop_validator.py` | Scallop-powered fact validator. Gates every proposed fact with logical rules before it is committed to the graph |
+| `neo4j_graph.py` | Compatibility export for the `Neo4jGraph` adapter: Neo4j insert, query, propose/commit, conflict detection, and optional validated writes |
+| `scallop_validator.py` | Compatibility export for the Scallop validator used by validated cells; no-Scallop ablation cells intentionally bypass it |
 | `download_longbench.py` | Downloads LongBench-v2 dataset from HuggingFace and saves it as `data.jsonl` |
 | `experiments/kg_search_tool.py` | Stable v3 JSON-schema tool adapter for application-configured KG retrieval |
 | `experiments/dense_retrieval.py` | Local BGE embeddings and validated per-session NumPy dense-index sidecars |
@@ -193,9 +193,11 @@ top-level Cell 1–4 result files and `results/summary.csv` now refer to this ru
 the previous Cell 2 snapshot is not comparable because it used pre-hybrid code
 and a different KG.
 
-Cells 5 and 6 both use Qwen-first native KG tools by default. They share the
-same search/update orchestration; Scallop transition gating is the only intended
-difference between them:
+Cells 5 and 6 both use Qwen-first native KG tools by default. Cell 5 currently
+defaults to hybrid sparse+dense retrieval, while Cell 6 defaults to dense-PPR
+and Scallop-gated transitions. Therefore their default comparison is not a
+Scallop-only ablation; set an identical retrieval mode and tool budget for that
+causal comparison:
 
 ```bash
 python3 -m experiments.run_all \
@@ -223,8 +225,9 @@ python3 -m experiments.run_all \
     --neo4j-password yourpassword
 ```
 
-KG cells default to `--retrieval-mode hybrid`, using local
+Cells 2, 3, and 5 default to `--retrieval-mode hybrid`, using local
 `BAAI/bge-small-en-v1.5` embeddings on CPU and deterministic RRF with `k=60`.
+Cell 6 defaults to the separate dense-PPR mode.
 The native path sends the question and choices to Qwen before retrieval, then
 uses `search_knowledge_graph` and `update_working_memory`. Final answers must
 cite returned fact IDs that were selected into the working-memory artifact.
@@ -243,6 +246,44 @@ committed to working memory; otherwise the official result is
 `evidence_insufficient` and Qwen's explicit multiple-choice candidate is
 retained only as a diagnostic prediction. The 64k token and iteration limits
 remain safety budgets rather than the normal stopping rule.
+
+### Persona NeuroSym Retrieval Preflight
+
+The completed five-arm persona Qwen artifacts under `results/persona_end_to_end_*`
+compare sliding context, Scallop-selected source turns, and full context. Those
+published structured-memory arms do not use KG retrieval.
+
+`configs/persona_end_to_end_neurosym.json` adds matched 4K and 16K
+`hybrid_kg_memory` arms. The bridge replays each causal condition through the
+HTTP Scallop validator, commits the admitted condition-scoped snapshot to live
+Neo4j, runs scoped two-hop sparse traversal plus dense retrieval through the
+same production RRF implementation, and fits retrieved facts plus a recent
+suffix under the same Qwen prompt caps. The live configuration requires
+`PERSONA_NEO4J_URI`, `PERSONA_NEO4J_USER`, `PERSONA_NEO4J_PASSWORD`, and
+`PERSONA_NEO4J_DATABASE`.
+
+`results/persona_neurosym_preflight_v1/` verifies all 120 conditions through
+Scallop admission, both hybrid branches, and 240 prompt builds without running
+Qwen generation. It uses the supported JSONL fact-repository fallback, so this
+preflight does not claim Neo4j n-hop traversal or answer-quality improvement.
+The v2 preflight supersedes that execution path by requiring live Neo4j,
+proving isolated two-hop behavior with an adversarial canary, and failing if
+either hybrid branch is absent.
+`results/persona_neurosym_preflight_v2/` records 946 Scallop-admitted facts in
+live Neo4j, 120 non-degraded two-branch retrievals, and 240 fitted hybrid
+prompts.
+
+`results/persona_end_to_end_qwen35_4b_neurosym_v1/` completes all seven arms
+with Qwen3.5-4B revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a`.
+Exact match is 75.83% for hybrid KG memory at 4K and 80.83% at 16K, compared
+with 32.50% and 56.67% for matched sliding context and 63.33% and 65.00% for
+matched structured memory.
+The paired hybrid-minus-sliding improvements are 43.33 percentage points at
+4K with a history-clustered 95% interval of [34.17, 52.50], and 24.17 points
+at 16K with an interval of [15.00, 33.33].
+The paired hybrid-minus-structured improvements are 12.50 points at 4K with
+an interval of [5.00, 20.83], and 15.83 points at 16K with an interval of
+[10.00, 22.50].
 Aggregate CSVs report this separately as `diagnostic_accuracy`; it never
 contributes to the official `accuracy` column.
 
@@ -358,9 +399,9 @@ Fact Extraction (LLM via vLLM)
       ↓
 Self-Reflection Validation (6-question LLM check → supported/rejected)
       ↓
-Scallop Validator (logical + temporal rules gate each fact)
+Scallop Validator in validated cells (logical + temporal rules gate each fact)
       ↓
-Neo4j Knowledge Graph (only contradiction-free facts committed)
+Neo4j Knowledge Graph (accepted facts plus an auditable decision ledger)
       ↓
 Context Retrieval (n-hop entity-seeded query → LLM-ready text)
 ```
@@ -448,6 +489,6 @@ ledger tied back to the source session.
 | GEPA / Dynamic Cheatsheet | Unstructured text | ✗ | ✗ |
 | RLMs | Raw context chunks | ✗ | ✓ |
 | KG-RAG | Static KG | Schema-only | ✗ |
-| **Ours** | **Dynamic KG** | **Scallop logic programs** | **✓** |
+| **Ours** | **Dynamic KG** | **Versioned Scallop logic programs in validated paths** | **✓** |
 
-**Key Innovation**: No existing system treats context update as a constrained symbolic state transition. Every proposed fact must pass Scallop logical rules before entering the persistent graph.
+**System contribution**: validated NeuroSym paths represent context updates as auditable symbolic state transitions. Scallop-gated cells require proposed persistent facts and working-memory transitions to pass the configured rule program; no-Scallop cells remain explicit controls.

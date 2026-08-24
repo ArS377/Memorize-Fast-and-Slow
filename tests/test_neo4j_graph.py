@@ -665,6 +665,8 @@ def test_export_facts_is_complete_and_deterministic() -> None:
     assert rows[1]["decision_status"] == "accept"
     query, params = graph._driver.queries[-1]
     assert "r.qualifiers_json AS qualifiers_json" in query
+    assert "r.source_fact_id AS source_fact_id" in query
+    assert "r.source_event_id AS source_event_id" in query
     assert "r.normalization_notes AS normalization_notes" in query
     assert "r.decision_status AS decision_status" in query
     assert "ORDER BY" in query
@@ -680,6 +682,8 @@ def test_query_context_one_hop_filters_by_example_and_session() -> None:
             "predicate": "SPOKEN_IN",
             "object": "East Indonesia",
             "fact_id": "fact_lang_001",
+            "source_fact_id": "source-fact-001",
+            "source_event_id": "source-event-001",
             "example_id": "ex_lang",
             "session_id": "sess_test",
             "support_text": "It is spoken by around 130 people in East Indonesia.",
@@ -703,6 +707,8 @@ def test_query_context_one_hop_filters_by_example_and_session() -> None:
     row = rows[0]
     assert row["subject"] == "Kalamang"
     assert row["object"] == "East Indonesia"
+    assert row["source_fact_id"] == "source-fact-001"
+    assert row["source_event_id"] == "source-event-001"
     assert row["provenance"] == [{"title": "ex_lang", "sent_id": 3}]
     assert row["decision_status"] == "accept"
     assert row["decision_validator"] == "scallop"
@@ -710,11 +716,13 @@ def test_query_context_one_hop_filters_by_example_and_session() -> None:
     assert row["rule_params_version"] == "rules.v1"
 
     query, params = graph._driver.queries[-1]
-    assert "MATCH (start:Entity) WHERE start.name IN $seed_entities" in query
+    assert "MATCH (start:Entity)" in query
+    assert "start.name STARTS WITH seed + ' '" in query
     assert "[rels*1..1]" in query
     assert "($example_id IS NULL OR r.example_id = $example_id)" in query
     assert "($session_id IS NULL OR r.session_id = $session_id)" in query
     assert "r.compiled_memory_json AS compiled_memory_json" in query
+    assert "r.source_fact_id AS source_fact_id" in query
     assert "LIMIT 50" in query
     assert params["seed_entities"] == ["Kalamang"]
     assert params["example_id"] == "ex_lang"
@@ -728,6 +736,8 @@ def test_query_context_multi_hop_uses_bounded_path() -> None:
     graph.query_context(seed_entities=["Indonesia"], hops=3, limit=10)
     query, _ = graph._driver.queries[-1]
     assert "[rels*1..3]" in query
+    assert "all(r IN rels WHERE" in query
+    assert query.index("all(r IN rels WHERE") < query.index("UNWIND rels AS r")
     assert "LIMIT 10" in query
 
     # Out-of-range hops should clamp to MAX_HOPS (4) and at least 1.

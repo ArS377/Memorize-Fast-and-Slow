@@ -73,6 +73,8 @@ def _fact_to_params(fact: Fact, session_id: str) -> Dict[str, Any]:
         "subject": str(compiled_fact["subject"]),
         "object": str(compiled_fact["object"]),
         "fact_id": str(fact["fact_id"]),
+        "source_fact_id": str(fact.get("source_fact_id", "")),
+        "source_event_id": str(fact.get("source_event_id", "")),
         "example_id": str(fact.get("example_id", "")),
         "session_id": session_id,
         "question": str(fact.get("question", "")),
@@ -107,6 +109,8 @@ def _record_to_fact(record: Dict[str, Any]) -> Fact:
         "predicate": str(record.get("predicate", "")),
         "object": str(record.get("object", "")),
         "fact_id": str(record.get("fact_id", "")),
+        "source_fact_id": str(record.get("source_fact_id", "")),
+        "source_event_id": str(record.get("source_event_id", "")),
         "example_id": str(record.get("example_id", "")),
         "session_id": str(record.get("session_id", "")),
         "question": str(record.get("question", "")),
@@ -276,7 +280,9 @@ class Neo4jGraph:
                     f"MERGE (s)-[r:`{rel_type}` "
                     "{fact_id: $fact_id, session_id: $session_id}]->(o)\n"
                     "SET r.example_id = $example_id,\n"
-                    "    r.session_id = $session_id,\n"
+                     "    r.session_id = $session_id,\n"
+                     "    r.source_fact_id = $source_fact_id,\n"
+                     "    r.source_event_id = $source_event_id,\n"
                     "    r.question = $question,\n"
                     "    r.support_text = $support_text,\n"
                     "    r.provenance_json = $provenance_json,\n"
@@ -474,6 +480,8 @@ class Neo4jGraph:
             "  AND o.name <> $object\n"
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
+            "       r.source_fact_id AS source_fact_id,\n"
+            "       r.source_event_id AS source_event_id,\n"
             "       r.example_id AS example_id, r.support_text AS support_text,\n"
             "       r.provenance_json AS provenance_json,\n"
             "       r.qualifiers_json AS qualifiers_json,\n"
@@ -548,6 +556,8 @@ class Neo4jGraph:
             "  )\n"
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
+            "       r.source_fact_id AS source_fact_id,\n"
+            "       r.source_event_id AS source_event_id,\n"
             "       r.example_id AS example_id, r.question AS question,\n"
             "       r.support_text AS support_text,\n"
             "       r.provenance_json AS provenance_json,\n"
@@ -699,6 +709,8 @@ class Neo4jGraph:
             +
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.session_id AS session_id,\n"
+            "       r.source_fact_id AS source_fact_id,\n"
+            "       r.source_event_id AS source_event_id,\n"
             "       r.example_id AS example_id, r.question AS question,\n"
             "       r.support_text AS support_text,\n"
             "       r.provenance_json AS provenance_json,\n"
@@ -945,15 +957,20 @@ class Neo4jGraph:
             limit_int = 1
 
         query = (
-            "MATCH (start:Entity) WHERE start.name IN $seed_entities\n"
+            "MATCH (start:Entity)\n"
+            "WHERE any(seed IN $seed_entities WHERE\n"
+            "  start.name = seed OR start.name STARTS WITH seed + ' ')\n"
             f"MATCH path = (start)-[rels*1..{hops_int}]-(neighbor:Entity)\n"
+            "WHERE all(r IN rels WHERE\n"
+            "  ($example_id IS NULL OR r.example_id = $example_id)\n"
+            "  AND ($session_id IS NULL OR r.session_id = $session_id)\n"
+            "  AND (size($session_ids) = 0 OR r.session_id IN $session_ids))\n"
             "UNWIND rels AS r\n"
             "WITH DISTINCT r, startNode(r) AS s, endNode(r) AS o\n"
-            "WHERE ($example_id IS NULL OR r.example_id = $example_id)\n"
-            "  AND ($session_id IS NULL OR r.session_id = $session_id)\n"
-            "  AND (size($session_ids) = 0 OR r.session_id IN $session_ids)\n"
             "RETURN s.name AS subject, type(r) AS predicate, o.name AS object,\n"
             "       r.fact_id AS fact_id, r.example_id AS example_id,\n"
+            "       r.source_fact_id AS source_fact_id,\n"
+            "       r.source_event_id AS source_event_id,\n"
             "       r.session_id AS session_id, r.support_text AS support_text,\n"
             "       r.provenance_json AS provenance_json, r.confidence AS confidence,\n"
             "       r.confidence_level AS confidence_level,\n"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -80,6 +81,20 @@ class FailingClient:
         raise RuntimeError("fixture provider unavailable")
 
 
+class FailAfterClient(SurfaceFakeClient):
+    """Return a fixed number of responses before simulating interruption."""
+
+    def __init__(self, successful_calls: int) -> None:
+        self.successful_calls = successful_calls
+        self.calls = 0
+
+    def complete(self, **request: Any) -> LLMResponse:
+        self.calls += 1
+        if self.calls > self.successful_calls:
+            raise RuntimeError("fixture provider interrupted")
+        return super().complete(**request)
+
+
 class UnexpectedClient:
     """Fail if resumable generation makes an unnecessary provider call."""
 
@@ -106,6 +121,26 @@ class RepairingClient(SurfaceFakeClient):
             model=response.model,
             usage=response.usage,
         )
+
+
+class RepairThenInterruptClient(RepairingClient):
+    """Complete one repaired batch before interrupting the next batch."""
+
+    def complete(self, **request: Any) -> LLMResponse:
+        if self.calls == 2:
+            raise RuntimeError("fixture provider interrupted")
+        return super().complete(**request)
+
+
+class CountingClient(SurfaceFakeClient):
+    """Count provider calls while returning valid dialogue."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def complete(self, **request: Any) -> LLMResponse:
+        self.calls += 1
+        return super().complete(**request)
 
 
 def _config() -> GenerationConfig:
@@ -610,6 +645,67 @@ def test_generation_reuses_only_revalidated_prompt_matched_responses(
     assert resumed["status"] == "completed"
     assert resumed["resumed_response_count"] == len(first["response_sha256"])
     assert resumed["response_sha256"] == first["response_sha256"]
+
+
+def test_interrupted_resume_preserves_prior_checkpoints(tmp_path: Path) -> None:
+    output = tmp_path / "interrupted-resume"
+    with pytest.raises(RuntimeError, match="fixture provider interrupted"):
+        generate_persona_conversations(output, _config(), FailAfterClient(2))
+    prior_requests = _jsonl(output / "requests.jsonl")
+    prior_responses = _jsonl(output / "raw_responses.jsonl")
+
+    with pytest.raises(RuntimeError, match="fixture provider interrupted"):
+        generate_persona_conversations(output, _config(), FailAfterClient(0))
+
+    requests = _jsonl(output / "requests.jsonl")
+    responses = _jsonl(output / "raw_responses.jsonl")
+    assert requests[: len(prior_requests)] == prior_requests
+    assert responses[: len(prior_responses)] == prior_responses
+    assert len(
+        {
+            (row["history_id"], row["batch_index"], row["attempt_index"])
+            for row in requests
+        }
+    ) == len(requests)
+    assert len(
+        {
+            (row["history_id"], row["batch_index"], row["attempt_index"])
+            for row in responses
+        }
+    ) == len(responses)
+
+
+def test_resume_rejects_changed_generation_parameters(tmp_path: Path) -> None:
+    output = tmp_path / "changed-resume"
+    generate_persona_conversations(output, _config(), SurfaceFakeClient())
+
+    with pytest.raises(ValueError, match="differ from the prior manifest"):
+        generate_persona_conversations(
+            output,
+            replace(_config(), history_count=5, split_counts=(1, 1, 3)),
+            SurfaceFakeClient(),
+        )
+
+
+def test_long_generation_split_counts_cover_all_histories() -> None:
+    config = replace(_config(), history_count=350, split_counts=(2, 2, 346))
+
+    assert config.history_count == sum(config.split_counts)
+    with pytest.raises(ValueError, match="summing to history_count"):
+        replace(config, split_counts=(2, 2, 12))
+
+
+def test_resume_reuses_successful_repair_response(tmp_path: Path) -> None:
+    output = tmp_path / "repaired-resume"
+    with pytest.raises(RuntimeError, match="fixture provider interrupted"):
+        generate_persona_conversations(output, _config(), RepairThenInterruptClient())
+
+    client = CountingClient()
+    manifest = generate_persona_conversations(output, _config(), client)
+
+    assert manifest["status"] == "completed"
+    assert manifest["resumed_response_count"] == 1
+    assert client.calls == 3
 
 
 def test_generation_repairs_validation_failure_with_changed_attempt(
