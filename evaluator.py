@@ -29,9 +29,9 @@ class RagConfig:
     top_k: int
     temperature: float
     max_tokens: int
-    use_official_scorer: bool
-    official_scorer_script: Optional[Path]
-    official_scorer_working_dir: Optional[Path]
+    use_official_scorer: bool = False
+    official_scorer_script: Optional[Path] = None
+    official_scorer_working_dir: Optional[Path] = None
 
 def _parse_official_stdout(stdout: str) -> Dict[str, object]:
     lines = [line.strip() for line in stdout.splitlines() if line.strip()]
@@ -149,4 +149,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

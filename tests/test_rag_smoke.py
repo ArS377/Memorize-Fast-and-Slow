@@ -59,8 +59,9 @@ def main() -> int:
     )
 
     with mock.patch("eval.vanilla_rag.OpenAI", return_value=_mock_client("East Indonesia")):
-        pred_path = evaluator.run_rag(cfg)
+        artifacts = evaluator.run_rag(cfg)
 
+    pred_path = artifacts["predictions"]
     assert pred_path.exists(), "prediction file missing"
     rows = [json.loads(x) for x in pred_path.read_text(encoding="utf-8").splitlines() if x.strip()]
     assert len(rows) == 1, "expected one output row"
@@ -72,4 +73,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
