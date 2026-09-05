@@ -1,0 +1,75 @@
+{
+  "runtime": {
+    "dataset_dir_env": "PERSONA_SURFACE_B_DATASET_DIR",
+    "output_dir_env": "PERSONA_SURFACE_B_BENCHMARK_OUTPUT_DIR",
+    "model_path_env": "PERSONA_QWEN_MODEL_PATH",
+    "model_id_env": "PERSONA_QWEN_MODEL_ID",
+    "device_env": "PERSONA_QWEN_DEVICE",
+    "pair_gate_path_env": "PERSONA_SURFACE_PAIR_GATE_PATH",
+    "pair_gate_sha256_env": "PERSONA_SURFACE_PAIR_GATE_SHA256",
+    "surface_assignment": "B"
+  },
+  "schedule": {
+    "source_split": "test",
+    "source_profile": "anti_shortcut_interleaved_v3",
+    "source_manifest_sha256_env": "PERSONA_SURFACE_B_MANIFEST_SHA256",
+    "seed": 73,
+    "concurrent_accounts": 8,
+    "min_segment_events": 4,
+    "max_segment_events": 8,
+    "query_suffixes": [
+      "-preference-change-delayed",
+      "-preference-incongruity-delayed"
+    ],
+    "token_distance_thresholds": [4096, 8192]
+  },
+  "arms": [
+    {
+      "name": "sliding_context_4096",
+      "kind": "sliding_context",
+      "prompt_token_cap": 4096
+    },
+    {
+      "name": "sliding_context_16384",
+      "kind": "sliding_context",
+      "prompt_token_cap": 16384
+    },
+    {
+      "name": "structured_memory_4096",
+      "kind": "structured_memory",
+      "prompt_token_cap": 4096
+    },
+    {
+      "name": "structured_memory_16384",
+      "kind": "structured_memory",
+      "prompt_token_cap": 16384
+    },
+    {
+      "name": "full_qwen_context",
+      "kind": "full_qwen_context",
+      "prompt_token_cap": null
+    }
+  ],
+  "prompt_instruction": "Use only the conversation record. Answer with the shortest exact preference value, or UNKNOWN when the record does not establish one. Do not explain your answer.",
+  "scallop": {
+    "endpoint_env": "PERSONA_SCALLOP_ENDPOINT",
+    "timeout_seconds": 30.0
+  },
+  "generation": {
+    "max_new_tokens": 32,
+    "dtype": "bfloat16",
+    "attention_implementation": "sdpa",
+    "local_files_only": true,
+    "use_kernels": false
+  },
+  "analysis": {
+    "bootstrap_samples": 2000,
+    "bootstrap_seed": 73,
+    "paired_comparisons": [
+      ["structured_memory_4096", "sliding_context_4096"],
+      ["structured_memory_16384", "sliding_context_16384"],
+      ["full_qwen_context", "sliding_context_16384"],
+      ["full_qwen_context", "structured_memory_16384"]
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+httpx==0.28.1
+# rlms>=0.1.1 requires the OpenAI 2.x SDK (>=2.14.0).  Keep the major version
+# bounded so dependency resolution cannot silently cross another breaking API
+# boundary.
+openai==1.109.1
+# FIX 2: neo4j==6.1.0 does not exist; the driver is on the 5.x line.
+neo4j==5.28.3
+numpy==2.2.6
+rank-bm25==0.2.2
+pytest==9.1.1
+# rlms 0.0.1a1 is an empty placeholder wheel. The first real release (0.1.0)
+# and current latest (0.1.1) both require Python >=3.11. scallopy 0.2.4 only
+# ships a cp310 wheel, so a single env cannot satisfy both. Either:
+#   (a) keep one env on Python 3.10 and `pip install --ignore-requires-python rlms==0.1.1`
+#       (works if rlms source is 3.10-compatible), or
+#   (b) split into two envs: a py3.10 env with scallopy for KG build / flat cells,
+#       and a py3.11+ env with rlms for the RLM cells (4, 5, 6).

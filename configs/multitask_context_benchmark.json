@@ -1,0 +1,38 @@
+{
+  "benchmark_version": "synthetic_multitask_context.v1",
+  "context_tiers": [
+    {"name": "compact_4k", "max_tokens": 4096, "target_thread_percent": 10.0, "hard_lexical_distractors": 1},
+    {"name": "standard_16k", "max_tokens": 16384, "target_thread_percent": 2.0, "hard_lexical_distractors": 3},
+    {"name": "long_64k", "max_tokens": 65536, "target_thread_percent": 0.5, "hard_lexical_distractors": 5},
+    {"name": "extended_128k", "max_tokens": 131072, "target_thread_percent": 0.25, "hard_lexical_distractors": 7}
+  ],
+  "context_window_tiers": [
+    {"name": "window_4k", "max_tokens": 4096},
+    {"name": "window_16k", "max_tokens": 16384},
+    {"name": "window_64k", "max_tokens": 65536},
+    {"name": "window_128k", "max_tokens": 131072}
+  ],
+  "distractor_block_tokens": 64,
+  "distractor_mix_percent_by_block": {
+    "lexical_overlap": 20.0,
+    "obsolete_task": 10.0,
+    "same_user_other_task": 30.0,
+    "unrelated_task": 40.0
+  },
+  "evidence_positions_percent": [10.0, 50.0, 90.0],
+  "history_limit": 30,
+  "model_parameter_tiers": [
+    {"name": "small_local", "min_billions": 1.0, "max_billions": 4.0},
+    {"name": "mid_local", "min_billions": 4.0, "max_billions": 14.0},
+    {"name": "large_open", "min_billions": 14.0, "max_billions": 72.0},
+    {"name": "frontier_scale", "min_billions": 72.0, "max_billions": null}
+  ],
+  "retrieval_k": 5,
+  "seed": 23,
+  "source_split": "test",
+  "tokenizer": {
+    "local_files_only": true,
+    "name": "Qwen/Qwen3-4B",
+    "revision": "1cfa9a7208912126459214e8b04321603b3df60c"
+  }
+}

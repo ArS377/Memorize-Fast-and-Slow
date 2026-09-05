@@ -1,0 +1,1519 @@
+{
+  "files": [
+    {
+      "bytes": 190,
+      "classification": "destination_adaptation",
+      "path": ".gitattributes",
+      "sha256": "240e5304a508fdf6fba924a3f4db7b14b1d674b21b83c42f9f5356e92b1f8243",
+      "source_git_blob": "bc7e65fca2a341cce1de78e49e5d4608394c8065",
+      "source_path": ".gitattributes",
+      "source_sha256": "424dac27d15961239e7c0f5fdb5b596d25dcb8472a06386d945b7395fe3394e1"
+    },
+    {
+      "bytes": 1430,
+      "classification": "destination_adaptation",
+      "path": ".gitignore",
+      "sha256": "edc66130ab3ff23aae352b7e041078f369fb9dc6403a275d45b0bd6a196bb512",
+      "source_git_blob": "167c6a21930e86fca389078f5f03153ccad336f7",
+      "source_path": ".gitignore",
+      "source_sha256": "bcc39c87a2f54e4fa415fb0194728b37511a484e2dd4a7ae26306573c2a5e7e3"
+    },
+    {
+      "bytes": 2454,
+      "classification": "new",
+      "path": "AGENTS.md",
+      "sha256": "1d5a6e7b08adcf6fbcc76ac4c72551de0126991c8b28d086a91b720e7a2ae012",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 9356,
+      "classification": "new",
+      "path": "configs/artifact_resources.json",
+      "sha256": "8a8a700009351acd74da02a95e76fe68a8129635e7678d681349febfa5bdb1f9",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 2193,
+      "classification": "byte_exact",
+      "path": "configs/continual_memory_benchmark.json",
+      "sha256": "b38aeded498823cbcc1664a84cc584b144866f018174651d63ddcfb9d58e1bf1",
+      "source_git_blob": "ace5cf7690bab04869ed2a8117f499bc87423454",
+      "source_path": "configs/continual_memory_benchmark.json",
+      "source_sha256": "b38aeded498823cbcc1664a84cc584b144866f018174651d63ddcfb9d58e1bf1"
+    },
+    {
+      "bytes": 5433,
+      "classification": "new",
+      "path": "configs/dependency_environments.json",
+      "sha256": "e640e293341a7b734431ebdb043810dd5f6f7cd17b1b043bad68c710b1490220",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 1549,
+      "classification": "byte_exact",
+      "path": "configs/multitask_context_benchmark.json",
+      "sha256": "bda065a10c4858f83f6e46e796b81a2294c8d6ae3bbf83a9120bffbc7bb8c42f",
+      "source_git_blob": "c2c61f93c62407b8c433904f955681022df690fb",
+      "source_path": "configs/multitask_context_benchmark.json",
+      "source_sha256": "bda065a10c4858f83f6e46e796b81a2294c8d6ae3bbf83a9120bffbc7bb8c42f"
+    },
+    {
+      "bytes": 4895,
+      "classification": "destination_adaptation",
+      "path": "configs/paper_artifacts.json",
+      "sha256": "fae15a25cfcd2823293863c6aa524a160c5a84b818dde5631b420c13975664a0",
+      "source_git_blob": "4652770164879fa02fa9aa8a957cbab11160138e",
+      "source_path": "configs/paper_artifacts.json",
+      "source_sha256": "173c512386c19908a2ab76a341a37df7f174484de4cb0aa1562a892c001258f6"
+    },
+    {
+      "bytes": 1738,
+      "classification": "byte_exact",
+      "path": "configs/paper_persona_modes.json",
+      "sha256": "4694097cdc06ead6bf1c81e56782ddb172c75f6a745c7ba4de7920ca4ab45cdc",
+      "source_git_blob": "9419d243bea466feab0935cf5fecf64371a1184b",
+      "source_path": "configs/paper_persona_modes.json",
+      "source_sha256": "4694097cdc06ead6bf1c81e56782ddb172c75f6a745c7ba4de7920ca4ab45cdc"
+    },
+    {
+      "bytes": 583,
+      "classification": "byte_exact",
+      "path": "configs/persona_conflict_generation.json",
+      "sha256": "f4d7b6192224361857121a359332328766fdee7db432ee821c44e1132c3493d8",
+      "source_git_blob": "c6f3d1e3948c9e13cfce8588ff4fd3a35f762cd9",
+      "source_path": "configs/persona_conflict_generation.json",
+      "source_sha256": "f4d7b6192224361857121a359332328766fdee7db432ee821c44e1132c3493d8"
+    },
+    {
+      "bytes": 1180,
+      "classification": "byte_exact",
+      "path": "configs/persona_conversation_generation.json",
+      "sha256": "a51522a065f3eec730d49256db93bcf2c486e5e44abee75438bc04fe3651f026",
+      "source_git_blob": "924bf40ee98eea8508c3e00101a77969879b5dd1",
+      "source_path": "configs/persona_conversation_generation.json",
+      "source_sha256": "a51522a065f3eec730d49256db93bcf2c486e5e44abee75438bc04fe3651f026"
+    },
+    {
+      "bytes": 2110,
+      "classification": "byte_exact",
+      "path": "configs/persona_end_to_end_benchmark.json",
+      "sha256": "1b1430e63ef633ee7d73c8fc6066587e28e4456276424c5dcfff812e6a34b763",
+      "source_git_blob": "6f0937f2c2ec58ab1d289684fcd36f7a59625a40",
+      "source_path": "configs/persona_end_to_end_benchmark.json",
+      "source_sha256": "1b1430e63ef633ee7d73c8fc6066587e28e4456276424c5dcfff812e6a34b763"
+    },
+    {
+      "bytes": 2258,
+      "classification": "byte_exact",
+      "path": "configs/persona_end_to_end_benchmark_surface_a.json",
+      "sha256": "6d88099205b17c683161ba48d9e25cd40040f0eaa470bc957f6ed19dfa5b0b1b",
+      "source_git_blob": "948a8d3538b265492806447b7589d7a13f2fb459",
+      "source_path": "configs/persona_end_to_end_benchmark_surface_a.json",
+      "source_sha256": "6d88099205b17c683161ba48d9e25cd40040f0eaa470bc957f6ed19dfa5b0b1b"
+    },
+    {
+      "bytes": 2258,
+      "classification": "byte_exact",
+      "path": "configs/persona_end_to_end_benchmark_surface_b.json",
+      "sha256": "8718f3fdb31be4f2a7085a45148137302ecef65baf2f8e4e644dbd10a3c560bc",
+      "source_git_blob": "38e37637968a9ae33b9db4a0157f6c6392b2ec76",
+      "source_path": "configs/persona_end_to_end_benchmark_surface_b.json",
+      "source_sha256": "8718f3fdb31be4f2a7085a45148137302ecef65baf2f8e4e644dbd10a3c560bc"
+    },
+    {
+      "bytes": 4620,
+      "classification": "byte_exact",
+      "path": "configs/persona_end_to_end_joint_surface_a.json",
+      "sha256": "3a2e54607e41da8e7d35db0ef7876ecb2c7a8d08d37f824094859efb2a569295",
+      "source_git_blob": "bf67ca7eeadea096d2fc75e70f61500890ee5d25",
+      "source_path": "configs/persona_end_to_end_joint_surface_a.json",
+      "source_sha256": "3a2e54607e41da8e7d35db0ef7876ecb2c7a8d08d37f824094859efb2a569295"
+    },
+    {
+      "bytes": 3160,
+      "classification": "byte_exact",
+      "path": "configs/persona_end_to_end_neurosym.json",
+      "sha256": "4a28414f1afe91acae5beda760d62b972b75d5aedf50728083d089a2236c7d6b",
+      "source_git_blob": "7274df631ebe85f9cd64304591d7e55a94225746",
+      "source_path": "configs/persona_end_to_end_neurosym.json",
+      "source_sha256": "4a28414f1afe91acae5beda760d62b972b75d5aedf50728083d089a2236c7d6b"
+    },
+    {
+      "bytes": 3469,
+      "classification": "byte_exact",
+      "path": "configs/persona_graphiti_surface_a.json",
+      "sha256": "cfab023f109598697c3991f76198b5b5646b9d275c517d439be1b2e4f581af2f",
+      "source_git_blob": "f64e33f7ddc6e3c361af77c9769cb06e6c788c1a",
+      "source_path": "configs/persona_graphiti_surface_a.json",
+      "source_sha256": "cfab023f109598697c3991f76198b5b5646b9d275c517d439be1b2e4f581af2f"
+    },
+    {
+      "bytes": 675,
+      "classification": "byte_exact",
+      "path": "configs/persona_interference_schedule.json",
+      "sha256": "949b4f57540110407b6e246adf6cc376dee1662dc17f23b079db73f7077f53fe",
+      "source_git_blob": "6387cf6a8ef02cbba276653bb7d3e3cea8ae18a8",
+      "source_path": "configs/persona_interference_schedule.json",
+      "source_sha256": "949b4f57540110407b6e246adf6cc376dee1662dc17f23b079db73f7077f53fe"
+    },
+    {
+      "bytes": 705,
+      "classification": "byte_exact",
+      "path": "configs/persona_surface_pair_generation.json",
+      "sha256": "e030392602658d39ef636f4bc38c37f860ebc85da918f2506ee8e16c10b8357c",
+      "source_git_blob": "5478c08f0cb4bf02c92420d15742bcc67103120d",
+      "source_path": "configs/persona_surface_pair_generation.json",
+      "source_sha256": "e030392602658d39ef636f4bc38c37f860ebc85da918f2506ee8e16c10b8357c"
+    },
+    {
+      "bytes": 54,
+      "classification": "byte_exact",
+      "path": "experiments/__init__.py",
+      "sha256": "9c96b8a5a396adf393cc183ce9ed0c441eef6023f638aee60ef7ebc6e310fbee",
+      "source_git_blob": "32d3cca01508eb2f76d3d9ca52d175ffc8603a2f",
+      "source_path": "experiments/__init__.py",
+      "source_sha256": "9c96b8a5a396adf393cc183ce9ed0c441eef6023f638aee60ef7ebc6e310fbee"
+    },
+    {
+      "bytes": 16921,
+      "classification": "byte_exact",
+      "path": "experiments/_continual_memory_config.py",
+      "sha256": "21c36eb70782b246a16ebf08b3c2d86957482d9d147d53d922e31280a2dffcfa",
+      "source_git_blob": "ef01490b3980272d17cb2e41611a2b90f4ecd148",
+      "source_path": "experiments/_continual_memory_config.py",
+      "source_sha256": "21c36eb70782b246a16ebf08b3c2d86957482d9d147d53d922e31280a2dffcfa"
+    },
+    {
+      "bytes": 30113,
+      "classification": "byte_exact",
+      "path": "experiments/_continual_memory_episodes.py",
+      "sha256": "04852e795a2fdf428316f85cd0006544c597f998a4e97dd03bad64e662c1bc39",
+      "source_git_blob": "890ce7b6921bc499191995e71ad074fe7cbb651b",
+      "source_path": "experiments/_continual_memory_episodes.py",
+      "source_sha256": "04852e795a2fdf428316f85cd0006544c597f998a4e97dd03bad64e662c1bc39"
+    },
+    {
+      "bytes": 44293,
+      "classification": "byte_exact",
+      "path": "experiments/_continual_memory_evaluation.py",
+      "sha256": "d1fe94da999b2730aa3dd45f55091f25fa70c8c1ac7ee7d7e2a6da86887cf100",
+      "source_git_blob": "10ea4ab54c2f807e97fd608be98e8bddf8441dab",
+      "source_path": "experiments/_continual_memory_evaluation.py",
+      "source_sha256": "d1fe94da999b2730aa3dd45f55091f25fa70c8c1ac7ee7d7e2a6da86887cf100"
+    },
+    {
+      "bytes": 4220,
+      "classification": "byte_exact",
+      "path": "experiments/answer_eval.py",
+      "sha256": "3c933293d7e485ebc958f23c096e1b34d030094b0a8c327fc3a65a5aa8592af5",
+      "source_git_blob": "ec85216811b5456ddf10d63331127ff4d4ecac2d",
+      "source_path": "experiments/answer_eval.py",
+      "source_sha256": "3c933293d7e485ebc958f23c096e1b34d030094b0a8c327fc3a65a5aa8592af5"
+    },
+    {
+      "bytes": 14998,
+      "classification": "byte_exact",
+      "path": "experiments/continual_memory_benchmark.py",
+      "sha256": "11b3d042368fbd4713272c0e952f9c25ce2d33007a3cbbe47aad2116cb7cc46b",
+      "source_git_blob": "0a80248e3157ca2a2bae70a5447ea73f7fa043f5",
+      "source_path": "experiments/continual_memory_benchmark.py",
+      "source_sha256": "11b3d042368fbd4713272c0e952f9c25ce2d33007a3cbbe47aad2116cb7cc46b"
+    },
+    {
+      "bytes": 15844,
+      "classification": "byte_exact",
+      "path": "experiments/contradiction_ledger.py",
+      "sha256": "28a00549c89a0906f72749555d4dca7c0b2280734810cf6821918af10a78e328",
+      "source_git_blob": "28c5e5ba5572d6f7cb725f3f32767fe5b41a058f",
+      "source_path": "experiments/contradiction_ledger.py",
+      "source_sha256": "28a00549c89a0906f72749555d4dca7c0b2280734810cf6821918af10a78e328"
+    },
+    {
+      "bytes": 15504,
+      "classification": "byte_exact",
+      "path": "experiments/interleaved_conversation.py",
+      "sha256": "1c6718453f0b9019b4734bf1e166c85a09c54506eb89f6f7c67b24b87351dff7",
+      "source_git_blob": "f16ad78666a468e1ab3031faf21e3d66a201bf0a",
+      "source_path": "experiments/interleaved_conversation.py",
+      "source_sha256": "1c6718453f0b9019b4734bf1e166c85a09c54506eb89f6f7c67b24b87351dff7"
+    },
+    {
+      "bytes": 30270,
+      "classification": "byte_exact",
+      "path": "experiments/interleaved_memory_benchmark.py",
+      "sha256": "776598c86c25541f0e5d5f6a759c1a3110c9ce1c3c559be25d6e62d95047790d",
+      "source_git_blob": "a2a7cd7220fce392a3deac26a5acaead785d5f6a",
+      "source_path": "experiments/interleaved_memory_benchmark.py",
+      "source_sha256": "776598c86c25541f0e5d5f6a759c1a3110c9ce1c3c559be25d6e62d95047790d"
+    },
+    {
+      "bytes": 42679,
+      "classification": "byte_exact",
+      "path": "experiments/interleaved_memory_benchmark_v3.py",
+      "sha256": "d31c09dfd6a1cd9c87973c8483e61716e2933f68694fa0a76c2be1ef5ce4250f",
+      "source_git_blob": "86a7e517c4008a1e55ccb973c1b35cf88c02da88",
+      "source_path": "experiments/interleaved_memory_benchmark_v3.py",
+      "source_sha256": "d31c09dfd6a1cd9c87973c8483e61716e2933f68694fa0a76c2be1ef5ce4250f"
+    },
+    {
+      "bytes": 41950,
+      "classification": "byte_exact",
+      "path": "experiments/interleaved_memory_qwen35_eval.py",
+      "sha256": "d1a9364cd646663ed9892ba0cb2f8862ed30e9cba1f6dbb45105ff4260f66c8b",
+      "source_git_blob": "f29cfc2584180643f4ce75f5b7adca8ca4bdb008",
+      "source_path": "experiments/interleaved_memory_qwen35_eval.py",
+      "source_sha256": "d1a9364cd646663ed9892ba0cb2f8862ed30e9cba1f6dbb45105ff4260f66c8b"
+    },
+    {
+      "bytes": 16688,
+      "classification": "byte_exact",
+      "path": "experiments/paper_persona.py",
+      "sha256": "7e2a62b8f7f53db450e1372cd5f38cc235fd9be1f7ff36a8191e05bb7f9e2809",
+      "source_git_blob": "ba16d32aff667fb66c30c7ca829006c232e2c0fb",
+      "source_path": "experiments/paper_persona.py",
+      "source_sha256": "7e2a62b8f7f53db450e1372cd5f38cc235fd9be1f7ff36a8191e05bb7f9e2809"
+    },
+    {
+      "bytes": 25567,
+      "classification": "byte_exact",
+      "path": "experiments/paper_persona_analysis.py",
+      "sha256": "46037c8b6e39455b8913e3b09d57177531799f9d50153161341cd0bd80b7fdae",
+      "source_git_blob": "b763855ef85cd56b3a19595615ae61df362a0c84",
+      "source_path": "experiments/paper_persona_analysis.py",
+      "source_sha256": "46037c8b6e39455b8913e3b09d57177531799f9d50153161341cd0bd80b7fdae"
+    },
+    {
+      "bytes": 69590,
+      "classification": "byte_exact",
+      "path": "experiments/persona_conversation_generator.py",
+      "sha256": "012225b2197201b729d4d20b5539bd3ab50f21bd718bfe32520abe8d899b1bff",
+      "source_git_blob": "6dcbf81f2c58c92f7d81cc673dfc0cbc88f565dc",
+      "source_path": "experiments/persona_conversation_generator.py",
+      "source_sha256": "012225b2197201b729d4d20b5539bd3ab50f21bd718bfe32520abe8d899b1bff"
+    },
+    {
+      "bytes": 84359,
+      "classification": "byte_exact",
+      "path": "experiments/persona_end_to_end_benchmark.py",
+      "sha256": "2990098392c6ebdea77869c83a87ba4b4ecb8ef62fc955ff9dd0b7758ea6c15f",
+      "source_git_blob": "7f90af3c32fc4a5d3199f7c40a51a912654b04d2",
+      "source_path": "experiments/persona_end_to_end_benchmark.py",
+      "source_sha256": "2990098392c6ebdea77869c83a87ba4b4ecb8ef62fc955ff9dd0b7758ea6c15f"
+    },
+    {
+      "bytes": 61545,
+      "classification": "byte_exact",
+      "path": "experiments/persona_fixed_assignment_analysis.py",
+      "sha256": "2f434830d5c04a1ccb141b3ad1ec636f5b65016b95c5f3401437cf7ee4da5f2a",
+      "source_git_blob": "c116377e097c4a3c65888253fe14033eaadfaa98",
+      "source_path": "experiments/persona_fixed_assignment_analysis.py",
+      "source_sha256": "2f434830d5c04a1ccb141b3ad1ec636f5b65016b95c5f3401437cf7ee4da5f2a"
+    },
+    {
+      "bytes": 28809,
+      "classification": "byte_exact",
+      "path": "experiments/persona_graphiti_analysis.py",
+      "sha256": "0ec1f78f486544a6a122e0de7109b32ea9aba0aefdf60c6d26bc2da827bb971f",
+      "source_git_blob": "fb871243c0086d53e0ef46e3b40ae2ea47f3bb7a",
+      "source_path": "experiments/persona_graphiti_analysis.py",
+      "source_sha256": "0ec1f78f486544a6a122e0de7109b32ea9aba0aefdf60c6d26bc2da827bb971f"
+    },
+    {
+      "bytes": 48300,
+      "classification": "byte_exact",
+      "path": "experiments/persona_graphiti_baseline.py",
+      "sha256": "47db957fe69ffecf1c55fbdb6739f50850778cdfcebc5c72ee19f40508d7d4a4",
+      "source_git_blob": "ffe122deca48364fd1d06c78c27c7126a0b4eab6",
+      "source_path": "experiments/persona_graphiti_baseline.py",
+      "source_sha256": "47db957fe69ffecf1c55fbdb6739f50850778cdfcebc5c72ee19f40508d7d4a4"
+    },
+    {
+      "bytes": 10747,
+      "classification": "byte_exact",
+      "path": "experiments/persona_graphiti_preflight.py",
+      "sha256": "4d9331ed3ddd607625418280873d08498ad78e159e4b659e0a0c616e1b22a54c",
+      "source_git_blob": "55ff3f01acba807147f44225895fe8eb8f80425f",
+      "source_path": "experiments/persona_graphiti_preflight.py",
+      "source_sha256": "4d9331ed3ddd607625418280873d08498ad78e159e4b659e0a0c616e1b22a54c"
+    },
+    {
+      "bytes": 27827,
+      "classification": "byte_exact",
+      "path": "experiments/persona_historical_surface.py",
+      "sha256": "aa94bba5ec95c236ec961ca1b8a8b67076ca4218c13265ae6f2c56e224ecc7d1",
+      "source_git_blob": "ab19dbd0648492a45cf5f1205923495ca23a183d",
+      "source_path": "experiments/persona_historical_surface.py",
+      "source_sha256": "aa94bba5ec95c236ec961ca1b8a8b67076ca4218c13265ae6f2c56e224ecc7d1"
+    },
+    {
+      "bytes": 33792,
+      "classification": "byte_exact",
+      "path": "experiments/persona_interference_schedule.py",
+      "sha256": "ee1e3cf3cdd2dd9a6d3a8c86acfee60bf64e32688e5eeef99d2ded52b0ecb7f8",
+      "source_git_blob": "fa01427a5036e36f6f13fa953469c6cd3140cb3b",
+      "source_path": "experiments/persona_interference_schedule.py",
+      "source_sha256": "ee1e3cf3cdd2dd9a6d3a8c86acfee60bf64e32688e5eeef99d2ded52b0ecb7f8"
+    },
+    {
+      "bytes": 6378,
+      "classification": "byte_exact",
+      "path": "experiments/persona_neurosym_preflight.py",
+      "sha256": "e07a798e54059ffc4defa9ea471aba0f02d1009b3341f0bc0325fe0cb50c2ee0",
+      "source_git_blob": "5111829bddaf851244f89e4653459a449e1b30ad",
+      "source_path": "experiments/persona_neurosym_preflight.py",
+      "source_sha256": "e07a798e54059ffc4defa9ea471aba0f02d1009b3341f0bc0325fe0cb50c2ee0"
+    },
+    {
+      "bytes": 21659,
+      "classification": "byte_exact",
+      "path": "experiments/persona_neurosym_retrieval.py",
+      "sha256": "ae31734adc74fa9751c87950f9f3815fc4a7fe37a7aaca3398547a90fa62e9a9",
+      "source_git_blob": "158b9a104d9c994160b5a65433920bc23536e2fc",
+      "source_path": "experiments/persona_neurosym_retrieval.py",
+      "source_sha256": "ae31734adc74fa9751c87950f9f3815fc4a7fe37a7aaca3398547a90fa62e9a9"
+    },
+    {
+      "bytes": 122133,
+      "classification": "byte_exact",
+      "path": "experiments/persona_surface_derivation.py",
+      "sha256": "902adef5909cef9699f0718081ee98ca3bbe5f4cda4725a9e0f10b9c018729cd",
+      "source_git_blob": "0f6540e8302ba46b7b6a2aa16eded8756ae67e4b",
+      "source_path": "experiments/persona_surface_derivation.py",
+      "source_sha256": "902adef5909cef9699f0718081ee98ca3bbe5f4cda4725a9e0f10b9c018729cd"
+    },
+    {
+      "bytes": 9830,
+      "classification": "byte_exact",
+      "path": "experiments/preference_stream_injection.py",
+      "sha256": "262f77488c69d750be94f80a4d8917dce2339529b16eb0208370eb42c7df974f",
+      "source_git_blob": "cc58fdb88e2864b2eeebcea55d558a8387f9bef9",
+      "source_path": "experiments/preference_stream_injection.py",
+      "source_sha256": "262f77488c69d750be94f80a4d8917dce2339529b16eb0208370eb42c7df974f"
+    },
+    {
+      "bytes": 10372,
+      "classification": "byte_exact",
+      "path": "experiments/private_lineage_reasoning.py",
+      "sha256": "ab0603848bf57cfbd8b6b4e2f050f1bd4978296d30642048a2fb11e8c77ada65",
+      "source_git_blob": "8e127c4d764cf033ad19e933ca68628ccce2de5b",
+      "source_path": "experiments/private_lineage_reasoning.py",
+      "source_sha256": "ab0603848bf57cfbd8b6b4e2f050f1bd4978296d30642048a2fb11e8c77ada65"
+    },
+    {
+      "bytes": 21299,
+      "classification": "byte_exact",
+      "path": "experiments/synthetic_temporal_baselines.py",
+      "sha256": "3253f367b1b9f29019c1a0548c23116e903486b305a768600822f79a5495f32c",
+      "source_git_blob": "9eac22435a932c77e0f173bfa1aec4626bdc9298",
+      "source_path": "experiments/synthetic_temporal_baselines.py",
+      "source_sha256": "3253f367b1b9f29019c1a0548c23116e903486b305a768600822f79a5495f32c"
+    },
+    {
+      "bytes": 61651,
+      "classification": "byte_exact",
+      "path": "experiments/synthetic_temporal_preferences.py",
+      "sha256": "e8f395b1c038b3920f21a3019ed409c1f920e7f55e5fb4c16e26c264712e0cd4",
+      "source_git_blob": "fed556ed6a14d944376949bc81c44f6e3621c25f",
+      "source_path": "experiments/synthetic_temporal_preferences.py",
+      "source_sha256": "e8f395b1c038b3920f21a3019ed409c1f920e7f55e5fb4c16e26c264712e0cd4"
+    },
+    {
+      "bytes": 457,
+      "classification": "byte_exact",
+      "path": "neurosym/__init__.py",
+      "sha256": "436f0b4a321c6fb2ef06eedc19cfa6e08ed7e146b8c3761fdf32bb92fd5be2af",
+      "source_git_blob": "fde9886e11a83ed201fdf8ee02b93915b195b429",
+      "source_path": "neurosym/__init__.py",
+      "source_sha256": "436f0b4a321c6fb2ef06eedc19cfa6e08ed7e146b8c3761fdf32bb92fd5be2af"
+    },
+    {
+      "bytes": 141,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/__init__.py",
+      "sha256": "d35e5ba212ad5d05830e3f9a3e58e22465abc024868257a13cd4593197840064",
+      "source_git_blob": "a12078c68c69caa5e4da0accc449fd4ee45c5bb4",
+      "source_path": "neurosym/adapters/__init__.py",
+      "source_sha256": "d35e5ba212ad5d05830e3f9a3e58e22465abc024868257a13cd4593197840064"
+    },
+    {
+      "bytes": 23674,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/chunk_selection.py",
+      "sha256": "d22e500fb34105e10f6affe0bd958f64f0f5c62a0058f1d7a094814378e264b0",
+      "source_git_blob": "226581c309674f988bcbbf6bc2e90572122edf40",
+      "source_path": "neurosym/adapters/chunk_selection.py",
+      "source_sha256": "d22e500fb34105e10f6affe0bd958f64f0f5c62a0058f1d7a094814378e264b0"
+    },
+    {
+      "bytes": 24827,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/dense_index.py",
+      "sha256": "2e2cb5458c1eb9a88c46fce71987fce3135f10c7a56511a72de03a2ff801bfda",
+      "source_git_blob": "0354259101aacfcc41ee3e990adb31fac5226b34",
+      "source_path": "neurosym/adapters/dense_index.py",
+      "source_sha256": "2e2cb5458c1eb9a88c46fce71987fce3135f10c7a56511a72de03a2ff801bfda"
+    },
+    {
+      "bytes": 24106,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/graph_source.py",
+      "sha256": "672ce3fa4150065147268a058224a3a6b9b3aa279bd9a3b729ab81bd97dcec76",
+      "source_git_blob": "34ff2fa216c704985ea86927927e42b1ca536f13",
+      "source_path": "neurosym/adapters/graph_source.py",
+      "source_sha256": "672ce3fa4150065147268a058224a3a6b9b3aa279bd9a3b729ab81bd97dcec76"
+    },
+    {
+      "bytes": 3725,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/jsonl_facts.py",
+      "sha256": "e9ca3f7507350b8c5fe66a5a4e4c9142bf51f061d2bae40e7e8a4a9b46ce390d",
+      "source_git_blob": "9190d85be008d75fb26377a9055a7d2dedee39d6",
+      "source_path": "neurosym/adapters/jsonl_facts.py",
+      "source_sha256": "e9ca3f7507350b8c5fe66a5a4e4c9142bf51f061d2bae40e7e8a4a9b46ce390d"
+    },
+    {
+      "bytes": 1708,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/neo4j.py",
+      "sha256": "e42ff408de9a7bf314cf087432817737e3657c1c332321ea6a8b60b8ba81b80b",
+      "source_git_blob": "8d28edb53ab3a7ffc8a64fb0346abee4c8be8b92",
+      "source_path": "neurosym/adapters/neo4j.py",
+      "source_sha256": "e42ff408de9a7bf314cf087432817737e3657c1c332321ea6a8b60b8ba81b80b"
+    },
+    {
+      "bytes": 47028,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/neo4j_graph.py",
+      "sha256": "74335e696a60d04fb04ba30b5552be3477ab481f698da35d83d36d9631399f59",
+      "source_git_blob": "4fad3e4cbdb5b69cd0f8b82116e39cc1be6a807e",
+      "source_path": "neurosym/adapters/neo4j_graph.py",
+      "source_sha256": "74335e696a60d04fb04ba30b5552be3477ab481f698da35d83d36d9631399f59"
+    },
+    {
+      "bytes": 14381,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/ppr_index.py",
+      "sha256": "402d174e4a72285d9e7e7165645eceed1eedfa4c924cceef3ce9ce88d4943014",
+      "source_git_blob": "799aa72e809c3f9f3bf12c02518530dfb825dd9e",
+      "source_path": "neurosym/adapters/ppr_index.py",
+      "source_sha256": "402d174e4a72285d9e7e7165645eceed1eedfa4c924cceef3ce9ce88d4943014"
+    },
+    {
+      "bytes": 15401,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/scallop.py",
+      "sha256": "4b1bb446c83473dd00124f7f2cc3ad57aada160563393b859190ad3fd153b7f8",
+      "source_git_blob": "4a868f682fabeeeee0eacea39eec3be927ac2fba",
+      "source_path": "neurosym/adapters/scallop.py",
+      "source_sha256": "4b1bb446c83473dd00124f7f2cc3ad57aada160563393b859190ad3fd153b7f8"
+    },
+    {
+      "bytes": 4437,
+      "classification": "byte_exact",
+      "path": "neurosym/adapters/validation_backend.py",
+      "sha256": "8ff51ff04e067c9c33b3189b65553f3adfb33dbd1ae6c92f553fe4a3b2b757ff",
+      "source_git_blob": "f46d89289e317fc99acfa61ba91695868c234338",
+      "source_path": "neurosym/adapters/validation_backend.py",
+      "source_sha256": "8ff51ff04e067c9c33b3189b65553f3adfb33dbd1ae6c92f553fe4a3b2b757ff"
+    },
+    {
+      "bytes": 132,
+      "classification": "byte_exact",
+      "path": "neurosym/application/__init__.py",
+      "sha256": "d5a413c55bc4835194ce339df196c389fde96a3527c455d4b64a795d03fb9d83",
+      "source_git_blob": "85bdff7e5297bb37b32847e1c4af497b8ac797cd",
+      "source_path": "neurosym/application/__init__.py",
+      "source_sha256": "d5a413c55bc4835194ce339df196c389fde96a3527c455d4b64a795d03fb9d83"
+    },
+    {
+      "bytes": 8864,
+      "classification": "byte_exact",
+      "path": "neurosym/application/fact_writes.py",
+      "sha256": "5bcbfe4e41d691416f255ba99a119845f6428fba8c9daa16b1b508205270f140",
+      "source_git_blob": "380d5b9dfbbd2c30bfc4a0f4a8a01698ccc9a168",
+      "source_path": "neurosym/application/fact_writes.py",
+      "source_sha256": "5bcbfe4e41d691416f255ba99a119845f6428fba8c9daa16b1b508205270f140"
+    },
+    {
+      "bytes": 2408,
+      "classification": "byte_exact",
+      "path": "neurosym/application/retrieval.py",
+      "sha256": "8de848b17da46f8135c287a8345a5bf409fbd0f099f17844c8115ac681b3063d",
+      "source_git_blob": "957768eda2e08aea19e587ba6d4a9379c18b5d3a",
+      "source_path": "neurosym/application/retrieval.py",
+      "source_sha256": "8de848b17da46f8135c287a8345a5bf409fbd0f099f17844c8115ac681b3063d"
+    },
+    {
+      "bytes": 18795,
+      "classification": "byte_exact",
+      "path": "neurosym/application/retrieval_strategies.py",
+      "sha256": "83ddd5906598d9b271384717f32886d32fd943df07c6c805d4cd32fc93fb8bb6",
+      "source_git_blob": "64fae51a7b17fe7054e61b1c44528857db9c2fd3",
+      "source_path": "neurosym/application/retrieval_strategies.py",
+      "source_sha256": "83ddd5906598d9b271384717f32886d32fd943df07c6c805d4cd32fc93fb8bb6"
+    },
+    {
+      "bytes": 19052,
+      "classification": "destination_adaptation",
+      "path": "neurosym/application/source_provenance.py",
+      "sha256": "cc2d176e520cecfe64e34c23d9a975786868a4b3d90275b76f390a7d31ef914a",
+      "source_git_blob": "bd064fa31fa4050593a9385efaea77f86ed2acdc",
+      "source_path": "neurosym/application/source_provenance.py",
+      "source_sha256": "a61f63a343833cb329cadbea5703c55f890819eef069135dc5164790c9cd7ef9"
+    },
+    {
+      "bytes": 1063,
+      "classification": "byte_exact",
+      "path": "neurosym/domain/__init__.py",
+      "sha256": "2df06072343da4e8b2101d2dfdeaa89ee3d9b563fb854fffe523cd1a2b1afdaa",
+      "source_git_blob": "f10356865e0ec208acecefe8a652f17b2fbc0263",
+      "source_path": "neurosym/domain/__init__.py",
+      "source_sha256": "2df06072343da4e8b2101d2dfdeaa89ee3d9b563fb854fffe523cd1a2b1afdaa"
+    },
+    {
+      "bytes": 35672,
+      "classification": "byte_exact",
+      "path": "neurosym/domain/compiled_memory.py",
+      "sha256": "58e0142a34c6f433d1db62d359532fccb1e56b3d328fc20daa371ddcea898565",
+      "source_git_blob": "0052a71cbc49d64d7784a1514f48932125440f62",
+      "source_path": "neurosym/domain/compiled_memory.py",
+      "source_sha256": "58e0142a34c6f433d1db62d359532fccb1e56b3d328fc20daa371ddcea898565"
+    },
+    {
+      "bytes": 24776,
+      "classification": "byte_exact",
+      "path": "neurosym/domain/epistemic_state.py",
+      "sha256": "f1a132c8f19fa1c0433bb0b92a8433b492e1ee73f1fedb55ac05857cdda00551",
+      "source_git_blob": "fa28278c58d01c49fc5eb7102fe6ad00d6d15682",
+      "source_path": "neurosym/domain/epistemic_state.py",
+      "source_sha256": "f1a132c8f19fa1c0433bb0b92a8433b492e1ee73f1fedb55ac05857cdda00551"
+    },
+    {
+      "bytes": 10693,
+      "classification": "byte_exact",
+      "path": "neurosym/domain/hard_gate_admission.py",
+      "sha256": "c6c3d63ebd28b6738619c1087079e062504b2e545df76e711d41e4aa74805765",
+      "source_git_blob": "b30917fc79ad1a438d4d5f2b6802a224888a30af",
+      "source_path": "neurosym/domain/hard_gate_admission.py",
+      "source_sha256": "c6c3d63ebd28b6738619c1087079e062504b2e545df76e711d41e4aa74805765"
+    },
+    {
+      "bytes": 11758,
+      "classification": "byte_exact",
+      "path": "neurosym/domain/memory_artifacts.py",
+      "sha256": "7d8b4c974b866e8a2bacfe83f88135ac0aeae7e1af8abf42682e8be16f5ef770",
+      "source_git_blob": "3ad36f75333a83c037e3e9aa84e166ff7a846bdc",
+      "source_path": "neurosym/domain/memory_artifacts.py",
+      "source_sha256": "7d8b4c974b866e8a2bacfe83f88135ac0aeae7e1af8abf42682e8be16f5ef770"
+    },
+    {
+      "bytes": 8157,
+      "classification": "byte_exact",
+      "path": "neurosym/domain/models.py",
+      "sha256": "27f1ed67eda527cad2e01c8f623274b736c8abde0455be4394c318e349314ed6",
+      "source_git_blob": "363daa27cad192d851a1dfdeee6db82650e2b134",
+      "source_path": "neurosym/domain/models.py",
+      "source_sha256": "27f1ed67eda527cad2e01c8f623274b736c8abde0455be4394c318e349314ed6"
+    },
+    {
+      "bytes": 4813,
+      "classification": "byte_exact",
+      "path": "neurosym/domain/retrieval_config.py",
+      "sha256": "b68c5550ac199277755f91ac1f03e3c0958f8dbedce956c98f57110429f9ec6d",
+      "source_git_blob": "9816fd1f96675a104ba1b95eaa52becde6262cca",
+      "source_path": "neurosym/domain/retrieval_config.py",
+      "source_sha256": "b68c5550ac199277755f91ac1f03e3c0958f8dbedce956c98f57110429f9ec6d"
+    },
+    {
+      "bytes": 1380,
+      "classification": "byte_exact",
+      "path": "neurosym/domain/validation_rules.py",
+      "sha256": "837321be83cfc3451d24662cb8ce55efa29d73a766f5a63f3a519a2f1b2e142d",
+      "source_git_blob": "c73375a4e61a507a085435caeae230f0a4d37eb7",
+      "source_path": "neurosym/domain/validation_rules.py",
+      "source_sha256": "837321be83cfc3451d24662cb8ce55efa29d73a766f5a63f3a519a2f1b2e142d"
+    },
+    {
+      "bytes": 232,
+      "classification": "byte_exact",
+      "path": "neurosym/reporting/__init__.py",
+      "sha256": "87f18cf404bec602266b9821059e2fff0f01738cf5f44e23a8da01c7bf7be78e",
+      "source_git_blob": "48458144c0368e0e05b453c53e5e1768596a1a02",
+      "source_path": "neurosym/reporting/__init__.py",
+      "source_sha256": "87f18cf404bec602266b9821059e2fff0f01738cf5f44e23a8da01c7bf7be78e"
+    },
+    {
+      "bytes": 2378,
+      "classification": "byte_exact",
+      "path": "neurosym/reporting/metrics.py",
+      "sha256": "3936cf36520a7b63dbd795aebe78ff4a5ab8335515ec1e9132247c7e48191f97",
+      "source_git_blob": "33eed267ba4f62d4396597c08d0fc557cdb084c9",
+      "source_path": "neurosym/reporting/metrics.py",
+      "source_sha256": "3936cf36520a7b63dbd795aebe78ff4a5ab8335515ec1e9132247c7e48191f97"
+    },
+    {
+      "bytes": 3738,
+      "classification": "byte_exact",
+      "path": "neurosym/reporting/rejections.py",
+      "sha256": "88bd842480b2965b631c668d4d531816ea6d4abad9940a7f87cb2b6587fe99f8",
+      "source_git_blob": "64ce8ee83e5fa4413ab959815a3b494d0a0ee567",
+      "source_path": "neurosym/reporting/rejections.py",
+      "source_sha256": "88bd842480b2965b631c668d4d531816ea6d4abad9940a7f87cb2b6587fe99f8"
+    },
+    {
+      "bytes": 1475,
+      "classification": "byte_exact",
+      "path": "neurosym/reporting/results.py",
+      "sha256": "764d802a76956b6a40d7084fdf3e229d5d1802eabf976af3e78b7a20df314ed6",
+      "source_git_blob": "613895646b3aba0325559a10974bdcc6f748e722",
+      "source_path": "neurosym/reporting/results.py",
+      "source_sha256": "764d802a76956b6a40d7084fdf3e229d5d1802eabf976af3e78b7a20df314ed6"
+    },
+    {
+      "bytes": 638,
+      "classification": "destination_adaptation",
+      "path": "pytest.ini",
+      "sha256": "e1d41850b58ceeedd728c9c8919189912f52e51a6e19d00373c8cf8eefa1e3a4",
+      "source_git_blob": "53b178f9eea0d7741f9b5a2b1fd6e2b18bc2e063",
+      "source_path": "pytest.ini",
+      "source_sha256": "2b2b5d00be45700d8902840a0312be4d62973ff3e0332bbf51c77005c75703a8"
+    },
+    {
+      "bytes": 14554,
+      "classification": "destination_adaptation",
+      "path": "README.md",
+      "sha256": "b60882a4464110bf1efd7641914fcd102feb8a327857d8653138dfe236e0ec09",
+      "source_git_blob": "6027a273ea784e5b8840784c75778efa473e4c37",
+      "source_path": "README.md",
+      "source_sha256": "ae09d4b0860a71729eeeaffdae69a33b341cfc355dfe727a196d969d2941676d"
+    },
+    {
+      "bytes": 99,
+      "classification": "new",
+      "path": "requirements-dense.txt",
+      "sha256": "ea53ab40b5c59f4d5665d5441175b370769812e3f64c3959da453ed9388c906a",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 13,
+      "classification": "new",
+      "path": "requirements-extraction.txt",
+      "sha256": "79eb5ff620f37e572b6b9d373f67b88d41231334bc524974f77b41090be2c05f",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 64,
+      "classification": "new",
+      "path": "requirements-generation.txt",
+      "sha256": "b88a8c2c96eea332ecfa1c17d67569b60d0ebb0366be6ada028fee9dc640a8c8",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 686,
+      "classification": "destination_adaptation",
+      "path": "requirements-graphiti-baseline.txt",
+      "sha256": "fcdc28456d5b3a782735654201d9e8653d3558e5c8ca45ff30430172efe785c3",
+      "source_git_blob": "48483ed8444ed8b2996d1e9cf61845f66112da28",
+      "source_path": "requirements-graphiti-baseline.txt",
+      "source_sha256": "039a60d8832a04583ee87f501dc2e8ead41f4b04e92f9989c16cbaf5c3fcb9c5"
+    },
+    {
+      "bytes": 250,
+      "classification": "byte_exact",
+      "path": "requirements-qwen35-eval.txt",
+      "sha256": "19f304ae05b42e659ed8912e40240027e11897f38640186ee2d432f9d2250724",
+      "source_git_blob": "82d062cb668073ce1ecfaa371ff2ea2fe3bc537f",
+      "source_path": "requirements-qwen35-eval.txt",
+      "source_sha256": "19f304ae05b42e659ed8912e40240027e11897f38640186ee2d432f9d2250724"
+    },
+    {
+      "bytes": 128,
+      "classification": "new",
+      "path": "requirements-scallop.txt",
+      "sha256": "5ef56c0117a71d319914a8ba3e5f56c4be08babe8e534a87d6979d79aac93a9f",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 840,
+      "classification": "destination_adaptation",
+      "path": "requirements.txt",
+      "sha256": "b40fb215a41f1d9eb0df4d0a0e1fd02e0465ef10de11d50e0bb353faa2d1c9cc",
+      "source_git_blob": "d99c4bf6dffc84d32f818ed35ef26b5f17c107dd",
+      "source_path": "requirements.txt",
+      "source_sha256": "28574daa9e0e8aae912895f6445048a322b95a011f319e55e5a4c87860739390"
+    },
+    {
+      "bytes": 280448,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/candidate_updates.jsonl",
+      "sha256": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+      "source_git_blob": "f76c5a58bc442169f82f82f86e6227dd3e4f5bcd",
+      "source_path": "results/persona_conflict_conversations_surface_a/candidate_updates.jsonl",
+      "source_sha256": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f"
+    },
+    {
+      "bytes": 206085,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/dialogue.jsonl",
+      "sha256": "3324fbe6a91b8998ec05e932b862e8dbed68be49c583b0fdd6831f56d8fae8e3",
+      "source_git_blob": "7152eaf3f67a6e4326978459a41807cbe6b774e6",
+      "source_path": "results/persona_conflict_conversations_surface_a/dialogue.jsonl",
+      "source_sha256": "3324fbe6a91b8998ec05e932b862e8dbed68be49c583b0fdd6831f56d8fae8e3"
+    },
+    {
+      "bytes": 851856,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/events.jsonl",
+      "sha256": "fe0617008cbe0fcbce6b2a5c8cbd4d77b0ade1521b5d82ba791fa08e0509d656",
+      "source_git_blob": "8af1db54fe1a213e5bd993818979b0f7f5d26942",
+      "source_path": "results/persona_conflict_conversations_surface_a/events.jsonl",
+      "source_sha256": "fe0617008cbe0fcbce6b2a5c8cbd4d77b0ade1521b5d82ba791fa08e0509d656"
+    },
+    {
+      "bytes": 45840,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/examples.jsonl",
+      "sha256": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+      "source_git_blob": "d89057d690fccbde26d4194fd435af40d6a6e7fd",
+      "source_path": "results/persona_conflict_conversations_surface_a/examples.jsonl",
+      "source_sha256": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f"
+    },
+    {
+      "bytes": 443086,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/facts.jsonl",
+      "sha256": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+      "source_git_blob": "9176bc7e5841157850a01ce0fbce534561d5be34",
+      "source_path": "results/persona_conflict_conversations_surface_a/facts.jsonl",
+      "source_sha256": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f"
+    },
+    {
+      "bytes": 72074,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/generation_manifest.json",
+      "sha256": "2cfdbf18705204a9ca7412e9e962ad3bb03bd08b2426f09270abbc387b047f65",
+      "source_git_blob": "0b558fefff8687d0192c8037fbd1d696dc62325d",
+      "source_path": "results/persona_conflict_conversations_surface_a/generation_manifest.json",
+      "source_sha256": "2cfdbf18705204a9ca7412e9e962ad3bb03bd08b2426f09270abbc387b047f65"
+    },
+    {
+      "bytes": 130215,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/queries.jsonl",
+      "sha256": "cfe2d27b10350ed08c65823a34fd6f713be5f299d03027bc67a481b477a0a1e0",
+      "source_git_blob": "50cc2d7f6009311fee32a6d7d9ce2c5445a6116c",
+      "source_path": "results/persona_conflict_conversations_surface_a/queries.jsonl",
+      "source_sha256": "cfe2d27b10350ed08c65823a34fd6f713be5f299d03027bc67a481b477a0a1e0"
+    },
+    {
+      "bytes": 405063,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/raw_responses.jsonl",
+      "sha256": "2da57ae9dd9e141b6864b1f055eef32e5120dee0f81e1e146e280c15ef6cd221",
+      "source_git_blob": "7bd2f8419bd283b109d61694db99adf1756bfa5c",
+      "source_path": "results/persona_conflict_conversations_surface_a/raw_responses.jsonl",
+      "source_sha256": "2da57ae9dd9e141b6864b1f055eef32e5120dee0f81e1e146e280c15ef6cd221"
+    },
+    {
+      "bytes": 1256945,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/requests.jsonl",
+      "sha256": "4ff4900036fd01c786b52a6720f73db8f2db68802af2e6d742e5737fecd8eef9",
+      "source_git_blob": "3750bdffdf1613e40fd4fce3aa19d925dfabd54b",
+      "source_path": "results/persona_conflict_conversations_surface_a/requests.jsonl",
+      "source_sha256": "4ff4900036fd01c786b52a6720f73db8f2db68802af2e6d742e5737fecd8eef9"
+    },
+    {
+      "bytes": 85932,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a/source_documents.jsonl",
+      "sha256": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c",
+      "source_git_blob": "521a870296eebdd5218387442a7f7f6c85599e0a",
+      "source_path": "results/persona_conflict_conversations_surface_a/source_documents.jsonl",
+      "source_sha256": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+    },
+    {
+      "bytes": 280448,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/candidate_updates.jsonl",
+      "sha256": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+      "source_git_blob": "f76c5a58bc442169f82f82f86e6227dd3e4f5bcd",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/candidate_updates.jsonl",
+      "source_sha256": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f"
+    },
+    {
+      "bytes": 200676,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/dialogue.jsonl",
+      "sha256": "6abd3090a1e69f4cd3bef4388ce10051fd9bb753fcb8d2b17d3c55fd590adf39",
+      "source_git_blob": "12075825d1367b306fb1adc316fe8c6fe5ceb87a",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/dialogue.jsonl",
+      "source_sha256": "6abd3090a1e69f4cd3bef4388ce10051fd9bb753fcb8d2b17d3c55fd590adf39"
+    },
+    {
+      "bytes": 846104,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/events.jsonl",
+      "sha256": "930e95a49fff427db2303aad1f19b531dddb9c52aa3aee07cfa875b7c94fef25",
+      "source_git_blob": "72f3e5718f10c3837f1d43d0595f1e27a1460b35",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/events.jsonl",
+      "source_sha256": "930e95a49fff427db2303aad1f19b531dddb9c52aa3aee07cfa875b7c94fef25"
+    },
+    {
+      "bytes": 45840,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/examples.jsonl",
+      "sha256": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+      "source_git_blob": "d89057d690fccbde26d4194fd435af40d6a6e7fd",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/examples.jsonl",
+      "source_sha256": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f"
+    },
+    {
+      "bytes": 443086,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/facts.jsonl",
+      "sha256": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+      "source_git_blob": "9176bc7e5841157850a01ce0fbce534561d5be34",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/facts.jsonl",
+      "source_sha256": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f"
+    },
+    {
+      "bytes": 34379,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/generation_manifest.json",
+      "sha256": "c64c5c4268d93691b9bdf12119fa31a91cc7e9a798182135593c85128fc89c89",
+      "source_git_blob": "e1e093f24a23085ea95f37f0f3476d0cdd1bfec3",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/generation_manifest.json",
+      "source_sha256": "c64c5c4268d93691b9bdf12119fa31a91cc7e9a798182135593c85128fc89c89"
+    },
+    {
+      "bytes": 130261,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/queries.jsonl",
+      "sha256": "b01ceac57949a43600ddfb3c960754bf29f4487bd43b6ec1839e134ba1f3f40a",
+      "source_git_blob": "770bd04d615f954b94af35aa764f449e015cdda1",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/queries.jsonl",
+      "source_sha256": "b01ceac57949a43600ddfb3c960754bf29f4487bd43b6ec1839e134ba1f3f40a"
+    },
+    {
+      "bytes": 293194,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/raw_responses.jsonl",
+      "sha256": "d35a5aa5464655421700bff566f4e42cfecc8d33c02a211603055a4842261928",
+      "source_git_blob": "618e0fe9ad11506a2a4f5acc6a431099621764b3",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/raw_responses.jsonl",
+      "source_sha256": "d35a5aa5464655421700bff566f4e42cfecc8d33c02a211603055a4842261928"
+    },
+    {
+      "bytes": 846394,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/requests.jsonl",
+      "sha256": "7646a1746c4247c3b4f69ddefe92415db3b5e595b772b1bc08b84f537a1b2894",
+      "source_git_blob": "a8409b174b57f43129cde5e43fef17324d936db3",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/requests.jsonl",
+      "source_sha256": "7646a1746c4247c3b4f69ddefe92415db3b5e595b772b1bc08b84f537a1b2894"
+    },
+    {
+      "bytes": 85932,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2/source_documents.jsonl",
+      "sha256": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c",
+      "source_git_blob": "521a870296eebdd5218387442a7f7f6c85599e0a",
+      "source_path": "results/persona_conflict_conversations_surface_a_graphiti_build2/source_documents.jsonl",
+      "source_sha256": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+    },
+    {
+      "bytes": 280448,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/candidate_updates.jsonl",
+      "sha256": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+      "source_git_blob": "f76c5a58bc442169f82f82f86e6227dd3e4f5bcd",
+      "source_path": "results/persona_conflict_conversations_surface_b/candidate_updates.jsonl",
+      "source_sha256": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f"
+    },
+    {
+      "bytes": 203195,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/dialogue.jsonl",
+      "sha256": "dc90ff5ffddadf71ead7895885fd389ae386ae2ecb5cad990a08c32b2bbf7ca9",
+      "source_git_blob": "c284269d38d277f7e484e85291b8401629e49ccf",
+      "source_path": "results/persona_conflict_conversations_surface_b/dialogue.jsonl",
+      "source_sha256": "dc90ff5ffddadf71ead7895885fd389ae386ae2ecb5cad990a08c32b2bbf7ca9"
+    },
+    {
+      "bytes": 848806,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/events.jsonl",
+      "sha256": "2bdcd86c5c4e7be0987fca6f02a85e18d9edd9ee52c424a4f385c4058caf8c39",
+      "source_git_blob": "57c0e25ace9dcc75328bb92ece9cef646bf5348d",
+      "source_path": "results/persona_conflict_conversations_surface_b/events.jsonl",
+      "source_sha256": "2bdcd86c5c4e7be0987fca6f02a85e18d9edd9ee52c424a4f385c4058caf8c39"
+    },
+    {
+      "bytes": 45840,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/examples.jsonl",
+      "sha256": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+      "source_git_blob": "d89057d690fccbde26d4194fd435af40d6a6e7fd",
+      "source_path": "results/persona_conflict_conversations_surface_b/examples.jsonl",
+      "source_sha256": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f"
+    },
+    {
+      "bytes": 443086,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/facts.jsonl",
+      "sha256": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+      "source_git_blob": "9176bc7e5841157850a01ce0fbce534561d5be34",
+      "source_path": "results/persona_conflict_conversations_surface_b/facts.jsonl",
+      "source_sha256": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f"
+    },
+    {
+      "bytes": 73556,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/generation_manifest.json",
+      "sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121",
+      "source_git_blob": "c28d0621343fd6d62b0db089d56c19e41165cd85",
+      "source_path": "results/persona_conflict_conversations_surface_b/generation_manifest.json",
+      "source_sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121"
+    },
+    {
+      "bytes": 130058,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/queries.jsonl",
+      "sha256": "688cc5d4bdd1b7b20dd0a99dbef780aa6650fac323f7e3e0d33461db8fc0ee02",
+      "source_git_blob": "51f35cb244fbf9d75df22eff434bc925096e81f2",
+      "source_path": "results/persona_conflict_conversations_surface_b/queries.jsonl",
+      "source_sha256": "688cc5d4bdd1b7b20dd0a99dbef780aa6650fac323f7e3e0d33461db8fc0ee02"
+    },
+    {
+      "bytes": 401713,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/raw_responses.jsonl",
+      "sha256": "3c92b5fa3b5076ba8bc0ec85bf39714308e0d3ebae686c215d246c1f110874da",
+      "source_git_blob": "3ec1036cd4e12266ebc905a85ef58c2fd37cec53",
+      "source_path": "results/persona_conflict_conversations_surface_b/raw_responses.jsonl",
+      "source_sha256": "3c92b5fa3b5076ba8bc0ec85bf39714308e0d3ebae686c215d246c1f110874da"
+    },
+    {
+      "bytes": 1467253,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/requests.jsonl",
+      "sha256": "39d478d381e5b5bae5be3914261a70220f10f9d964a46c5a9b34baaa51fbadde",
+      "source_git_blob": "b74c0473c3ca1debbfa4e5c18270fbdbb93bc469",
+      "source_path": "results/persona_conflict_conversations_surface_b/requests.jsonl",
+      "source_sha256": "39d478d381e5b5bae5be3914261a70220f10f9d964a46c5a9b34baaa51fbadde"
+    },
+    {
+      "bytes": 85932,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_surface_b/source_documents.jsonl",
+      "sha256": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c",
+      "source_git_blob": "521a870296eebdd5218387442a7f7f6c85599e0a",
+      "source_path": "results/persona_conflict_conversations_surface_b/source_documents.jsonl",
+      "source_sha256": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+    },
+    {
+      "bytes": 280448,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/candidate_updates.jsonl",
+      "sha256": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+      "source_git_blob": "f76c5a58bc442169f82f82f86e6227dd3e4f5bcd",
+      "source_path": "results/persona_conflict_conversations_v1/candidate_updates.jsonl",
+      "source_sha256": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f"
+    },
+    {
+      "bytes": 199343,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/dialogue.jsonl",
+      "sha256": "21e9d035fdd645793b1ec4ccaaf2f6ef104363c1a891ee6ec84f7045e9bad7b5",
+      "source_git_blob": "490567951348542878af30d1be34694ba06c5063",
+      "source_path": "results/persona_conflict_conversations_v1/dialogue.jsonl",
+      "source_sha256": "21e9d035fdd645793b1ec4ccaaf2f6ef104363c1a891ee6ec84f7045e9bad7b5"
+    },
+    {
+      "bytes": 844221,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/events.jsonl",
+      "sha256": "c74d2a3fd2cfdad48b3b63d11ac2cf54ae3074e385bc77e8ddbc128f818fd0eb",
+      "source_git_blob": "49c46945947ee93ae64c8ec27c6f1cfb573344c6",
+      "source_path": "results/persona_conflict_conversations_v1/events.jsonl",
+      "source_sha256": "c74d2a3fd2cfdad48b3b63d11ac2cf54ae3074e385bc77e8ddbc128f818fd0eb"
+    },
+    {
+      "bytes": 45840,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/examples.jsonl",
+      "sha256": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+      "source_git_blob": "d89057d690fccbde26d4194fd435af40d6a6e7fd",
+      "source_path": "results/persona_conflict_conversations_v1/examples.jsonl",
+      "source_sha256": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f"
+    },
+    {
+      "bytes": 443086,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/facts.jsonl",
+      "sha256": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+      "source_git_blob": "9176bc7e5841157850a01ce0fbce534561d5be34",
+      "source_path": "results/persona_conflict_conversations_v1/facts.jsonl",
+      "source_sha256": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f"
+    },
+    {
+      "bytes": 33750,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/generation_manifest.json",
+      "sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+      "source_git_blob": "f7ba7eedbdf661df0aa3f21f634b5bdc537663a0",
+      "source_path": "results/persona_conflict_conversations_v1/generation_manifest.json",
+      "source_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3"
+    },
+    {
+      "bytes": 129540,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/queries.jsonl",
+      "sha256": "bcff1787b01e0654a73c002b2eb11ccbec2937e7ab58d889cbe6bed8f8f15075",
+      "source_git_blob": "626a9d4d8986b9e715e5af4028c7d920c8987efd",
+      "source_path": "results/persona_conflict_conversations_v1/queries.jsonl",
+      "source_sha256": "bcff1787b01e0654a73c002b2eb11ccbec2937e7ab58d889cbe6bed8f8f15075"
+    },
+    {
+      "bytes": 293194,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/raw_responses.jsonl",
+      "sha256": "d35a5aa5464655421700bff566f4e42cfecc8d33c02a211603055a4842261928",
+      "source_git_blob": "618e0fe9ad11506a2a4f5acc6a431099621764b3",
+      "source_path": "results/persona_conflict_conversations_v1/raw_responses.jsonl",
+      "source_sha256": "d35a5aa5464655421700bff566f4e42cfecc8d33c02a211603055a4842261928"
+    },
+    {
+      "bytes": 846394,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/requests.jsonl",
+      "sha256": "7646a1746c4247c3b4f69ddefe92415db3b5e595b772b1bc08b84f537a1b2894",
+      "source_git_blob": "a8409b174b57f43129cde5e43fef17324d936db3",
+      "source_path": "results/persona_conflict_conversations_v1/requests.jsonl",
+      "source_sha256": "7646a1746c4247c3b4f69ddefe92415db3b5e595b772b1bc08b84f537a1b2894"
+    },
+    {
+      "bytes": 85932,
+      "classification": "byte_exact",
+      "path": "results/persona_conflict_conversations_v1/source_documents.jsonl",
+      "sha256": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c",
+      "source_git_blob": "521a870296eebdd5218387442a7f7f6c85599e0a",
+      "source_path": "results/persona_conflict_conversations_v1/source_documents.jsonl",
+      "source_sha256": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+    },
+    {
+      "bytes": 3420,
+      "classification": "byte_exact",
+      "path": "results/persona_surface_pair_gate.json",
+      "sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b",
+      "source_git_blob": "d6be03373f32c838fd41d5b5cdbc753d7aa9fe1c",
+      "source_path": "results/persona_surface_pair_gate.json",
+      "source_sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b"
+    },
+    {
+      "bytes": 8303,
+      "classification": "new",
+      "path": "scripts/artifact_resources.py",
+      "sha256": "146a55cc587fd21efadccda5e5d6b45012f02274c4c89a8f7b2cef17c198d90d",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 37878,
+      "classification": "destination_adaptation",
+      "path": "scripts/paper_artifacts.py",
+      "sha256": "d39bd3b7e93c64f22ca77760a2f66eed47aa96698619692dddf192cf91c091be",
+      "source_git_blob": "ad7ca585271e61be7618edd2578d353dcf85b7f0",
+      "source_path": "scripts/paper_artifacts.py",
+      "source_sha256": "2428e453a8aeb63d28a11f0da4499ae90e996fbd7981d4e1c82ec892f8bd51c4"
+    },
+    {
+      "bytes": 10544,
+      "classification": "destination_adaptation",
+      "path": "scripts/run_graphiti_baseline.sh",
+      "sha256": "e4b2302dc54fe3decb8d03e4b1d955915247a4e8a4073b21b5d452f50ba63257",
+      "source_git_blob": "89616cb5ebc9b2d0dd5a72dcc2e37aee529dad2c",
+      "source_path": "scripts/run_graphiti_baseline.sh",
+      "source_sha256": "be7faf767579ca99c162a9e3687b99bd73e34bf4c56e093e022a2aad6bdcad6a"
+    },
+    {
+      "bytes": 4613,
+      "classification": "destination_adaptation",
+      "path": "scripts/supervise_joint_run.sh",
+      "sha256": "0b553727d686730c94ec596f5c77e1ce8c6490b571973854114cb3669cecb031",
+      "source_git_blob": "a4e89e5b2cb55fb93addc58a6ce1f8b93d50e486",
+      "source_path": "scripts/supervise_joint_run.sh",
+      "source_sha256": "f98a744d256735ed67536bbf964ae4983309f7cabfb9cb5a114a3d4c7252ced3"
+    },
+    {
+      "bytes": 26166,
+      "classification": "byte_exact",
+      "path": "scripts/verify_paper_results.py",
+      "sha256": "2e7bb2d2d717b43fa46e6835fc7a61d1849783b1a1e44c6765c2636873844727",
+      "source_git_blob": "8c0f456e50c67689995e75e1145f06269dfdea16",
+      "source_path": "scripts/verify_paper_results.py",
+      "source_sha256": "2e7bb2d2d717b43fa46e6835fc7a61d1849783b1a1e44c6765c2636873844727"
+    },
+    {
+      "bytes": 5953,
+      "classification": "byte_exact",
+      "path": "services/scallop_validator_service.py",
+      "sha256": "e40aacc76f77d3eee0a2f90b78519d8c54674f91218cc321b6976ea3c90e4c53",
+      "source_git_blob": "928a4f0cb9f1489d1cf9c9fed6f516c60ab833da",
+      "source_path": "services/scallop_validator_service.py",
+      "source_sha256": "e40aacc76f77d3eee0a2f90b78519d8c54674f91218cc321b6976ea3c90e4c53"
+    },
+    {
+      "bytes": 5175,
+      "classification": "destination_adaptation",
+      "path": "tests/conftest.py",
+      "sha256": "ca346cb5a315886613dee29f6ce2b2268ae5afc295b82a36edbc2b824c185b9f",
+      "source_git_blob": "ff99dde723a0c9864ceba0935e666c2cfe96a2be",
+      "source_path": "tests/conftest.py",
+      "source_sha256": "bddf9806a5e0ffe9c467a187796df5888f23323f683f137fcaecd1b9ac92f260"
+    },
+    {
+      "bytes": 74208,
+      "classification": "byte_exact",
+      "path": "tests/fixtures/historical_persona_manifest.json",
+      "sha256": "10abe1a44eb415a0bebec230fa51f8deb9aeca41b18f39259156477d1dbe80cf",
+      "source_git_blob": "75f91c745390243821d3e3cb6bc141575e22531f",
+      "source_path": "results/persona_joint_surface_a_build2/manifest.json",
+      "source_sha256": "10abe1a44eb415a0bebec230fa51f8deb9aeca41b18f39259156477d1dbe80cf"
+    },
+    {
+      "bytes": 2368,
+      "classification": "new",
+      "path": "tests/fixtures/verified_facts.sample.jsonl",
+      "sha256": "17018ba95194fc64affc707bb72e94f8fd5af5f928f214b67fa6a63c26c58d0e",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 1168,
+      "classification": "byte_exact",
+      "path": "tests/test_answer_eval.py",
+      "sha256": "6d3441eb2b5065549a6db68cc11f8f9a29163fd4a73cd21b0019c53b3c296c14",
+      "source_git_blob": "a789f8e269e93bb1d18b4ffb426ef386be2cd8e0",
+      "source_path": "tests/test_answer_eval.py",
+      "source_sha256": "6d3441eb2b5065549a6db68cc11f8f9a29163fd4a73cd21b0019c53b3c296c14"
+    },
+    {
+      "bytes": 8635,
+      "classification": "new",
+      "path": "tests/test_artifact_resources.py",
+      "sha256": "d99c1d5822a8463608e67970e24a312637b6158deab8cfba79a0b95fee4ceb56",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 7411,
+      "classification": "byte_exact",
+      "path": "tests/test_chunk_selection_strategies.py",
+      "sha256": "69483ecc1e81e471bc90e5ecd4039fc90fe2ef19ce3d7bed6228a5225637d5dc",
+      "source_git_blob": "3b47cc9d3d1acd7867fedf3d9e0917da53d6aa40",
+      "source_path": "tests/test_chunk_selection_strategies.py",
+      "source_sha256": "69483ecc1e81e471bc90e5ecd4039fc90fe2ef19ce3d7bed6228a5225637d5dc"
+    },
+    {
+      "bytes": 10449,
+      "classification": "byte_exact",
+      "path": "tests/test_compiled_memory.py",
+      "sha256": "388175bf3e1046c6838e823b896c89ecfe23534b9a6aa1f35c3ab7abecbf92e2",
+      "source_git_blob": "acdcce4438d97d2129ea182c14d8e344d35b6f7e",
+      "source_path": "tests/test_compiled_memory.py",
+      "source_sha256": "388175bf3e1046c6838e823b896c89ecfe23534b9a6aa1f35c3ab7abecbf92e2"
+    },
+    {
+      "bytes": 43039,
+      "classification": "destination_adaptation",
+      "path": "tests/test_continual_memory_benchmark.py",
+      "sha256": "301205641378db4a88562a0ab17fd2d68eb0c9d667d44525d991b8b6c59d10de",
+      "source_git_blob": "022c22bf618a3650dcfa7085a8c22b7c1ecd4a9e",
+      "source_path": "tests/test_continual_memory_benchmark.py",
+      "source_sha256": "3f39e599e89590d3b78b4850f9db4eef4e984da74b66e8a5916b4dc1861aabab"
+    },
+    {
+      "bytes": 5694,
+      "classification": "byte_exact",
+      "path": "tests/test_contradiction_ledger.py",
+      "sha256": "0216070f197791f79024d92938a110d6e53160f91c48782b5a693057d3be3730",
+      "source_git_blob": "6c961e8f703e0b39f362d31d7e982dbd9a661579",
+      "source_path": "tests/test_contradiction_ledger.py",
+      "source_sha256": "0216070f197791f79024d92938a110d6e53160f91c48782b5a693057d3be3730"
+    },
+    {
+      "bytes": 1352,
+      "classification": "byte_exact",
+      "path": "tests/test_domain_contracts.py",
+      "sha256": "4a28e0eed9f42e665f5217d1be644d86891f0b20da63d07cdf1dc7e36ab5adaa",
+      "source_git_blob": "431b4fa0df6baf70752b6d29f357ee1c560fe879",
+      "source_path": "tests/test_domain_contracts.py",
+      "source_sha256": "4a28e0eed9f42e665f5217d1be644d86891f0b20da63d07cdf1dc7e36ab5adaa"
+    },
+    {
+      "bytes": 6676,
+      "classification": "byte_exact",
+      "path": "tests/test_epistemic_state.py",
+      "sha256": "37ce75d8fd0ebe423074d94b165a14d99e6916458658cfe5e14b0948701c047b",
+      "source_git_blob": "d857452ace9411d80d31eb5e55b94fede42a2d2c",
+      "source_path": "tests/test_epistemic_state.py",
+      "source_sha256": "37ce75d8fd0ebe423074d94b165a14d99e6916458658cfe5e14b0948701c047b"
+    },
+    {
+      "bytes": 5763,
+      "classification": "byte_exact",
+      "path": "tests/test_hard_gate_admission.py",
+      "sha256": "5678bfac366e5b99d2a46b2da1210e0f4f3a4c9386534322c27e34dde530bd37",
+      "source_git_blob": "ef88d20c12e82655d3750968453596e495117f50",
+      "source_path": "tests/test_hard_gate_admission.py",
+      "source_sha256": "5678bfac366e5b99d2a46b2da1210e0f4f3a4c9386534322c27e34dde530bd37"
+    },
+    {
+      "bytes": 8354,
+      "classification": "byte_exact",
+      "path": "tests/test_interleaved_conversation.py",
+      "sha256": "1a0a57af5d1c549e83a460812c8b2c3f1721d112a41a6dacab334f316b91597d",
+      "source_git_blob": "169be12f2abfa2dc25f2af261fda0a527d8dd21a",
+      "source_path": "tests/test_interleaved_conversation.py",
+      "source_sha256": "1a0a57af5d1c549e83a460812c8b2c3f1721d112a41a6dacab334f316b91597d"
+    },
+    {
+      "bytes": 4620,
+      "classification": "byte_exact",
+      "path": "tests/test_interleaved_memory_benchmark.py",
+      "sha256": "7cafdc1e456d6e4c9358476ebe5afabc9357e03979468028bb664963c0b5c8e4",
+      "source_git_blob": "e36742a91be65ceeb73bcf0ca2f6c73e97b7172d",
+      "source_path": "tests/test_interleaved_memory_benchmark.py",
+      "source_sha256": "7cafdc1e456d6e4c9358476ebe5afabc9357e03979468028bb664963c0b5c8e4"
+    },
+    {
+      "bytes": 9437,
+      "classification": "byte_exact",
+      "path": "tests/test_interleaved_memory_benchmark_v3.py",
+      "sha256": "aeb58dd8273a8098a438db5925e4d8d62385fddda4431850ee4791ce40532afe",
+      "source_git_blob": "b91b9fef0c1155a3c36c716db81ad9ea2d0c6265",
+      "source_path": "tests/test_interleaved_memory_benchmark_v3.py",
+      "source_sha256": "aeb58dd8273a8098a438db5925e4d8d62385fddda4431850ee4791ce40532afe"
+    },
+    {
+      "bytes": 8626,
+      "classification": "byte_exact",
+      "path": "tests/test_interleaved_memory_qwen35_eval.py",
+      "sha256": "c1164b62b7a93f0c2bfef6c1cb1dc6d2e48e9fa8a88042cc66dcfcbd021756ed",
+      "source_git_blob": "81f4ce4faa88cf9a85b0a938d2af2b99983db9dc",
+      "source_path": "tests/test_interleaved_memory_qwen35_eval.py",
+      "source_sha256": "c1164b62b7a93f0c2bfef6c1cb1dc6d2e48e9fa8a88042cc66dcfcbd021756ed"
+    },
+    {
+      "bytes": 5408,
+      "classification": "byte_exact",
+      "path": "tests/test_memory_artifacts.py",
+      "sha256": "75d61c46edb3c9b53f38771c8c27d5491036a43ed42ecf51936a1eecd6d50e4f",
+      "source_git_blob": "1fdb27e19c8ad35f428bca20f6dee717bbe37c3c",
+      "source_path": "tests/test_memory_artifacts.py",
+      "source_sha256": "75d61c46edb3c9b53f38771c8c27d5491036a43ed42ecf51936a1eecd6d50e4f"
+    },
+    {
+      "bytes": 35622,
+      "classification": "byte_exact",
+      "path": "tests/test_neo4j_graph.py",
+      "sha256": "540d5774ef5f0302a5a4ecb5a68284b1c6276d7be248b2c53c55a7bc497a95fd",
+      "source_git_blob": "0a27e4a90ef826ac6f80a3124339a9ac7f57773b",
+      "source_path": "tests/test_neo4j_graph.py",
+      "source_sha256": "540d5774ef5f0302a5a4ecb5a68284b1c6276d7be248b2c53c55a7bc497a95fd"
+    },
+    {
+      "bytes": 27322,
+      "classification": "destination_adaptation",
+      "path": "tests/test_paper_artifacts.py",
+      "sha256": "cc3868e745890ed32336433b942552d7c52fd682b9f3d98f8e0eb0e764043be5",
+      "source_git_blob": "d86d9e9cc23ef0ead64f8344688cbb91834d40ce",
+      "source_path": "tests/test_paper_artifacts.py",
+      "source_sha256": "9e85d56b916ce777204580ffa3d598e84a37d394fe586b812df203217283b5d5"
+    },
+    {
+      "bytes": 20048,
+      "classification": "destination_adaptation",
+      "path": "tests/test_paper_persona.py",
+      "sha256": "e5376b9ca4c8eb432ea7cb9a48a78f757f4ab238c7e8da5cae855c4558fe9b75",
+      "source_git_blob": "92b2d978ca5c3d0e8c52d74c262dd8318f44cfe9",
+      "source_path": "tests/test_paper_persona.py",
+      "source_sha256": "bf0a40d1372f1a321f99e0fae75c960b1b593beb8346b9f83e3cf2f6983338bf"
+    },
+    {
+      "bytes": 24042,
+      "classification": "destination_adaptation",
+      "path": "tests/test_paper_persona_analysis.py",
+      "sha256": "13a6d7cfaddcf702300babb5c6ad2a4da113e0b106069e57a0742d955cd5028b",
+      "source_git_blob": "2a6721af1ab0552d43b95ddad462b37ad904cec9",
+      "source_path": "tests/test_paper_persona_analysis.py",
+      "source_sha256": "7be37387b9b915ef0e57e0e516fc4d041ff0f67c2c8cff149b8f3e9c98701a1b"
+    },
+    {
+      "bytes": 28061,
+      "classification": "byte_exact",
+      "path": "tests/test_persona_conversation_generator.py",
+      "sha256": "ea03d1111b219ecce7f7a848ef987916e688a3f8f3f92739f8d18a786860d1c2",
+      "source_git_blob": "f2d7ccea1a8109afe9b09b93e01b7c35a12a38a6",
+      "source_path": "tests/test_persona_conversation_generator.py",
+      "source_sha256": "ea03d1111b219ecce7f7a848ef987916e688a3f8f3f92739f8d18a786860d1c2"
+    },
+    {
+      "bytes": 27310,
+      "classification": "destination_adaptation",
+      "path": "tests/test_persona_end_to_end_benchmark.py",
+      "sha256": "c15d50f90a5a8c37b6c13add0fb94a7c263029e1d1e0083c39e733920114140a",
+      "source_git_blob": "2f3bee8593eb6873f1fd3786ccc6cd654ab6df53",
+      "source_path": "tests/test_persona_end_to_end_benchmark.py",
+      "source_sha256": "7dbb6719f85bfd4411f96c362fa55006d39e5e9e9a35d0b39772961d33e54915"
+    },
+    {
+      "bytes": 38161,
+      "classification": "destination_adaptation",
+      "path": "tests/test_persona_fixed_assignment_analysis.py",
+      "sha256": "65e5d7aa42a732ee11155702000590b673ad47209f28a916ee5715876cc6795f",
+      "source_git_blob": "030f5aa90ccf43d7d598831d91287581de9f1d4a",
+      "source_path": "tests/test_persona_fixed_assignment_analysis.py",
+      "source_sha256": "71c21ca35f0a776262a82662c003adeac52fa5a169e7e20c845201f44c95ee56"
+    },
+    {
+      "bytes": 65122,
+      "classification": "destination_adaptation",
+      "path": "tests/test_persona_graphiti_baseline.py",
+      "sha256": "692cfc0f7d814dfdf5058261edee876bd3436f4729d3a451e56f36efc31e4bc1",
+      "source_git_blob": "36cfdad504719f157d4a1897ecb454694ebacc24",
+      "source_path": "tests/test_persona_graphiti_baseline.py",
+      "source_sha256": "00bb5aba47b8feba1fe718f2f4d333764d51cfb7be0d1302ee000b7c38b17e31"
+    },
+    {
+      "bytes": 26116,
+      "classification": "destination_adaptation",
+      "path": "tests/test_persona_historical_surface.py",
+      "sha256": "b4a61cda979a8debcda5067b5d5c01b5c443750e436e9c569a4252e9fc7175fc",
+      "source_git_blob": "177206fd39cf7d05df213a9dfd4083575ecdd3c9",
+      "source_path": "tests/test_persona_historical_surface.py",
+      "source_sha256": "c3dfca57a6a1673a0548fa1536172172b8dc26f4de7c3e39d17ca348e5c9aebf"
+    },
+    {
+      "bytes": 9492,
+      "classification": "byte_exact",
+      "path": "tests/test_persona_interference_schedule.py",
+      "sha256": "a97384923349ae60817eb596a3cfdd04114e91212b9565b4d041290edae89863",
+      "source_git_blob": "0efa5274914e3983c06b2e513f5c32f1e7660fc2",
+      "source_path": "tests/test_persona_interference_schedule.py",
+      "source_sha256": "a97384923349ae60817eb596a3cfdd04114e91212b9565b4d041290edae89863"
+    },
+    {
+      "bytes": 14184,
+      "classification": "byte_exact",
+      "path": "tests/test_persona_neurosym_retrieval.py",
+      "sha256": "cd9f9f3db2ecb1201543fba2a8f1c3812c87b521e942f8c680741e99926402a4",
+      "source_git_blob": "2dffc8a15329351a80a5c63c6f0d8f1d75549964",
+      "source_path": "tests/test_persona_neurosym_retrieval.py",
+      "source_sha256": "cd9f9f3db2ecb1201543fba2a8f1c3812c87b521e942f8c680741e99926402a4"
+    },
+    {
+      "bytes": 92678,
+      "classification": "destination_adaptation",
+      "path": "tests/test_persona_surface_derivation.py",
+      "sha256": "e183513ffbfc746e349c15774c3daca2c88acbc75578bc1e8bd21017cd907bdc",
+      "source_git_blob": "0e200b2494d84e4d9d34b5cbf3ea19dad1787b31",
+      "source_path": "tests/test_persona_surface_derivation.py",
+      "source_sha256": "fc0f581b28da90c8130510dad9e1c33d0f0b74e989a4300c00e22b1333130c0f"
+    },
+    {
+      "bytes": 3355,
+      "classification": "byte_exact",
+      "path": "tests/test_preference_stream_injection.py",
+      "sha256": "1ad84bcda27f99755aa0c148ea46b644240d5ce8c7b155d3584baa4e577e35da",
+      "source_git_blob": "cb954424c22157ddd671fbe4ba8b483912f5dc9a",
+      "source_path": "tests/test_preference_stream_injection.py",
+      "source_sha256": "1ad84bcda27f99755aa0c148ea46b644240d5ce8c7b155d3584baa4e577e35da"
+    },
+    {
+      "bytes": 3445,
+      "classification": "byte_exact",
+      "path": "tests/test_private_lineage_reasoning.py",
+      "sha256": "15761d492b5935e4d0c9b25494659e2788109a9cf44500c3689f68b544404198",
+      "source_git_blob": "9b2e55bf3e4252c685b7d6861f4645bf138aae26",
+      "source_path": "tests/test_private_lineage_reasoning.py",
+      "source_sha256": "15761d492b5935e4d0c9b25494659e2788109a9cf44500c3689f68b544404198"
+    },
+    {
+      "bytes": 2042,
+      "classification": "byte_exact",
+      "path": "tests/test_rejection_artifacts.py",
+      "sha256": "d94cb23b2dbe95bd9fd3f90407685886aef854214af7f94214c62d7920c7714b",
+      "source_git_blob": "01d0847cb1f100964fdb989131151137ead5a274",
+      "source_path": "tests/test_rejection_artifacts.py",
+      "source_sha256": "d94cb23b2dbe95bd9fd3f90407685886aef854214af7f94214c62d7920c7714b"
+    },
+    {
+      "bytes": 21227,
+      "classification": "destination_adaptation",
+      "path": "tests/test_source_provenance.py",
+      "sha256": "062a18913d4283feaf69051a791f4f60d88bfa59caed3a8c06fa69778384b482",
+      "source_git_blob": "2ba696b818fe867544607af02148e92ebad959f6",
+      "source_path": "tests/test_source_provenance.py",
+      "source_sha256": "e6a6fee32e0faf297747ae53b214a45548eb7e4317922b1da5e4d5dffb57f0f5"
+    },
+    {
+      "bytes": 1074,
+      "classification": "new",
+      "path": "tests/test_submission_portability.py",
+      "sha256": "dbdddb67e3d68cb3d10ce02693530b7007f89e343f02b30f95d00aac86a8fa60",
+      "source_git_blob": null,
+      "source_path": null,
+      "source_sha256": null
+    },
+    {
+      "bytes": 37336,
+      "classification": "byte_exact",
+      "path": "tests/test_synthetic_temporal_preferences.py",
+      "sha256": "bf6ea8e8a90f918adba8c9bb3dffd810662b3eba9f2a69a1c22edfe042e725e5",
+      "source_git_blob": "303bf20500082bcd5471e2faa9979117722e1d2f",
+      "source_path": "tests/test_synthetic_temporal_preferences.py",
+      "source_sha256": "bf6ea8e8a90f918adba8c9bb3dffd810662b3eba9f2a69a1c22edfe042e725e5"
+    },
+    {
+      "bytes": 782,
+      "classification": "byte_exact",
+      "path": "tests/test_validator_backend.py",
+      "sha256": "2b9c8eadb5d488793e8ff78aeb188704fa5345a8212afd8d03d9ed27808bb9de",
+      "source_git_blob": "33a341c11a24d3021bbdc9aef2191195e663192b",
+      "source_path": "tests/test_validator_backend.py",
+      "source_sha256": "2b9c8eadb5d488793e8ff78aeb188704fa5345a8212afd8d03d9ed27808bb9de"
+    },
+    {
+      "bytes": 8569,
+      "classification": "byte_exact",
+      "path": "tests/test_verify_paper_results.py",
+      "sha256": "2a07069e540935562ebd1306263e82e2b265535a39cc0e87a32345db8949c834",
+      "source_git_blob": "e2871d26ff8b96512b2a2f3a5db9dadea3af8dde",
+      "source_path": "tests/test_verify_paper_results.py",
+      "source_sha256": "2a07069e540935562ebd1306263e82e2b265535a39cc0e87a32345db8949c834"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "Curated exported source, specifications, tests, and exact small inputs; not original execution-source authentication. Generated inventories and source manifests are identified independently.",
+  "source_commit": "6a114c8d55ec74d05a2673c8fbd622824acbdf26"
+}

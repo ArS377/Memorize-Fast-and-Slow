@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "status": "Minimal direct-dependency specifications, not validated locks. No installation or environment provisioning was performed.",
+  "transitive_policy": "Transitive dependencies and wheel/platform compatibility remain unresolved. Reproduce environments separately; do not merge conflicting historical specifications or relax recorded versions to force resolution.",
+  "environments": {
+    "lightweight": {
+      "specification": "requirements.txt",
+      "python": "Python 3.10+; local offline checks use an existing Python 3.13.7 interpreter",
+      "role": "Imports, authenticated previews, saved-record analysis and offline tests",
+      "pin_basis": {
+        "numpy==2.2.6": "Original requirements and frozen continual manifest environment",
+        "rank-bm25==0.2.2": "Original requirements and frozen continual manifest environment",
+        "openai==1.109.1": "Existing offline test interpreter; published 2025-09-24, satisfies retained API imports and original Graphiti >=1.91.0 constraint",
+        "neo4j==5.28.3": "Existing offline test interpreter; released 2026-01-12, within retained 5.x driver contract",
+        "httpx==0.28.1": "Original requirements; directly imported by API error unit tests",
+        "pytest==9.1.1": "Existing offline test interpreter; published 2026-06-19"
+      },
+      "limitations": "Existing local NumPy is 2.4.4, not the recorded 2.2.6. Passing local tests does not validate resolution of this specification. Optional tensor tests need torch. Preserved legacy comments in requirements.txt are historical notes, not instructions to install rlms, bypass Python requirements, or claims about current Neo4j releases. No rlms dependency remains."
+    },
+    "scallop": {
+      "specification": "requirements-scallop.txt",
+      "python": "CPython 3.10, Linux x86_64, manylinux_2_27-compatible glibc",
+      "role": "services.scallop_validator_service in its independent environment",
+      "pin_basis": "Original requirements and frozen primary SOURCE_NOTES.md record scallopy 0.2.4 cp310 Linux wheel",
+      "limitations": "Wheel access, binary dependencies and platform ABI not installed or validated. No model packages required by source-level service import closure."
+    },
+    "continual_dense": {
+      "specification": "requirements-dense.txt",
+      "python": "Recorded continual environment: Python 3.12.9",
+      "role": "Supporting benchmark Qwen3 tokenizer and BGE dense embedding",
+      "pin_basis": "Frozen continual manifest records NumPy 2.2.6, rank-bm25 0.2.2, sentence-transformers 3.4.1, transformers 4.57.6 and tokenizers 0.22.2",
+      "limitations": "Torch/build was not recorded in that manifest and remains an unresolved transitive dependency. Do not infer it from the different direct-generation environment. Not compatible by assumption with the transformers 5.x persona environment."
+    },
+    "persona_generation": {
+      "specification": "requirements-generation.txt",
+      "role": "Persona Qwen3.5 answer generation and BGE embeddings; combine only with separately validated lightweight and optional Graphiti specifications",
+      "pin_basis": "Frozen primary manifest records torch 2.13.0+cu130 and transformers 5.15.1; original requirements and primary source notes identify sentence-transformers 3.4.1/BGE",
+      "recorded_torch_build": "2.13.0+cu130",
+      "limitations": "The requirement records the base Torch version, not a validated CUDA wheel source. CUDA 13.0 build availability, GPU/driver compatibility, sentence-transformers/transformers cross-version compatibility and all transitive constraints require separate verification. Do not merge with requirements-dense.txt or requirements-qwen35-eval.txt."
+    },
+    "historical_direct_evaluation": {
+      "specification": "requirements-qwen35-eval.txt",
+      "role": "Separate historical interleaved direct-Qwen evaluation environment",
+      "pin_basis": "Copied original specification unchanged: torch 2.6.0, transformers 5.15.0, huggingface-hub 1.27.0, tokenizers 0.22.2, safetensors 0.8.0",
+      "recorded_torch_build": "2.6.0+cu124",
+      "limitations": "These historical recorded versions are not an install-validated lock. No claim is made that current distribution metadata resolves this combination. Retain rather than silently replacing it with the primary persona environment."
+    },
+    "graphiti": {
+      "specification": "requirements-graphiti-baseline.txt",
+      "role": "Optional Graphiti client, alongside separately compatible generation/embedding packages",
+      "pin_basis": "Scientific configuration requires graphiti-core 0.29.3 exactly; mature Neo4j/OpenAI pins satisfy original declared lower bounds",
+      "limitations": "No Graphiti install/service integration was performed. Graph database instances and the extraction endpoint must be separately provisioned; use isolated database identities and new caches."
+    },
+    "extraction_server": {
+      "specification": "requirements-extraction.txt",
+      "role": "Independent Linux/GPU OpenAI-compatible extraction server, not part of lightweight tests",
+      "pin_basis": "Frozen primary SOURCE_NOTES.md records vLLM 0.27.1 serving Qwen/Qwen3-4B with max-model-len 32768",
+      "limitations": "Torch/CUDA/driver and serving transitive versions are not resolved here. Keep separate from the answer-generation environment; no server was installed or launched."
+    }
+  }
+}

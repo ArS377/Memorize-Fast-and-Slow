@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "access_policy": "Read-only explicit local repo-shaped roots. No downloads, imports, links, copies, model calls, or historical Git are needed. Anonymous reviewer access is not yet configured.",
+  "digest_policy": "Bundled member hashes come from independently pinned exact-byte generation manifests. External member hashes are transcribed from observed SHA256 entries in the independently pinned v002-git freeze; matching them does not authenticate original execution source.",
+  "historical_provenance": {
+    "v002-git": {"manifest_sha256": "cb432774f962b5d480c6958472bec5eac3343fea3376cad6de2d19b7e9141443", "historical_status": "verified", "assessment_counts": {"historical_match": 47, "observed_only": 141}},
+    "v001-as-found": {"manifest_sha256": "e1dfaaf42e478855dfbc869aa58eb2a9c715d2fb360440ca6d98e1ad9923e087", "historical_status": "failed", "reason": "Known historical hash mismatches; preserved without repair."},
+    "limitations": "Incomplete original execution base and dirty files; two unresolved continual source hashes; interleaved source is candidate-only. Observed-only entries are not historical authentication."
+  },
+  "groups": {
+    "bundled-persona": ["persona-parent", "persona-historical-a", "persona-kimi-a", "persona-kimi-b", "persona-pair-gate"],
+    "historical_a": ["persona-parent", "persona-historical-a"],
+    "kimi_a": ["persona-parent", "persona-kimi-a", "persona-kimi-b", "persona-pair-gate"],
+    "kimi_ab": ["persona-parent", "persona-kimi-a", "persona-kimi-b", "persona-pair-gate"],
+    "synthetic-inputs": ["synthetic-continual", "synthetic-interleaved"],
+    "reference-results": ["reference-persona", "reference-continual", "reference-interleaved"]
+  },
+  "resources": {
+    "persona-parent": {
+      "path": "results/persona_conflict_conversations_v1", "kind": "directory", "availability": "bundled", "role": "Exact parent corpus and provenance for every persona mode",
+      "manifest": {"path": "generation_manifest.json", "sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3", "hash_field": "artifact_sha256"},
+      "required_members": ["candidate_updates.jsonl", "dialogue.jsonl", "events.jsonl", "examples.jsonl", "facts.jsonl", "queries.jsonl", "raw_responses.jsonl", "requests.jsonl", "source_documents.jsonl"]
+    },
+    "persona-historical-a": {
+      "path": "results/persona_conflict_conversations_surface_a_graphiti_build2", "kind": "directory", "availability": "bundled", "role": "Exact historical surface A input and transformation provenance",
+      "manifest": {"path": "generation_manifest.json", "sha256": "c64c5c4268d93691b9bdf12119fa31a91cc7e9a798182135593c85128fc89c89", "hash_field": "artifact_sha256"},
+      "required_members": ["candidate_updates.jsonl", "dialogue.jsonl", "events.jsonl", "examples.jsonl", "facts.jsonl", "queries.jsonl", "raw_responses.jsonl", "requests.jsonl", "source_documents.jsonl"]
+    },
+    "persona-kimi-a": {
+      "path": "results/persona_conflict_conversations_surface_a", "kind": "directory", "availability": "bundled", "role": "Exact modern surface A input; kimi_a also requires B and the pair gate",
+      "manifest": {"path": "generation_manifest.json", "sha256": "2cfdbf18705204a9ca7412e9e962ad3bb03bd08b2426f09270abbc387b047f65", "hash_field": "artifact_sha256"},
+      "required_members": ["candidate_updates.jsonl", "dialogue.jsonl", "events.jsonl", "examples.jsonl", "facts.jsonl", "queries.jsonl", "raw_responses.jsonl", "requests.jsonl", "source_documents.jsonl"]
+    },
+    "persona-kimi-b": {
+      "path": "results/persona_conflict_conversations_surface_b", "kind": "directory", "availability": "bundled", "role": "Exact modern surface B input and pair-authentication dependency, not live run output",
+      "manifest": {"path": "generation_manifest.json", "sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121", "hash_field": "artifact_sha256"},
+      "required_members": ["candidate_updates.jsonl", "dialogue.jsonl", "events.jsonl", "examples.jsonl", "facts.jsonl", "queries.jsonl", "raw_responses.jsonl", "requests.jsonl", "source_documents.jsonl"]
+    },
+    "persona-pair-gate": {
+      "path": "results/persona_surface_pair_gate.json", "kind": "file", "availability": "bundled", "role": "Standalone parent/sibling binding gate for both modern modes",
+      "sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b"
+    },
+    "synthetic-continual": {
+      "path": "results/synthetic_temporal_preferences_1000_v4_stream", "kind": "directory", "availability": "external", "role": "Full continual synthetic stream input", "digest_source": "v002-git",
+      "members": {
+        "candidate_updates.jsonl": "bf30d4056514133827b2cf36637347d28e554ac10f3d355eae8b0faa747b0a6a",
+        "events.jsonl": "86656a6f29ccc796455f0688bbfce57495a3b65680cbc94212172a43a15ad74d",
+        "examples.jsonl": "ef5489ab91ec4fdb65de6ade872ccd893b05845cac8c8d5db6a2f38a4bff6805",
+        "facts.jsonl": "b1100d6e1c541fb0944903fae28020256a17016ffea96e23a03a379f8e835167",
+        "queries.jsonl": "6fbfb3709ac367d235402d837e9ba88b1ef62d88eccc6721bf61bb2cdecf662e"
+      }
+    },
+    "synthetic-interleaved": {
+      "path": "results/synthetic_temporal_preferences_1200_v5_interleaved", "kind": "directory", "availability": "external", "role": "Full interleaved synthetic stream input", "digest_source": "v002-git",
+      "members": {
+        "candidate_updates.jsonl": "611f7fc6535343eab6554327093719b95a3cdf295491886245462f96cf7007b9",
+        "events.jsonl": "eabda37fa9f16daa761257351fba31ab18d3091e79943cd800d6d874c0603e17",
+        "examples.jsonl": "e61e66f58997d7c7415e13b83ae9046673d51f0d03359ccf97791f13ebab0941",
+        "facts.jsonl": "5fabccd117ac9711348eda82d5a768e42a04020066fe79f954ba0e40f877128f",
+        "queries.jsonl": "2fa1d96e6f501e925018ce6b2f2be5d923f93c50272d0c85656bf836be5cb16f"
+      }
+    },
+    "reference-persona": {
+      "path": "results/persona_joint_surface_a_build2", "kind": "directory", "availability": "external", "role": "Historical persona reference predictions, generations, stores, retrievals, metrics and provenance; not new eight-arm results", "digest_source": "v002-git",
+      "members": {
+        "README.md": "926a689bb88e939737c8127cb7c231e46ffb6230d9cee06ff730d31ce1a0dd9e",
+        "SOURCE_NOTES.md": "67a5a4725b98ec235ec43d03a09de4125377988f65c63e2086e749fc12af6fce",
+        "analysis.md": "0eef191a57b528f715c641bcad09d09b751b173624b67030e4a9ca3fae77a35c",
+        "diagnostics.json": "7dfe89952fd73ad7c1cb277b0deb157cf1f3b6b9eccb8371f0439bd31cd788c5",
+        "error_taxonomy.json": "69ed317f9cfd0f2b289a9ea54e9aacad7ac55a8ea21f865daca652d1edc62532",
+        "generation_manifest.json": "c8e4d4f579e98379f3b72e044136a377011fabdb9138858a2cf6442790eb776e",
+        "generations.jsonl": "ae46fc7054d19dbb6ab06f970f7e1c982fa2d4b1e86108fb77e0f3fd5d77608b",
+        "graphiti_retrievals.json": "bc61e707bb9e00c11cdcb77b5633eebf2addcbab8ff4ab5b35ac92ecc2a69b4e",
+        "graphiti_store_states.json": "f57c5fe583c8a1d7d3317e8a1a57b1f4ca3098d74c3a3a261f8e4607c9e4ba89",
+        "hybrid_admission_ledgers.json": "160777a0d0213ce0f4239d9215edef3a5176bea7bb4cade858a34e19a2809830",
+        "hybrid_condition_facts.json": "e18cac4b6ba5bdf5d8899d1653766a4200a5fa1dddea548e35ea0ae6aceb64b1",
+        "hybrid_retrievals.json": "61a5c2670c32d38bb55b09cf8d7813fb87e86f2e450a1f20643cecf767eae537",
+        "manifest.json": "10abe1a44eb415a0bebec230fa51f8deb9aeca41b18f39259156477d1dbe80cf",
+        "metrics.json": "315312e5357b6b9d39a04d7018962a2122520ecb561fadf256680e5e53e53f1b",
+        "predictions.jsonl": "951b3f36c6d15a32ad101e58872f985f6e053fabdee36547e1288fc46e7c054a"
+      }
+    },
+    "reference-continual": {
+      "path": "results/continual_memory_benchmark_v3_stream", "kind": "directory", "availability": "external", "role": "Historical continual episodes, predictions, metrics and provenance", "digest_source": "v002-git",
+      "members": {
+        "episodes.jsonl": "1d1363dee84c37a01061451935316fd7db450d465180ed59660c786b8e1cea1c",
+        "manifest.json": "c8cfb030df7906a9ffb097ee4ea088db4abcbecd6c70c91a5823821449a764f4",
+        "metrics.json": "5bc4c54bf0e1538f4f321c9f8edf0f60ec0e95e0e23d348b0b3a5c079da0fa8f",
+        "predictions.jsonl": "eb3a3391e906524499107a43661b03c74fa4b8372b4e0badccc7b5517580fa24",
+        "report.md": "9b44cbed7318eb14b6fa0c4d5162a88a964e5ed53f8e75401c47fcca2f842b34"
+      }
+    },
+    "reference-interleaved": {
+      "path": "results/interleaved_memory_benchmark_v3", "kind": "directory", "availability": "external", "role": "Historical interleaved predictions, memory candidates, retained capsules, metrics and provenance", "digest_source": "v002-git",
+      "members": {
+        "manifest.json": "d8926494c133c9c2b8c2b4f697342cbff80bba4c8c3942d716047e0313468ad3",
+        "memory_candidates.jsonl": "614d13abef9857e9b8491a1ddfb8a8371c207554a4f2407d2e1376aa8a503654",
+        "metrics.json": "127d2f70cf57f4f2d653c8bb9be12784279795e3bb9c364e9833694d592e20f0",
+        "predictions.jsonl": "67b4a7c6ad535f3f6f32d2eaa5288adeef51580b00f0b8c5e72953c08bc5d72f",
+        "report.md": "39bbe3b25a535aed6602f759701c21b49b64f237f2cae01f4e21cf54a816da0f",
+        "retained_capsules.jsonl": "4f14bec345e8a1aae767e950ae89c2580e39414f43f31c11520bcd79b20d2d27"
+      }
+    }
+  }
+}
