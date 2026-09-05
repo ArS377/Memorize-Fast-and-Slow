@@ -16,6 +16,11 @@ data_small.jsonl
 !results/persona_conflict_conversations_surface_b/*.jsonl
 !results/persona_end_to_end_qwen35_4b_surface_a/*.jsonl
 !results/persona_end_to_end_qwen35_4b_surface_b/*.jsonl
+!results/persona_conflict_conversations_surface_a_graphiti_build2/*.jsonl
+!results/continual_memory_benchmark_v3_stream/*.jsonl
+!results/interleaved_memory_benchmark_v3/*.jsonl
+!results/synthetic_temporal_preferences_1000_v4_stream/*.jsonl
+!results/synthetic_temporal_preferences_1200_v5_interleaved/*.jsonl
 
 # Python
 __pycache__/

@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 
 from experiments.persona_conversation_generator import LLMResponse
+
+
+def paper_input_dir(name: str) -> Path:
+    root = Path(os.environ.get("NEUROSYM_TEST_EVIDENCE_ROOT", Path(__file__).resolve().parents[1]))
+    return root / "results" / name
 
 
 class FakeKimiClient:

@@ -2,3 +2,5 @@ results/continual_memory_benchmark_v3_stream/episodes.jsonl filter=lfs diff=lfs 
 results/continual_memory_benchmark_v3_stream/predictions.jsonl filter=lfs diff=lfs merge=lfs -text
 results/multitask_context_benchmark_v1/cases.jsonl filter=lfs diff=lfs merge=lfs -text
 results/multitask_context_benchmark_v2_hard/cases.jsonl filter=lfs diff=lfs merge=lfs -text
+scripts/run_graphiti_baseline.sh text eol=lf
+scripts/supervise_joint_run.sh text eol=lf

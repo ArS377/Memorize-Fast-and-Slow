@@ -1127,6 +1127,205 @@ def _fake_run_dir(tmp_path: Path) -> Path:
     return run
 
 
+def test_analysis_separate_output_preserves_input_bundle(tmp_path: Path) -> None:
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    run = _fake_run_dir(tmp_path)
+    before = {path.name: path.read_bytes() for path in run.iterdir()}
+    output = tmp_path / "analysis-output"
+    analyze_run(run, tmp_path / "corpus", output_dir=output)
+    assert (output / "analysis.md").exists()
+    assert {path.name: path.read_bytes() for path in run.iterdir()} == before
+
+
+def test_analysis_refuses_writes_inside_frozen_snapshot(tmp_path: Path) -> None:
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    run = _fake_run_dir(tmp_path)
+    (tmp_path / "freeze_manifest.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError, match="frozen"):
+        analyze_run(run, tmp_path / "corpus")
+
+
+def _verified_analysis_run(tmp_path: Path) -> Path:
+    import hashlib
+
+    run = _fake_run_dir(tmp_path)
+    corpus = tmp_path / "corpus"
+    (corpus / "dialogue.jsonl").write_text("{}\n", encoding="utf-8")
+    corpus_hashes = {
+        name: hashlib.sha256((corpus / name).read_bytes()).hexdigest()
+        for name in ("events.jsonl", "dialogue.jsonl")
+    }
+    (corpus / "generation_manifest.json").write_text(json.dumps({
+        "status": "completed", "artifact_sha256": corpus_hashes,
+    }), encoding="utf-8")
+    dataset = {
+        "generation_manifest_sha256": hashlib.sha256(
+            (corpus / "generation_manifest.json").read_bytes()
+        ).hexdigest(),
+        "artifact_sha256": corpus_hashes,
+    }
+    (run / "generations.jsonl").write_text("{}\n", encoding="utf-8")
+    (run / "graphiti_store_states.json").write_text("{}\n", encoding="utf-8")
+    (run / "generation_manifest.json").write_text(json.dumps({
+        "status": "completed", "dataset": dataset,
+        "artifact_sha256": {"generations.jsonl": hashlib.sha256(
+            (run / "generations.jsonl").read_bytes()
+        ).hexdigest()},
+    }), encoding="utf-8")
+    manifest_path = run / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.update({
+        "status": "completed", "dataset": dataset,
+        "artifact_sha256": {
+            name: hashlib.sha256((run / name).read_bytes()).hexdigest()
+            for name in ("metrics.json", "predictions.jsonl", "generations.jsonl",
+                         "generation_manifest.json", "graphiti_store_states.json")
+        },
+    })
+    manifest["generation_manifest_sha256"] = manifest["artifact_sha256"]["generation_manifest.json"]
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    (run / "README.md").write_text("Ancillary, not declared in the manifest.\n", encoding="utf-8")
+    return run
+
+
+def test_analysis_verified_frozen_inputs_allow_external_output(tmp_path: Path) -> None:
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    bundle = tmp_path / "frozen"
+    bundle.mkdir()
+    run = _verified_analysis_run(bundle)
+    (bundle / "freeze_manifest.json").write_text("{}", encoding="utf-8")
+    before = {path.relative_to(bundle): path.read_bytes() for path in bundle.rglob("*") if path.is_file()}
+    output = tmp_path / "analysis-output"
+    analyze_run(run, bundle / "corpus", output_dir=output, verify_inputs=True)
+    assert {path.name for path in output.iterdir()} == {
+        "README.md", "analysis.md", "diagnostics.json", "error_taxonomy.json",
+    }
+    assert {path.relative_to(bundle): path.read_bytes() for path in bundle.rglob("*") if path.is_file()} == before
+    with pytest.raises(ValueError, match="frozen"):
+        analyze_run(run, bundle / "corpus", output_dir=bundle / "analysis")
+    assert not (bundle / "analysis").exists()
+
+
+@pytest.mark.parametrize("destination", ["run", "run/analysis", "corpus", "corpus/analysis", "."])
+def test_analysis_separate_output_rejects_input_overlap(tmp_path: Path, destination: str) -> None:
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    run = _fake_run_dir(tmp_path)
+    with pytest.raises(ValueError, match="overlaps input"):
+        analyze_run(run, tmp_path / "corpus", output_dir=tmp_path / destination)
+
+
+def test_analysis_completed_in_place_remains_supported(tmp_path: Path) -> None:
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    run = _verified_analysis_run(tmp_path)
+    analyze_run(run, tmp_path / "corpus", verify_inputs=True)
+    assert "# Qwen Persona Graphiti External Baseline" in (run / "README.md").read_text(encoding="utf-8")
+    analyze_run(run, tmp_path / "corpus", verify_inputs=True)
+
+
+def test_analysis_separate_output_refuses_overwrite(tmp_path: Path) -> None:
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    run = _fake_run_dir(tmp_path)
+    output = tmp_path / "analysis"
+    analyze_run(run, tmp_path / "corpus", output_dir=output)
+    before = {path.name: path.read_bytes() for path in output.iterdir()}
+    with pytest.raises(ValueError, match="overwrite"):
+        analyze_run(run, tmp_path / "corpus", output_dir=output)
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+
+
+@pytest.mark.parametrize("artifact", [
+    "run/metrics.json", "run/predictions.jsonl", "run/generations.jsonl",
+    "run/graphiti_store_states.json", "run/generation_manifest.json",
+    "corpus/events.jsonl", "corpus/dialogue.jsonl", "corpus/generation_manifest.json",
+])
+def test_analysis_tampered_input_rejected_before_output(tmp_path: Path, artifact: str) -> None:
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    run = _verified_analysis_run(tmp_path)
+    path = tmp_path / artifact
+    path.write_bytes(path.read_bytes() + b"\n")
+    output = tmp_path / "analysis"
+    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        analyze_run(run, tmp_path / "corpus", output_dir=output, verify_inputs=True)
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("mutation", [
+    "incomplete", "hash_map_list", "missing_metrics", "invalid_hash", "unsafe_path",
+    "dataset_list", "missing_events", "wrong_pin", "unhashed_artifact", "duplicate_key",
+])
+def test_analysis_rejects_invalid_manifest_schema(tmp_path: Path, mutation: str) -> None:
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    run = _verified_analysis_run(tmp_path)
+    path = run / "manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    if mutation == "incomplete":
+        manifest["status"] = "running"
+    elif mutation == "hash_map_list":
+        manifest["artifact_sha256"] = []
+    elif mutation == "missing_metrics":
+        del manifest["artifact_sha256"]["metrics.json"]
+    elif mutation == "invalid_hash":
+        manifest["artifact_sha256"]["metrics.json"] = "deadbeef"
+    elif mutation == "unsafe_path":
+        manifest["artifact_sha256"]["../corpus/events.jsonl"] = "0" * 64
+    elif mutation == "dataset_list":
+        manifest["dataset"] = []
+    elif mutation == "missing_events":
+        del manifest["dataset"]["artifact_sha256"]["events.jsonl"]
+    elif mutation == "wrong_pin":
+        manifest["dataset"]["generation_manifest_sha256"] = "0" * 64
+    elif mutation == "unhashed_artifact":
+        manifest["artifacts"] = ["README.md"]
+    payload = json.dumps(manifest)
+    if mutation == "duplicate_key":
+        payload = payload[:-1] + ', "status": "completed"}'
+    path.write_text(payload, encoding="utf-8")
+    output = tmp_path / "analysis"
+    with pytest.raises(ValueError):
+        analyze_run(run, tmp_path / "corpus", output_dir=output, verify_inputs=True)
+    assert not output.exists()
+
+
+def test_analysis_rejects_dataset_mapping_not_in_pinned_corpus(tmp_path: Path) -> None:
+    import hashlib
+    from experiments.persona_graphiti_analysis import analyze_run
+
+    run = _verified_analysis_run(tmp_path)
+    extra = tmp_path / "corpus" / "extra.json"
+    extra.write_text("{}", encoding="utf-8")
+    path = run / "manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["dataset"]["artifact_sha256"][extra.name] = hashlib.sha256(extra.read_bytes()).hexdigest()
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    output = tmp_path / "analysis"
+    with pytest.raises(ValueError, match="primary dataset hash mapping"):
+        analyze_run(run, tmp_path / "corpus", output_dir=output, verify_inputs=True)
+    assert not output.exists()
+
+
+def test_analysis_cli_verifies_inputs_when_requested(tmp_path: Path) -> None:
+    from experiments.persona_graphiti_analysis import main
+
+    run = _verified_analysis_run(tmp_path)
+    output = tmp_path / "analysis"
+    args = ["--run-dir", str(run), "--corpus-dir", str(tmp_path / "corpus"),
+            "--output-dir", str(output), "--verify-inputs"]
+    assert main(args) == 0
+    (run / "metrics.json").write_text("{}", encoding="utf-8")
+    args[5] = str(tmp_path / "rejected")
+    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        main(args)
+    assert not (tmp_path / "rejected").exists()
+
+
 def test_analysis_renders_both_documents_from_real_metric_shapes(tmp_path: Path) -> None:
     from experiments.persona_graphiti_analysis import analyze_run
 

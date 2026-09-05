@@ -21,6 +21,10 @@ from experiments.persona_surface_derivation import (
     authenticate_pair_gate,
 )
 from experiments.synthetic_temporal_preferences import resolve_query
+from experiments.persona_historical_surface import (
+    HISTORICAL_MODEL_IDENTITY,
+    authenticate_historical_dataset,
+)
 
 
 SCHEDULE_VERSION = "persona-interference-schedule.v1"
@@ -190,6 +194,10 @@ def _authenticate_dataset(
         raise ValueError("generation manifest lacks artifact_sha256")
     model_identity = manifest.get("model_identity")
     method = manifest.get("method")
+    if model_identity == HISTORICAL_MODEL_IDENTITY:
+        if any(value is not None for value in (pair_gate_path, pair_gate_sha256, surface_assignment)):
+            raise ValueError("historical deterministic surfaces cannot use the Kimi pair-gate protocol")
+        return authenticate_historical_dataset(dataset_dir, expected_manifest_sha256)
     if method == DERIVATION_METHOD:
         if pair_gate_path is None or pair_gate_sha256 is None or surface_assignment is None:
             raise ValueError("Kimi surface variants require an authenticated pair gate")

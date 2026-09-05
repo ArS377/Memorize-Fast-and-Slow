@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from experiments.interleaved_conversation import build_interleaved_schedule
 from experiments.interleaved_memory_benchmark_v3 import (
     _paired_grounded_comparison,
@@ -14,6 +16,24 @@ from experiments.interleaved_memory_benchmark_v3 import (
     rank_global_capsule,
 )
 from experiments.synthetic_temporal_preferences import generate_dataset
+
+
+@pytest.mark.parametrize("protection", ["input", "frozen", "completed"])
+def test_run_refuses_protected_output_before_tokenizer_loading(tmp_path: Path, protection: str) -> None:
+    from experiments.interleaved_memory_benchmark_v3 import run_benchmark
+
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    output = dataset if protection == "input" else tmp_path / "output"
+    output.mkdir(exist_ok=True)
+    if protection == "frozen":
+        (output / "freeze_manifest.json").write_text("{}", encoding="utf-8")
+    if protection == "completed":
+        (output / "manifest.json").write_text('{"status":"completed"}', encoding="utf-8")
+    before = {path.name: path.read_bytes() for path in output.iterdir()}
+    with pytest.raises(ValueError, match="overlap|frozen|completed"):
+        run_benchmark(dataset, output, endpoint="http://scallop.invalid")
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
 
 
 class WhitespaceTokenizer:

@@ -18,11 +18,16 @@ rather than folded into a single accuracy number.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
+import re
+import stat
 from typing import Any, Mapping, Sequence
 
 from experiments.answer_eval import exact_match
+from neurosym.application.source_provenance import ensure_output_directory, paper_evidence_roots
+from scripts.paper_artifacts import json_load, safe_path
 
 
 ANALYSIS_VERSION = "persona_graphiti_analysis.v1"
@@ -489,10 +494,111 @@ def _load_store_states(run_dir: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def analyze_run(run_dir: Path, corpus_dir: Path) -> dict[str, Any]:
+def _verify_hash(root: Path, name: str, expected: Any) -> None:
+    if not isinstance(expected, str) or re.fullmatch(r"[0-9a-f]{64}", expected) is None:
+        raise ValueError(f"invalid SHA-256 for {name}")
+    path = safe_path(root, name)
+    try:
+        before = path.stat()
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError(f"not a regular artifact: {path}")
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        after = path.stat()
+    except OSError as error:
+        raise ValueError(f"cannot verify artifact {path}: {error}") from error
+    if digest.hexdigest() != expected:
+        raise ValueError(f"SHA-256 mismatch for {path}")
+    if (before.st_size, before.st_mtime_ns, before.st_ino) != (
+        after.st_size, after.st_mtime_ns, after.st_ino
+    ):
+        raise ValueError(f"artifact changed while verifying: {path}")
+
+
+def _verify_hash_map(root: Path, hashes: Any, required: Sequence[str] = ()) -> dict[str, str]:
+    if not isinstance(hashes, dict) or not hashes:
+        raise ValueError(f"artifact_sha256 must be a nonempty hash mapping: {root}")
+    if not set(required).issubset(hashes):
+        raise ValueError(f"artifact_sha256 missing required artifacts: {required}")
+    for name, expected in hashes.items():
+        _verify_hash(root, name, expected)
+    return hashes
+
+
+def _completed_manifest(root: Path, name: str) -> dict[str, Any]:
+    manifest = json_load(safe_path(root, name))
+    if not isinstance(manifest, dict) or manifest.get("status") != "completed":
+        raise ValueError(f"requires a completed manifest: {root / name}")
+    return manifest
+
+
+def _verify_declared_artifacts(root: Path, manifest: Mapping[str, Any], required: Sequence[str] = ()) -> dict[str, str]:
+    hashes = _verify_hash_map(root, manifest.get("artifact_sha256"), required)
+    if "artifacts" in manifest:
+        artifacts = manifest["artifacts"]
+        if not isinstance(artifacts, list) or any(
+            not isinstance(name, str) or name not in hashes for name in artifacts
+        ):
+            raise ValueError("declared artifacts require artifact_sha256 entries")
+    return hashes
+
+
+def _verify_analysis_inputs(run_dir: Path, corpus_dir: Path) -> dict[str, Any]:
+    manifest = _completed_manifest(run_dir, "manifest.json")
+    run_hashes = _verify_declared_artifacts(
+        run_dir, manifest, ("metrics.json", "predictions.jsonl")
+    )
+    dataset = manifest.get("dataset")
+    if not isinstance(dataset, dict):
+        raise ValueError("run manifest requires a primary dataset mapping")
+    _verify_hash(corpus_dir, "generation_manifest.json", dataset.get("generation_manifest_sha256"))
+    corpus_manifest = _completed_manifest(corpus_dir, "generation_manifest.json")
+    corpus_hashes = _verify_declared_artifacts(corpus_dir, corpus_manifest, ("events.jsonl",))
+    dataset_hashes = _verify_hash_map(corpus_dir, dataset.get("artifact_sha256"), ("events.jsonl",))
+    for name, expected in dataset_hashes.items():
+        if corpus_hashes.get(name) != expected:
+            raise ValueError(f"primary dataset hash mapping differs from corpus manifest: {name}")
+    for owner, key in ((dataset, "sha256"), (manifest, "dataset_sha256")):
+        if key in owner:
+            for name, expected in _verify_hash_map(corpus_dir, owner[key]).items():
+                if corpus_hashes.get(name) != expected:
+                    raise ValueError(f"dataset hash mapping differs from corpus manifest: {name}")
+    if "generation_manifest_sha256" in manifest or "generation_manifest.json" in run_hashes:
+        if "generation_manifest_sha256" in manifest:
+            _verify_hash(run_dir, "generation_manifest.json", manifest["generation_manifest_sha256"])
+        generation_manifest = _completed_manifest(run_dir, "generation_manifest.json")
+        _verify_declared_artifacts(run_dir, generation_manifest)
+        if "dataset" in generation_manifest and generation_manifest["dataset"] != dataset:
+            raise ValueError("generation manifest primary dataset differs from run manifest")
+    return manifest
+
+
+def analyze_run(
+    run_dir: Path, corpus_dir: Path, *, output_dir: Path | None = None,
+    verify_inputs: bool = False,
+) -> dict[str, Any]:
     """Render README and analysis documents for one completed run directory."""
-    metrics = json.loads((run_dir / "metrics.json").read_text(encoding="utf-8"))
-    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    run_dir, corpus_dir = Path(run_dir), Path(corpus_dir)
+    destination = ensure_output_directory(
+        run_dir if output_dir is None else output_dir,
+        input_dirs=(corpus_dir,) if output_dir is None else (run_dir, corpus_dir),
+        frozen_roots=paper_evidence_roots(Path(__file__).resolve().parents[1]),
+        allow_resume=output_dir is None,
+    )
+    names = ("diagnostics.json", "README.md", "analysis.md", "error_taxonomy.json")
+    for name in names:
+        path = safe_path(destination, name)
+        if output_dir is not None and path.exists():
+            raise ValueError(f"refusing to overwrite analysis artifact: {path}")
+        if path.exists() and path.stat().st_nlink > 1:
+            raise ValueError(f"refusing hard-linked analysis artifact: {path}")
+    manifest = (
+        _verify_analysis_inputs(run_dir, corpus_dir) if verify_inputs
+        else json_load(run_dir / "manifest.json")
+    )
+    metrics = json_load(run_dir / "metrics.json")
     predictions = _read_jsonl(run_dir / "predictions.jsonl")
     events = _read_jsonl(corpus_dir / "events.jsonl")
     values_by_account = account_surface_values(events)
@@ -501,19 +607,16 @@ def analyze_run(run_dir: Path, corpus_dir: Path) -> dict[str, Any]:
         "constant_rule_baseline": constant_rule_baseline(predictions),
         "evidence_availability": evidence_availability(predictions),
     }
-    (run_dir / "diagnostics.json").write_text(
-        json.dumps(diagnostics, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-
-    (run_dir / "README.md").write_text(
-        render_readme(metrics, manifest, taxonomy, diagnostics), encoding="utf-8"
-    )
-    (run_dir / "analysis.md").write_text(
-        render_analysis(metrics, manifest, taxonomy), encoding="utf-8"
-    )
-    (run_dir / "error_taxonomy.json").write_text(
-        json.dumps(taxonomy, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    documents = {
+        "diagnostics.json": json.dumps(diagnostics, indent=2, sort_keys=True) + "\n",
+        "README.md": render_readme(metrics, manifest, taxonomy, diagnostics),
+        "analysis.md": render_analysis(metrics, manifest, taxonomy),
+        "error_taxonomy.json": json.dumps(taxonomy, indent=2, sort_keys=True) + "\n",
+    }
+    destination.mkdir(parents=True, exist_ok=True)
+    for name, content in documents.items():
+        with (destination / name).open("w" if output_dir is None else "x", encoding="utf-8") as stream:
+            stream.write(content)
     return taxonomy
 
 
@@ -522,8 +625,22 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--corpus-dir", type=Path, required=True)
+    parser.add_argument(
+        "--output-dir", type=Path,
+        help="Separate analysis destination; never overlaps inputs or overwrites analysis files. "
+             "Omit only for legacy nonfrozen in-place rendering.",
+    )
+    parser.add_argument(
+        "--verify-inputs", action="store_true",
+        help="Required for paper workflows: verify completed manifests, every declared artifact "
+             "SHA-256, and the primary dataset manifest pin and events before writing. "
+             "Explicit opt-in, including with --output-dir; no metric rescoring or freeze-schema validation.",
+    )
     args = parser.parse_args(argv)
-    taxonomy = analyze_run(args.run_dir, args.corpus_dir)
+    taxonomy = analyze_run(
+        args.run_dir, args.corpus_dir, output_dir=args.output_dir,
+        verify_inputs=args.verify_inputs,
+    )
     print(json.dumps(taxonomy, indent=2, sort_keys=True))
     return 0
 

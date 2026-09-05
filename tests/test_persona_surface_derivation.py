@@ -11,7 +11,7 @@ import time
 
 import pytest
 
-from conftest import FakeKimiClient
+from conftest import FakeKimiClient, paper_input_dir
 from experiments.persona_conversation_generator import LLMResponse
 from experiments.persona_interference_schedule import ScheduleConfig, build_evaluation_schedule
 from experiments.persona_fixed_assignment_analysis import _authenticate_corpus
@@ -51,7 +51,7 @@ UNIQUE_PARENT_DIALOGUE_MARKER = "PARENT_KIMI_DIALOGUE_MUST_NOT_ENTER_CHILD_REQUE
 def generated_pair(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path, Path, Path]:
     root = tmp_path_factory.mktemp("kimi-pair")
     parent = root / "parent"
-    shutil.copytree(_root() / "results" / "persona_conflict_conversations_v1", parent)
+    shutil.copytree(paper_input_dir("persona_conflict_conversations_v1"), parent)
     events = [json.loads(line) for line in (parent / "events.jsonl").read_text().splitlines()]
     dialogue = [json.loads(line) for line in (parent / "dialogue.jsonl").read_text().splitlines()]
     events[0]["model_text"] += f"\n{UNIQUE_PARENT_DIALOGUE_MARKER}"
@@ -1124,7 +1124,7 @@ def _launch_order_fixture(
     tmp_path: Path, *, attempts: int
 ) -> SurfacePairConfig:
     parent = tmp_path / "parent"
-    shutil.copytree(_root() / "results" / "persona_conflict_conversations_v1", parent)
+    shutil.copytree(paper_input_dir("persona_conflict_conversations_v1"), parent)
     return SurfacePairConfig(
         parent_dir=parent,
         output_a=tmp_path / "a",
@@ -2184,7 +2184,7 @@ def test_partial_b_failure_leaves_no_completed_pair_gate(tmp_path: Path) -> None
             return response
 
     parent = tmp_path / "parent"
-    shutil.copytree(_root() / "results" / "persona_conflict_conversations_v1", parent)
+    shutil.copytree(paper_input_dir("persona_conflict_conversations_v1"), parent)
     gate = tmp_path / "pair-gate.json"
     config = SurfacePairConfig(
         parent_dir=parent,

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import paper_input_dir
 from experiments.persona_end_to_end_benchmark import (
     _aggregate_rows,
     _assert_full_context_fits,
@@ -24,6 +25,74 @@ from experiments.persona_end_to_end_benchmark import (
     load_benchmark_config,
     run_benchmark,
 )
+
+
+@pytest.mark.parametrize("frozen", [False, True])
+def test_benchmark_rejects_protected_outputs_before_model_loading(tmp_path: Path, frozen: bool) -> None:
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    output = dataset
+    if frozen:
+        (tmp_path / "freeze_manifest.json").write_text("{}", encoding="utf-8")
+        output = tmp_path / "new-output"
+    config = load_benchmark_config(
+        Path(__file__).parents[1] / "configs" / "persona_end_to_end_benchmark.json",
+        environ={
+            "PERSONA_DATASET_DIR": str(dataset),
+            "PERSONA_BENCHMARK_OUTPUT_DIR": str(output),
+            "PERSONA_QWEN_MODEL_PATH": "/model",
+            "PERSONA_QWEN_MODEL_ID": "Qwen/fixture",
+            "PERSONA_QWEN_DEVICE": "cpu",
+            "PERSONA_SCALLOP_ENDPOINT": "http://scallop.invalid",
+        },
+    )
+    with pytest.raises(ValueError, match="overlap|frozen"):
+        run_benchmark(config, config_sha256="fixture")
+    assert not (output / "manifest.json").exists()
+
+
+def test_archive_runner_validates_source_before_tokenizer_without_git(tmp_path: Path, monkeypatch) -> None:
+    import sys
+    import types
+    from experiments import persona_end_to_end_benchmark as benchmark
+    from neurosym.application import source_provenance as provenance
+
+    archive = tmp_path / "archive with spaces"
+    script = archive / "experiments" / "persona_end_to_end_benchmark.py"
+    script.parent.mkdir(parents=True)
+    script.write_bytes(b"fixture = True\n")
+    digest = provenance.write_source_manifest(archive, "source_manifest.json")
+    monkeypatch.setattr(benchmark, "__file__", str(script))
+    monkeypatch.setenv("NEUROSYM_SOURCE_MANIFEST", "source_manifest.json")
+    monkeypatch.setenv("NEUROSYM_SOURCE_MANIFEST_SHA256", digest)
+    monkeypatch.setattr(provenance, "git_provenance", lambda *a, **kw: pytest.fail("Git invoked in archive mode"))
+
+    class TokenizerFactory:
+        @staticmethod
+        def from_pretrained(*args, **kwargs):
+            raise RuntimeError("reached tokenizer after archive verification")
+
+    transformers = types.ModuleType("transformers")
+    transformers.AutoTokenizer = TokenizerFactory
+    transformers.AutoModelForCausalLM = object()
+    monkeypatch.setitem(sys.modules, "transformers", transformers)
+    monkeypatch.setitem(sys.modules, "torch", types.ModuleType("torch"))
+    config = load_benchmark_config(
+        Path(__file__).parents[1] / "configs" / "persona_end_to_end_benchmark.json",
+        environ={
+            "PERSONA_DATASET_DIR": str(tmp_path / "dataset"),
+            "PERSONA_BENCHMARK_OUTPUT_DIR": str(tmp_path / "output"),
+            "PERSONA_QWEN_MODEL_PATH": str(tmp_path / "model"),
+            "PERSONA_QWEN_MODEL_ID": "Qwen/fixture",
+            "PERSONA_QWEN_DEVICE": "cpu",
+            "PERSONA_SCALLOP_ENDPOINT": "http://scallop.invalid",
+        },
+    )
+    with pytest.raises(RuntimeError, match="reached tokenizer"):
+        run_benchmark(config, config_sha256="fixture")
+    script.write_bytes(b"fixture = False\n")
+    with pytest.raises(ValueError, match="source file"):
+        run_benchmark(config, config_sha256="fixture")
 
 
 class WordChatTokenizer:
@@ -194,7 +263,7 @@ def test_benchmark_authenticates_and_rebuilds_all_120_conditions(tmp_path: Path)
     config = load_benchmark_config(
         root / "configs" / "persona_end_to_end_benchmark.json",
         environ={
-            "PERSONA_DATASET_DIR": str(root / "results" / "persona_conflict_conversations_v1"),
+            "PERSONA_DATASET_DIR": str(paper_input_dir("persona_conflict_conversations_v1")),
             "PERSONA_BENCHMARK_OUTPUT_DIR": str(tmp_path),
             "PERSONA_QWEN_MODEL_PATH": "/model",
             "PERSONA_QWEN_MODEL_ID": "Qwen/fixture",
@@ -223,7 +292,7 @@ def test_invalid_pair_gate_fails_before_torch_or_transformers_import(
     config = load_benchmark_config(
         root / "configs" / "persona_end_to_end_benchmark.json",
         environ={
-            "PERSONA_DATASET_DIR": str(root / "results" / "persona_conflict_conversations_v1"),
+            "PERSONA_DATASET_DIR": str(paper_input_dir("persona_conflict_conversations_v1")),
             "PERSONA_BENCHMARK_OUTPUT_DIR": str(tmp_path / "output"),
             "PERSONA_QWEN_MODEL_PATH": "/model",
             "PERSONA_QWEN_MODEL_ID": "Qwen/fixture",

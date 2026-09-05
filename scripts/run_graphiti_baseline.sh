@@ -15,10 +15,13 @@ PYTHON_BIN="${PYTHON_BIN:-$ROOT/.venv-graphiti/bin/python}"
 CONFIG="${CONFIG:-$ROOT/configs/persona_end_to_end_joint_surface_a.json}"
 # v1 is shortcut-solvable (a per-family constant rule scores ~100% on the
 # delayed probes), so the account-unique surface corpus is the default.
-CORPUS="${CORPUS:-$ROOT/results/persona_conflict_conversations_surface_a}"
+CORPUS="${CORPUS:-$ROOT/results/persona_conflict_conversations_surface_a_graphiti_build2}"
 RESULTS_ROOT="${RESULTS_ROOT:-$ROOT/results}"
 BUILDS="${BUILDS:-build1 build2 build3}"
 SKIP_SMOKE="${SKIP_SMOKE:-0}"
+RESUME="${RESUME:-0}"
+ANALYSIS_ROOT="${ANALYSIS_ROOT:-$RESULTS_ROOT/graphiti_analysis}"
+cd "$ROOT"
 
 # The config declares which environment variables carry the dataset and output
 # paths, so read them from it rather than assuming the v1 names.
@@ -29,13 +32,33 @@ export "$DATASET_ENV"="$CORPUS"
 say() { printf '\n=== [%s] %s ===\n' "$(date -u +%H:%M:%S)" "$*"; }
 die() { printf '\nFATAL: %s\n' "$*" >&2; exit 1; }
 
+validate_output() {
+  "$PYTHON_BIN" - "$1" "$CORPUS" "${2:-0}" <<'PY'
+import sys
+from pathlib import Path
+from neurosym.application.source_provenance import ensure_output_directory, paper_evidence_roots
+output = ensure_output_directory(sys.argv[1], input_dirs=(sys.argv[2],), frozen_roots=paper_evidence_roots(Path.cwd()), allow_resume=sys.argv[3] == "1")
+if output.exists() and sys.argv[3] != "1":
+    raise SystemExit(f"refusing existing output {output}; use a fresh path or RESUME=1 for scored builds")
+PY
+}
+
+is_completed() {
+  "$PYTHON_BIN" - "$1" <<'PY'
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[1]) / "manifest.json"
+raise SystemExit(0 if path.is_file() and json.loads(path.read_text())["status"] == "completed" else 1)
+PY
+}
+
 # --- Stage 0: services -------------------------------------------------------
 say "stage 0: service preflight"
 [ -x "$PYTHON_BIN" ] || die "python not found at $PYTHON_BIN"
 [ -f "$CONFIG" ] || die "config not found at $CONFIG"
 [ -d "$CORPUS" ] || die "corpus not found at $CORPUS"
 
-: "${PERSONA_GRAPHITI_LLM_BASE_URL:?set the graphiti environment first (source graphiti_env.sh)}"
+: "${PERSONA_GRAPHITI_LLM_BASE_URL:?export the Graphiti service environment before running}"
 curl -sf -m 10 "${PERSONA_GRAPHITI_LLM_BASE_URL%/}/models" >/dev/null \
   || die "extraction endpoint not reachable at $PERSONA_GRAPHITI_LLM_BASE_URL"
 echo "extraction endpoint: OK"
@@ -100,8 +123,8 @@ PY
 # --- Stage 1: one-account smoke ---------------------------------------------
 if [ "$SKIP_SMOKE" != "1" ]; then
   say "stage 1: one-account extraction smoke test"
-  SMOKE_DIR="$RESULTS_ROOT/persona_graphiti_preflight_smoke"
-  rm -rf "$SMOKE_DIR"
+  SMOKE_DIR="${SMOKE_DIR:-$RESULTS_ROOT/persona_graphiti_preflight_smoke}"
+  validate_output "$SMOKE_DIR"
   env PERSONA_GRAPHITI_BUILD_ID=smoke "$OUTPUT_ENV=$SMOKE_DIR" \
     "$PYTHON_BIN" -m experiments.persona_graphiti_preflight \
       --config "$CONFIG" --histories 1 >/dev/null \
@@ -112,12 +135,12 @@ if [ "$SKIP_SMOKE" != "1" ]; then
 fi
 
 # --- Stage 2: full ingestion preflight ---------------------------------------
-PRE_DIR="$RESULTS_ROOT/persona_graphiti_preflight_v1"
+PRE_DIR="${PRE_DIR:-$RESULTS_ROOT/persona_graphiti_preflight_v1}"
 if [ "${SKIP_PREFLIGHT:-0}" = "1" ] && [ -f "$PRE_DIR/preflight_manifest.json" ]; then
   say "stage 2: reusing the completed preflight at $PRE_DIR"
 else
   say "stage 2: full 12-account ingestion preflight"
-  rm -rf "$PRE_DIR"
+  validate_output "$PRE_DIR"
   env PERSONA_GRAPHITI_BUILD_ID=preflight "$OUTPUT_ENV=$PRE_DIR" \
     "$PYTHON_BIN" -m experiments.persona_graphiti_preflight --config "$CONFIG" >/dev/null \
     || die "full preflight raised; inspect $PRE_DIR"
@@ -144,9 +167,14 @@ fi
 for build in $BUILDS; do
   say "stage 3: benchmark $build"
   OUT="$RESULTS_ROOT/persona_graphiti_e2e_$build"
-  env PERSONA_GRAPHITI_BUILD_ID="$build" "$OUTPUT_ENV=$OUT" \
-    "$PYTHON_BIN" -m experiments.persona_end_to_end_benchmark --config "$CONFIG" >/dev/null \
-    || die "benchmark $build failed; it is resumable, rerun the same command"
+  validate_output "$OUT" "$RESUME"
+  if [ "$RESUME" = "1" ] && is_completed "$OUT"; then
+    say "reusing completed build at $OUT without writing it"
+  else
+    env PERSONA_GRAPHITI_BUILD_ID="$build" "$OUTPUT_ENV=$OUT" \
+      "$PYTHON_BIN" -m experiments.persona_end_to_end_benchmark --config "$CONFIG" >/dev/null \
+      || die "benchmark $build failed; resume with RESUME=1 SKIP_SMOKE=1 SKIP_PREFLIGHT=1"
+  fi
   # The scored build ingests its own store, independently and stochastically,
   # so a healthy preflight says nothing about it. Re-run the same extraction
   # health checks against the store this build actually queried.
@@ -189,13 +217,16 @@ print("build gate: completed, zero episode failures, scored store healthy")
 PY
 
   say "stage 4: analysis for $build"
+  ANALYSIS_DIR="$ANALYSIS_ROOT/persona_graphiti_e2e_$build"
+  validate_output "$ANALYSIS_DIR"
   "$PYTHON_BIN" -m experiments.persona_graphiti_analysis \
-    --run-dir "$OUT" --corpus-dir "$CORPUS" >/dev/null
-  echo "wrote $OUT/README.md, analysis.md, error_taxonomy.json"
+    --run-dir "$OUT" --corpus-dir "$CORPUS" \
+    --output-dir "$ANALYSIS_DIR" --verify-inputs >/dev/null
+  echo "wrote $ANALYSIS_DIR/README.md, analysis.md, error_taxonomy.json"
 done
 
 say "all stages complete"
 for build in $BUILDS; do
   echo "--- $build headline ---"
-  sed -n '/^| Arm /,/^$/p' "$RESULTS_ROOT/persona_graphiti_e2e_$build/README.md" 2>/dev/null || true
+  sed -n '/^| Arm /,/^$/p' "$ANALYSIS_ROOT/persona_graphiti_e2e_$build/README.md" 2>/dev/null || true
 done

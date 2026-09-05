@@ -28,6 +28,11 @@ from experiments.interleaved_memory_benchmark import (
 from experiments.preference_stream_injection import PreferenceStreamInjectionClient
 from experiments.synthetic_temporal_baselines import _tokenize
 from experiments.synthetic_temporal_preferences import resolve_query
+from neurosym.application.source_provenance import (
+    ensure_output_directory,
+    paper_evidence_roots,
+    source_provenance,
+)
 
 
 BENCHMARK_VERSION = "interleaved_delayed_retrieval.v3"
@@ -869,6 +874,9 @@ def run_benchmark(
     """Run the full delayed checkpoint benchmark and write reproducible artifacts."""
     dataset_dir = Path(dataset_dir)
     output_dir = Path(output_dir)
+    repository_root = Path(__file__).resolve().parents[1]
+    ensure_output_directory(output_dir, (dataset_dir,), frozen_roots=paper_evidence_roots(repository_root))
+    execution_source = source_provenance(repository_root, output_dir=output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     tokenizer = HuggingFaceTokenizer(
         TokenizerConfig(
@@ -999,6 +1007,7 @@ def run_benchmark(
     manifest = {
         "status": "completed",
         "benchmark_version": BENCHMARK_VERSION,
+        "source_provenance": execution_source,
         "dataset": str(dataset_dir),
         "dataset_sha256": {
             name: _sha256(dataset_dir / name)

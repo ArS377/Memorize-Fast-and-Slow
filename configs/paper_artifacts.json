@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "freeze_root": "C:/Programming/NeuroSym-paper-freeze",
+  "snapshots": [
+    {"directory": "v001-as-found", "manifest_sha256": "e1dfaaf42e478855dfbc869aa58eb2a9c715d2fb360440ca6d98e1ad9923e087", "historical_status": "failed", "reason": "Preserved checkout bytes differ from recorded hashes; originals untouched."},
+    {"directory": "v002-git", "manifest_sha256": "cb432774f962b5d480c6958472bec5eac3343fea3376cad6de2d19b7e9141443", "historical_status": "verified", "reason": "Pinned Git blobs and materialized LFS payloads match all historical references; execution-source gaps remain separate."}
+  ],
+  "baseline": {
+    "revision": "ab3f8b3056a8d48f627f129cfc6bebcf239ef8a6",
+    "directories": ["experiments", "neurosym", "services"],
+    "files": [
+      "requirements.txt",
+      "requirements-qwen35-eval.txt",
+      "requirements-graphiti-baseline.txt",
+      "configs/continual_memory_benchmark.json",
+      "configs/persona_conflict_generation.json",
+      "configs/persona_conversation_generation.json",
+      "configs/persona_end_to_end_benchmark.json",
+      "configs/persona_end_to_end_benchmark_surface_a.json",
+      "configs/persona_end_to_end_joint_surface_a.json",
+      "configs/persona_graphiti_surface_a.json",
+      "configs/persona_interference_schedule.json",
+      "scripts/run_graphiti_baseline.sh",
+      "scripts/supervise_joint_run.sh",
+      "tests/conftest.py",
+      "tests/test_continual_memory_benchmark.py",
+      "tests/test_interleaved_memory_benchmark.py",
+      "tests/test_interleaved_memory_benchmark_v3.py",
+      "tests/test_persona_conversation_generator.py",
+      "tests/test_persona_end_to_end_benchmark.py",
+      "tests/test_persona_graphiti_baseline.py",
+      "tests/test_persona_interference_schedule.py",
+      "tests/test_persona_neurosym_retrieval.py",
+      "tests/test_persona_surface_derivation.py",
+      "tests/test_preference_stream_injection.py",
+      "tests/test_private_lineage_reasoning.py",
+      "tests/test_synthetic_temporal_preferences.py"
+    ]
+  },
+  "evidence": [
+    {"path": "results/persona_joint_surface_a_build2", "role": "result", "manifests": ["manifest.json", "generation_manifest.json"]},
+    {"path": "results/continual_memory_benchmark_v3_stream", "role": "result", "manifests": ["manifest.json"]},
+    {"path": "results/interleaved_memory_benchmark_v3", "role": "result", "manifests": ["manifest.json"]},
+    {"path": "results/persona_conflict_conversations_surface_a_graphiti_build2", "role": "input", "manifests": ["generation_manifest.json"]},
+    {"path": "results/persona_conflict_conversations_v1", "role": "input", "manifests": ["generation_manifest.json"]},
+    {"path": "results/synthetic_temporal_preferences_1000_v4_stream", "role": "input", "manifests": []},
+    {"path": "results/synthetic_temporal_preferences_1200_v5_interleaved", "role": "input", "manifests": []}
+  ],
+  "relations": {
+    "results/persona_joint_surface_a_build2/manifest.json": {
+      "dataset": "results/persona_conflict_conversations_surface_a_graphiti_build2",
+      "parent": "results/persona_conflict_conversations_v1",
+      "config": "configs/persona_end_to_end_joint_surface_a.json",
+      "evaluator": "experiments/persona_end_to_end_benchmark.py"
+    },
+    "results/persona_joint_surface_a_build2/generation_manifest.json": {
+      "dataset": "results/persona_conflict_conversations_surface_a_graphiti_build2",
+      "parent": "results/persona_conflict_conversations_v1",
+      "config": "configs/persona_end_to_end_joint_surface_a.json",
+      "evaluator": "experiments/persona_end_to_end_benchmark.py"
+    },
+    "results/continual_memory_benchmark_v3_stream/manifest.json": {
+      "dataset": "results/synthetic_temporal_preferences_1000_v4_stream",
+      "config": "configs/continual_memory_benchmark.json"
+    },
+    "results/interleaved_memory_benchmark_v3/manifest.json": {
+      "dataset": "results/synthetic_temporal_preferences_1200_v5_interleaved",
+      "candidate_source": "experiments/interleaved_memory_benchmark_v3.py"
+    },
+    "results/persona_conflict_conversations_surface_a_graphiti_build2/generation_manifest.json": {
+      "parent": "results/persona_conflict_conversations_v1"
+    }
+  },
+  "source_candidates": [
+    "19a720ea1044d22e5e7e30d7248d444ea3d47e62",
+    "graphiti-external-baseline", "5b02fdc", "93e5ff8", "a30bcc5", "8ec131f",
+    "a0678d85304b9ccca3604bcbdefc65753cd1170e", "bb0351b"
+  ]
+}

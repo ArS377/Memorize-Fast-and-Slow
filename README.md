@@ -48,6 +48,215 @@ resource limits, citations, and fixtures.
 
 ---
 
+## Paper evidence and preparation branch
+
+Preparation work lives on `prep/neurips`; it does not replace the original
+result files or establish that a complete historical execution environment has
+been recovered. The preserved primary table uses the historical deterministic
+Surface-A corpus, not the newer pair-conditioned Kimi A/B corpora.
+
+### Preserved evidence
+
+`configs/paper_artifacts.json` selects three result bundles and their exact
+inputs, records the baseline revision, and retains external snapshot-manifest
+hashes. Run preservation commands from the repository root. The utility uses
+only the Python standard library and does not download missing LFS objects.
+
+| Paper result | Input |
+|---|---|
+| `persona_joint_surface_a_build2` | `persona_conflict_conversations_surface_a_graphiti_build2` and parent `persona_conflict_conversations_v1` |
+| `continual_memory_benchmark_v3_stream` | `synthetic_temporal_preferences_1000_v4_stream` |
+| `interleaved_memory_benchmark_v3` | `synthetic_temporal_preferences_1200_v5_interleaved` |
+
+The private sibling preservation root is `C:/Programming/NeuroSym-paper-freeze`.
+`v001-as-found` preserves the original checkout bytes and records 43 historical
+hash mismatches. `v002-git` instead preserves untouched Git blobs from the
+pinned baseline and verified materialized LFS payloads. Its 47 historically
+hashed files match; another 141 baseline-source/ancillary files are inventoried
+without implying historical execution authentication. Neither snapshot is
+rewritten by the preparation workflow.
+
+Windows checkout newline conversion explains the observed evidence hash
+mismatches: the original Git blobs match the historical pins. Do not normalize
+research data or re-sign historical manifests to make a checkout pass. Use the
+Git-byte snapshot for authenticated analysis and retain the as-found snapshot.
+
+```bash
+python scripts/paper_artifacts.py inventory --repo . --selection configs/paper_artifacts.json --evidence-source git
+python scripts/paper_artifacts.py freeze --repo . --selection configs/paper_artifacts.json --evidence-source git --destination /path/to/existing-parent/new-snapshot
+python scripts/paper_artifacts.py verify /path/to/v002-git --require-trusted --expected-manifest-sha256 cb432774f962b5d480c6958472bec5eac3343fea3376cad6de2d19b7e9141443
+```
+
+Freeze destinations must not exist, their parents must exist, and source and
+destination must not overlap. `verified` means that the selected bytes and
+manifest relationships passed the checks; it is not proof of the original
+execution. The as-found snapshot deliberately returns a failed historical
+assessment even when its preserved bytes remain intact.
+
+### Execution-source recovery
+
+```bash
+python scripts/paper_artifacts.py source-audit --repo . --selection configs/paper_artifacts.json --path-history --output /path/to/new-source-recovery.json --export-sources /path/to/new-source-snapshots
+```
+
+The private `source_recovery-v002.json` and `source-recovery-v002/` record local
+Git candidates and independently hash-matched files. The primary evaluator and
+configuration have matching Git blobs. Its recorded base commit is unavailable,
+and the original dirty diff plus two untracked files are unresolved. Two
+continual-memory source-file hashes are also unresolved. Interleaved v3 has no
+recorded execution-source hashes, so its source remains candidate-only.
+A matching file is not a recovered complete dirty tree. The historical helper
+is derived from `graphiti-external-baseline` at `5b02fdc`, with algorithm and
+transformation tests; this provenance is distinct from an exact execution claim.
+
+### Verify scores without running models
+
+Use a Python environment with the benchmark imports available, including
+`rank-bm25==0.2.2`, NumPy, and the Neo4j driver. This command first verifies the
+frozen bytes against the supplied external digest, then re-scores saved answers
+and re-aggregates the retained records. It does not call an LLM, rebuild Graphiti,
+re-execute Scallop, or retokenize the long streams.
+
+```bash
+python scripts/verify_paper_results.py --root /path/to/v002-git --expected-manifest-sha256 cb432774f962b5d480c6958472bec5eac3343fea3376cad6de2d19b7e9141443 --output /path/to/new-scientific-verification.json
+python -m experiments.persona_graphiti_analysis --run-dir /path/to/v002-git/results/persona_joint_surface_a_build2 --corpus-dir /path/to/v002-git/results/persona_conflict_conversations_surface_a_graphiti_build2 --output-dir /path/to/new-analysis --verify-inputs
+```
+
+The saved-record check reproduced all 16 primary EM/F1 values and eight overall
+paired contrasts, the continual lineage and deep delayed-probe slices, and the
+interleaved availability and paired statistics. Full stratified primary
+bootstraps and new model generations are not part of this check. Without
+`--expected-manifest-sha256`, numerical agreement is explicitly unauthenticated.
+Separate analysis output is exclusive; frozen destinations and input overlap
+are rejected. Original reference directories listed in the selection are also
+protected, even outside the sibling freeze.
+
+### Choose historical A, Kimi A, or Kimi A+B
+
+The dataset decision is selectable, not a source-code fork. The fixed registry in
+`configs/paper_persona_modes.json` binds each mode to its own dataset hashes and
+protocol. All modes use the same eight arms: sliding context, structured memory,
+hybrid KG, and Graphiti, each at 4K and 16K. None uses the older five-arm layout
+for the four-method comparison.
+
+| Mode | Data | Planned generations |
+|---|---|---:|
+| `historical_a` (default) | Historical deterministic Surface A behind the preserved main table | 960 |
+| `kimi_a` | Newer pair-conditioned Kimi Surface A only | 960 |
+| `kimi_ab` | Both newer pair-conditioned Kimi surfaces | 1,920 |
+
+These are planned counts, not newly completed experiments. The historical
+snapshot does not contain the newer A/B corpora. Modern modes require a separate
+byte-exact data export containing the parent, A, B, and `persona_surface_pair_gate.json`
+under `results/`. Even `kimi_a` needs the sibling B data for pair-gate provenance
+verification, although it generates answers only for A. Tests exercise both
+protocols using original Git blobs; CRLF-converted or substituted data fail closed.
+
+Preview is the default and does not create files, load models, or contact
+services. The output root must be separate from preserved evidence and source
+code. Example previews:
+
+```bash
+python -m experiments.paper_persona --mode historical_a --evidence-root /path/to/v002-git --output-root /path/to/new-runsets --run-id trial01
+python -m experiments.paper_persona --mode kimi_a --evidence-root /path/to/modern-data-export --output-root /path/to/new-runsets --run-id trial01
+python -m experiments.paper_persona --mode kimi_ab --evidence-root /path/to/modern-data-export --output-root /path/to/new-runsets --run-id trial01
+```
+
+Add `--prepare` to create only configurations and `plan.json`. Add `--execute`
+only when intentionally starting model/service execution with the existing
+Qwen, embedding, Scallop, and Neo4j environment variables configured. The runner
+validates all surface configurations before starting the first evaluator. It
+never records credential values in the generated plan/configs. Child evaluator
+stdout/stderr are suppressed; inspect its run artifacts for status or invoke the
+evaluator directly when diagnosing a service/environment failure.
+
+Each invocation uses `<output-root>/<mode>/<run-id>/`, with independent
+`surface_a/` and, where applicable, `surface_b/` result directories, caches,
+embedding indexes, and Graphiti build IDs. Existing runsets are refused. Preview
+can be followed by execution with the same ID; `--prepare` consumes that ID, so a
+subsequent runner execution requires a fresh ID. The underlying evaluator still
+supports compatible resume; the top-level runset tool deliberately does not
+silently reuse prepared, partial, or completed runs.
+
+Analyze a completed single-surface run using its exact generated configuration:
+
+```bash
+python -m experiments.paper_persona_analysis --mode historical_a --run-a /path/to/runset/surface_a --config-a /path/to/runset/configs/surface_a.json --evidence-root /path/to/v002-git --output-dir /path/to/new-analysis
+```
+
+For the preserved historical table, pass the frozen
+`results/persona_joint_surface_a_build2` as `--run-a` and its frozen
+`baseline_source/configs/persona_end_to_end_joint_surface_a.json` as `--config-a`.
+Use `--mode kimi_a` for a new matched Kimi-A run. For A+B:
+
+```bash
+python -m experiments.paper_persona_analysis --mode kimi_ab --run-a /path/to/runset/surface_a --config-a /path/to/runset/configs/surface_a.json --run-b /path/to/runset/surface_b --config-b /path/to/runset/configs/surface_b.json --evidence-root /path/to/modern-data-export --output-dir /path/to/new-analysis
+```
+
+The analysis validates dataset/gate identities, result hashes, configuration and
+model/source compatibility, complete eight-arm condition coverage, and matched
+recorded checkpoints before creating a fresh `analysis.json`. It rejects
+historical/modern mixtures and missing or duplicate B results. A+B reports each
+surface separately and pools with surface-qualified condition IDs but the same
+12 base-history clusters. It does not count A/B as 24 independent histories.
+These remain descriptive fixed, pair-conditioned surfaces, not independent
+replications. Answers are rescored against saved gold labels; tokenization,
+causal gold resolution, and model execution are not rerun by this analysis.
+No new eight-arm modern A/B experiment has been performed by this preparation.
+
+### Source archives without Git
+
+The persona, continual, and interleaved runners support explicit source-archive
+identity. Generate the manifest after assembling the final source/config files,
+retain its printed digest independently, and supply both variables when running
+from that archive. The v1 scope authenticates Python modules, JSON configuration,
+shell launchers, and the listed requirements files; it does not authenticate
+installed dependencies or model weights.
+
+```bash
+python -m neurosym.application.source_provenance --create /path/to/source-export --output source_manifest.json
+python -m neurosym.application.source_provenance --verify /path/to/source-export --manifest source_manifest.json --sha256 MANIFEST_DIGEST
+export NEUROSYM_SOURCE_MANIFEST=source_manifest.json
+export NEUROSYM_SOURCE_MANIFEST_SHA256=MANIFEST_DIGEST
+```
+
+In PowerShell, set the variables with `$env:NEUROSYM_SOURCE_MANIFEST` and
+`$env:NEUROSYM_SOURCE_MANIFEST_SHA256`. Archive mode rejects changed, missing, or
+extra source files and never fabricates a historical Git identity. New runs use
+new output/cache/index directories. Changed source/configuration cannot resume a
+historical run; existing immutable resume and cache checks remain active.
+
+The Graphiti drivers accept caller-supplied paths instead of an original-host
+environment script and refuse destructive preflight cleanup. Shell launchers
+require Linux/Bash and LF line endings; `.gitattributes` declares LF for these
+two scripts. Windows editors may retain CRLF in an existing checkout, so use an
+LF export for Bash. Source-archive hashes must be created after choosing the
+export's bytes. Do not apply source-formatting changes to frozen evidence.
+
+### Preparation tests and limitations
+
+For data-dependent tests, point `NEUROSYM_TEST_EVIDENCE_ROOT` at the verified
+repo-shaped snapshot. This only changes test input locations; it does not relax
+production authentication or change the original checkout. Tests that exercise
+modern A/B generation use mocked clients, but the existing durable generation
+writer uses POSIX directory `fsync` and requires Linux for that regression suite.
+Graphiti-specific tests additionally require the pinned optional Graphiti
+environment; tokenizer tests may require Transformers.
+
+```bash
+export NEUROSYM_TEST_EVIDENCE_ROOT=/path/to/v002-git
+python -m pytest tests/test_paper_artifacts.py tests/test_source_provenance.py tests/test_persona_historical_surface.py tests/test_verify_paper_results.py
+python -m pytest tests/test_paper_persona.py tests/test_paper_persona_analysis.py
+python -m pytest tests/test_persona_interference_schedule.py tests/test_persona_end_to_end_benchmark.py tests/test_persona_graphiti_baseline.py tests/test_continual_memory_benchmark.py tests/test_interleaved_memory_benchmark_v3.py
+python -m pytest tests/test_persona_surface_derivation.py
+```
+
+The local preparation checks use Python 3.13.7 and a test environment, not the
+historical GPU/Scallop environment. Full installations, live service integration,
+model reruns, licensing, anonymization, and a final submission export remain
+separate work. No new API generations or model runs were performed to prepare
+these artifacts.
+
 ## Environment Setup
 
 The Linux experiment setup uses the `scallopy` 0.2.4 Python 3.10 wheel. The

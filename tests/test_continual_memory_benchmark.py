@@ -226,6 +226,23 @@ def _write_config(
     return path
 
 
+@pytest.mark.parametrize("protection", ["input", "frozen", "completed"])
+def test_run_refuses_protected_output_before_writing(tmp_path: Path, protection: str) -> None:
+    config_path = _write_config(tmp_path / "config.json")
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    output = dataset if protection == "input" else tmp_path / "output"
+    output.mkdir(exist_ok=True)
+    if protection == "frozen":
+        (output / "freeze_manifest.json").write_text("{}", encoding="utf-8")
+    if protection == "completed":
+        (output / "manifest.json").write_text('{"status":"completed"}', encoding="utf-8")
+    before = {path.name: path.read_bytes() for path in output.iterdir()}
+    with pytest.raises(ValueError, match="overlap|frozen|completed"):
+        run_benchmark(dataset, output, config_path, load_benchmark_config(config_path), WhitespaceTokenizer())
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+
+
 def _dataset(path: Path) -> Path:
     generate_dataset(path, history_count=4, split_counts=(1, 1, 2))
     return path

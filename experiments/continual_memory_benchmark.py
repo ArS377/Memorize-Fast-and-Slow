@@ -76,6 +76,11 @@ from experiments._continual_memory_evaluation import (
     evaluate_episodes,
 )
 from experiments.preference_stream_injection import PreferenceStreamInjectionClient
+from neurosym.application.source_provenance import (
+    ensure_output_directory,
+    paper_evidence_roots,
+    source_provenance,
+)
 
 
 SOURCE_ARTIFACTS = (
@@ -264,6 +269,8 @@ def run_benchmark(
     dataset_dir = Path(dataset_dir)
     output_dir = Path(output_dir)
     config_path = Path(config_path)
+    ensure_output_directory(output_dir, (dataset_dir, config_path), frozen_roots=paper_evidence_roots(repository_root))
+    execution_source = source_provenance(repository_root, output_dir=output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_names = ["episodes.jsonl", "predictions.jsonl", "metrics.json", "report.md"]
     preexisting_artifacts = [
@@ -282,7 +289,11 @@ def run_benchmark(
         "benchmark_version": config.benchmark_version,
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(),
-        "source": _git_state(repository_root),
+        "source": {
+            "git_sha": execution_source.get("git", {}).get("git_head"),
+            "git_dirty": execution_source.get("git", {}).get("dirty"),
+        },
+        "source_provenance": execution_source,
         "dataset": {
             "path": str(dataset_dir),
             "split": config.source_split,

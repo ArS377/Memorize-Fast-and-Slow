@@ -12,7 +12,6 @@ from pathlib import Path
 import random
 import re
 from statistics import mean
-import subprocess
 import time
 from typing import Any, Mapping, Protocol, Sequence
 
@@ -47,6 +46,12 @@ from experiments.persona_neurosym_retrieval import (
 )
 from experiments.preference_stream_injection import PreferenceStreamInjectionClient
 from neurosym.adapters.validation_backend import HttpScallopValidatorBackend
+from neurosym.application.source_provenance import (
+    ensure_output_directory,
+    git_provenance,
+    paper_evidence_roots,
+    source_provenance,
+)
 
 
 EVALUATOR_VERSION = "persona_end_to_end_qwen.v2"
@@ -1253,67 +1258,7 @@ def _git_provenance(
     path: Path, *, excluded_untracked_dir: Path | None = None
 ) -> dict[str, Any]:
     """Hash HEAD plus tracked and untracked source changes for immutable resume state."""
-    def run(cwd: Path, *args: str) -> bytes:
-        try:
-            return subprocess.run(
-                ["git", *args],
-                cwd=cwd,
-                check=True,
-                capture_output=True,
-                timeout=30,
-            ).stdout
-        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
-            raise ValueError(f"cannot resolve git provenance with {' '.join(args)}: {error}") from error
-
-    root = Path(
-        run(path, "rev-parse", "--show-toplevel").decode("utf-8").strip()
-    ).resolve()
-    excluded_roots = [root / "results"]
-    if excluded_untracked_dir is not None:
-        excluded_roots.append(excluded_untracked_dir.resolve())
-    head = run(root, "rev-parse", "HEAD").decode("ascii").strip()
-    tracked_diff_args = ["diff", "--binary", "HEAD", "--", "."]
-    for excluded in excluded_roots:
-        if excluded == root or root in excluded.parents:
-            relative_excluded = excluded.relative_to(root).as_posix()
-            tracked_diff_args.extend(
-                [
-                    f":(exclude){relative_excluded}",
-                    f":(exclude){relative_excluded}/**",
-                ]
-            )
-    tracked_diff = run(root, *tracked_diff_args)
-    untracked_names = [
-        name.decode("utf-8")
-        for name in run(
-            root, "ls-files", "--others", "--exclude-standard", "-z"
-        ).split(b"\0")
-        if name
-    ]
-    digest = hashlib.sha256()
-    digest.update(b"tracked-diff\0")
-    digest.update(tracked_diff)
-    included_untracked = []
-    for name in sorted(untracked_names):
-        source = (root / name).resolve()
-        if any(
-            source == excluded or excluded in source.parents
-            for excluded in excluded_roots
-        ):
-            continue
-        if not source.is_file():
-            continue
-        included_untracked.append(name)
-        digest.update(b"\0untracked\0")
-        digest.update(name.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(source.read_bytes())
-    return {
-        "git_head": head,
-        "dirty": bool(tracked_diff or included_untracked),
-        "dirty_diff_sha256": digest.hexdigest(),
-        "untracked_file_count": len(included_untracked),
-    }
+    return git_provenance(path, excluded_untracked_dir=excluded_untracked_dir)
 
 
 def _write_json(path: Path, value: Any) -> None:
@@ -1490,7 +1435,8 @@ def _resume_manifest_fields(
     specs: Sequence[Mapping[str, Any]],
     relation_coverage: Sequence[Mapping[str, Any]],
     evaluator_script_sha256: str,
-    git_provenance: Mapping[str, Any],
+    git_provenance: Mapping[str, Any] | None,
+    source_identity: Mapping[str, Any] | None = None,
     hybrid_memory: Mapping[str, Any] | None = None,
     graphiti_memory: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -1506,7 +1452,6 @@ def _resume_manifest_fields(
         "injection_map_sha256": _stable_hash(injections),
         "ordered_spec_sha256": _stable_hash(list(specs)),
         "evaluator_script_sha256": evaluator_script_sha256,
-        "git": dict(git_provenance),
         "relation_coverage_matrix": list(relation_coverage),
         "arms": [asdict(arm) for arm in config.arms],
         "prompt_instruction_sha256": hashlib.sha256(
@@ -1528,6 +1473,10 @@ def _resume_manifest_fields(
             }
         ),
     }
+    if git_provenance is not None:
+        fields["git"] = dict(git_provenance)
+    if source_identity is not None:
+        fields["source_provenance"] = dict(source_identity)
     if hybrid_memory is not None:
         fields["hybrid_memory"] = dict(hybrid_memory)
     if graphiti_memory is not None:
@@ -1803,17 +1752,22 @@ def _assert_graphiti_memory_usable(
 
 def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, Any]:
     """Run resumable local Qwen generation and write authenticated benchmark artifacts."""
+    repository_root = Path(__file__).resolve().parents[1]
+    protected = paper_evidence_roots(repository_root)
+    inputs = (config.dataset_dir, config.model_path)
+    ensure_output_directory(config.output_dir, inputs, frozen_roots=protected, allow_resume=True)
+    if config.hybrid_memory is not None:
+        ensure_output_directory(config.hybrid_memory.index_root, inputs, frozen_roots=protected, allow_resume=True)
+    for name in ("PERSONA_HYBRID_RETRIEVAL_CACHE", "PERSONA_GRAPHITI_RETRIEVAL_CACHE"):
+        if path := os.environ.get(name, "").strip():
+            ensure_output_directory(Path(path).parent, inputs, frozen_roots=protected, allow_resume=True)
     _preflight_pair_gate(config)
+    execution_source = source_provenance(repository_root, output_dir=config.output_dir)
+    evaluator_script_sha256 = _sha256(Path(__file__).resolve())
 
     import torch
     import transformers
     from transformers import AutoModelForCausalLM, AutoTokenizer
-
-    evaluator_script_sha256 = _sha256(Path(__file__).resolve())
-    git_provenance = _git_provenance(
-        Path(__file__).resolve().parent,
-        excluded_untracked_dir=config.output_dir,
-    )
     config.output_dir.mkdir(parents=True, exist_ok=True)
     tokenizer = AutoTokenizer.from_pretrained(
         config.model_path, local_files_only=config.local_files_only
@@ -1911,7 +1865,8 @@ def run_benchmark(config: BenchmarkConfig, *, config_sha256: str) -> dict[str, A
         specs=specs,
         relation_coverage=relation_coverage,
         evaluator_script_sha256=evaluator_script_sha256,
-        git_provenance=git_provenance,
+        git_provenance=execution_source.get("git"),
+        source_identity=execution_source,
         hybrid_memory=hybrid_identity,
         graphiti_memory=graphiti_identity,
     )

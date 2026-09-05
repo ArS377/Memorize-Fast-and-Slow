@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import paper_input_dir
 from experiments.persona_interference_schedule import (
     ScheduleConfig,
     _load_cli_config,
@@ -30,7 +31,7 @@ class WhitespaceTokenizer:
 
 def _dataset() -> Path:
     """Return the committed conflict corpus without relying on the process CWD."""
-    return Path(__file__).parents[1] / "results" / "persona_conflict_conversations_v1"
+    return paper_input_dir("persona_conflict_conversations_v1")
 
 
 def _config(
