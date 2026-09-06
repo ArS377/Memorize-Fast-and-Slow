@@ -20,8 +20,6 @@ python3.12 -m venv .venv-support
 
 ### Table 1 — Primary end-to-end benchmark
 
-Historical Surface A: 120 conditions, 12 histories, four methods at two budgets, 960 generated answers. EM and F1 are percentages. Graphiti uses benchmark-matched retrieval; fresh stochastic ingestion builds may produce different scores.
-
 | Method | 4K EM | 4K F1 | 16K EM | 16K F1 |
 |---|---:|---:|---:|---:|
 | Sliding context | 35.00 | 37.42 | 60.00 | 64.58 |
@@ -103,8 +101,6 @@ Read `outputs/table1-report/README.md` and `analysis.md`. Use a fresh report dir
 
 ### Continual Memory and Lineage (§4.2)
 
-These experiments rebuild memory state and evaluate evidence selection with deterministic answer resolution, not LLM-generated answers.
-
 | Lineage method | Overall accuracy (%) | Propagated-retraction accuracy (%) |
 |---|---:|---:|
 | Recursive Scallop | 100.00 | 100.00 |
@@ -133,8 +129,6 @@ export DATA_ROOT=/absolute/path/to/supporting-inputs
 **3. Read `outputs/continual/report.md`.** The lineage and stream-injection sections contain the comparisons above. Detailed values are in `metrics.json` under `scallop_reasoning_ablation`, `scallop_stream_injection_ablation.by_window`, and `memory_growth.stored_tokens_max`.
 
 ### Interleaved Long-Distance Memory (§4.3)
-
-Evidence availability uses deterministic answer resolution, not LLM answer accuracy. There are 2,047 evaluated checkpoints; median oldest-required-evidence age is 137,011 tokens, with 78.94% beyond 64K and 52.22% beyond 128K.
 
 | Method | 64K availability (%) | 128K availability (%) | 64K stale intrusion (%) | 128K stale intrusion (%) |
 |---|---:|---:|---:|---:|
