@@ -4,8 +4,6 @@
 
 Use Linux x86_64, Bash, Python 3.12.9 and 3.10 with `venv`, Docker, curl, and NVIDIA GPUs with a CUDA 13-compatible driver. Run commands from the repository root. The examples assign extraction to GPU 0 and answer generation to GPU 1; adjust these device selections for your host.
 
-Each environment has one requirements entry point. `requirements-generation.txt` includes Graphiti and shared dependencies; `requirements-dense.txt` includes shared dependencies for the supporting benchmarks. Keep all four environments separate. **Installation and end-to-end execution remain unvalidated.**
-
 ```bash
 python3.12 -m venv .venv-persona
 .venv-persona/bin/python -m pip install 'torch==2.13.0+cu130' --index-url https://download.pytorch.org/whl/cu130
@@ -17,10 +15,6 @@ python3.10 -m venv .venv-scallop
 python3.12 -m venv .venv-support
 .venv-support/bin/python -m pip install -r requirements-dense.txt
 ```
-
-The main environment installs its recorded CUDA Torch build separately. The supporting Torch build and complete historical extraction-server settings remain unresolved. `requirements-graphiti-baseline.txt` is a compatibility alias for the complete main environment, not a fifth environment.
-
-Stop if installation fails; do not substitute dependency versions from another environment. Keep the same shell for the following steps so exported settings remain available.
 
 ## Evaluation
 
