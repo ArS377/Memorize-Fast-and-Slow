@@ -159,6 +159,63 @@ def verify_persona(root: Path) -> dict[str, Any]:
             "gaps": ["Full stratified bootstrap comparisons intentionally not recomputed.", "Saved answers are rescored, not regenerated; model, Graphiti, and ingestion services were not run."]}
 
 
+def render_table1(report: Mapping[str, Any]) -> str:
+    methods = (
+        ("Sliding context", "sliding_context"),
+        ("Structured memory", "structured_memory"),
+        ("Graphiti", "graphiti_memory"),
+        ("Hybrid KG memory", "hybrid_kg_memory"),
+    )
+    columns = ((4096, "exact_match"), (4096, "f1"), (16384, "exact_match"), (16384, "f1"))
+    compare_values(report["counts"], {"conditions": 120, "histories": 12, "arms": 8, "rows": 960}, "Table 1 counts")
+    compare_values(report["score_values_checked"], 16, "Table 1 score count")
+    by_arm = index_unique(report["by_arm"], ("arm",))
+    expected = {(f"{kind}_{budget}",) for _, kind in methods for budget in (4096, 16384)}
+    _require(set(by_arm) == expected, "Table 1 requires exactly the eight matched arms")
+    values = []
+    for _, kind in methods:
+        scores = []
+        for budget, metric in columns:
+            row = by_arm[(f"{kind}_{budget}",)]
+            compare_values(row["row_count"], 120, "Table 1 arm rows")
+            compare_values(row["history_cluster_count"], 12, "Table 1 arm histories")
+            score = row[metric]
+            _require(type(score) in (int, float) and math.isfinite(score) and 0 <= score <= 1,
+                     f"Table 1 {kind}_{budget}.{metric} must be a finite fraction in [0, 1]")
+            scores.append(score)
+        values.append(scores)
+    best = [max(scores[column] for scores in values) for column in range(len(columns))]
+    lines = [
+        "## Table 1: Primary end-to-end benchmark (historical Surface A)",
+        "", "120 conditions; 12 histories; 8 arms; 960 generations.", "",
+        "| Method | 4K EM | 4K F1 | 16K EM | 16K F1 |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for (label, _), scores in zip(methods, values):
+        cells = [f"**{score * 100:.2f}**" if score == best[column] else f"{score * 100:.2f}"
+                 for column, score in enumerate(scores)]
+        lines.append("| " + " | ".join([label, *cells]) + " |")
+    lines.extend([
+        "", "Scores are percentages; bold indicates the highest value in each column.", "",
+        "Saved answers were rescored against recorded gold. Models, memory stores, services, "
+        "tokenization, and gold reconstruction were not rerun.",
+    ])
+    return "\n".join(lines)
+
+
+def reproduce_table1(root: Path) -> str:
+    from scripts.artifact_resources import verify as verify_resource
+
+    def authenticate() -> None:
+        integrity = verify_resource(root, "reference-persona")
+        _require(integrity["status"] == "verified", "; ".join(integrity["errors"]))
+
+    authenticate()
+    report = verify_persona(root)
+    authenticate()
+    return "Verified pinned reference-persona artifacts and saved-record scores.\n\n" + render_table1(report)
+
+
 def _evidence_scores(row: Mapping[str, Any], event_groups: Sequence, fact_groups: Sequence) -> tuple[bool, float]:
     _require(bool(event_groups) and bool(fact_groups), "empty evidence contract")
     events, facts = set(row["selected_event_ids"]), set(row["selected_fact_ids"])
@@ -363,11 +420,23 @@ def verify(root: Path) -> dict[str, Any]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Read-only saved-record scientific reaggregation; JSON stdout, no integrity authentication or live models/services.")
-    parser.add_argument("--root", required=True, type=Path, help="Repo-shaped frozen evidence root")
+    parser = argparse.ArgumentParser(description="Read-only saved-record reaggregation without models/services; JSON by default, or authenticated primary-table Markdown with --table1.")
+    parser.add_argument("--root", required=True, type=Path, help="Repo-shaped evidence root containing results/")
+    parser.add_argument("--table1", action="store_true", help="Verify pinned historical primary artifacts, rescore saved answers, and print Table 1 as Markdown; no other bundles required")
     parser.add_argument("--expected-manifest-sha256", help="Verify the freeze against an externally retained manifest digest first")
     parser.add_argument("--output", type=Path, help="Save a new report outside the evidence root; never overwrite")
     args = parser.parse_args(argv)
+    if args.table1:
+        if args.output is not None or args.expected_manifest_sha256 is not None:
+            parser.error("--table1 is stdout-only and uses pinned primary-resource hashes; omit --output and --expected-manifest-sha256")
+        try:
+            with contextlib.redirect_stdout(sys.stderr):
+                table = reproduce_table1(args.root)
+        except (VerificationError, OSError, ValueError, KeyError, TypeError, ImportError) as error:
+            print(f"Table 1 verification failed: {error}", file=sys.stderr)
+            return 1
+        print(table)
+        return 0
     if args.output is not None:
         from neurosym.application.source_provenance import ensure_output_directory, paper_evidence_roots
         from scripts.paper_artifacts import safe_path

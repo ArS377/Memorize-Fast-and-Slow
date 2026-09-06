@@ -34,9 +34,25 @@
     "persona_generation": {
       "specification": "requirements-generation.txt",
       "role": "Persona Qwen3.5 answer generation and BGE embeddings; combine only with separately validated lightweight and optional Graphiti specifications",
-      "pin_basis": "Frozen primary manifest records torch 2.13.0+cu130 and transformers 5.15.1; original requirements and primary source notes identify sentence-transformers 3.4.1/BGE",
+      "pin_basis": "The primary manifest records torch 2.13.0+cu130 and transformers 5.15.1. All 120 primary hybrid retrieval records identify sentence-transformers 6.0.0 in their dense index metadata; the older general/continual 3.4.1 pin does not describe this primary embedding build.",
       "recorded_torch_build": "2.13.0+cu130",
-      "limitations": "The requirement records the base Torch version, not a validated CUDA wheel source. CUDA 13.0 build availability, GPU/driver compatibility, sentence-transformers/transformers cross-version compatibility and all transitive constraints require separate verification. Do not merge with requirements-dense.txt or requirements-qwen35-eval.txt."
+      "embedding_version_evidence": {
+        "resource": "reference-persona",
+        "member": "hybrid_retrievals.json",
+        "sha256": "61a5c2670c32d38bb55b09cf8d7813fb87e86f2e450a1f20643cecf767eae537",
+        "field": "metadata.dense_index_identity[*].sentence_transformers_version",
+        "observed_version": "6.0.0",
+        "condition_count": 120
+      },
+      "declared_compatibility": {
+        "package": "sentence-transformers==6.0.0",
+        "metadata_source": "https://pypi.org/pypi/sentence-transformers/6.0.0/json",
+        "transformers": ">=5.0.0,<6.0.0",
+        "torch": ">=2.2",
+        "python": ">=3.10",
+        "status": "These declared direct constraints admit the recorded primary versions; this is not a full dependency-resolution or runtime validation."
+      },
+      "limitations": "The requirement records the base Torch version, not a validated CUDA wheel source. Wheel availability, CUDA 13.0/GPU/driver compatibility and transitive dependencies still require clean-install and runtime validation. The recorded embedding version does not establish a complete historical environment export. Do not merge with requirements-dense.txt or requirements-qwen35-eval.txt."
     },
     "historical_direct_evaluation": {
       "specification": "requirements-qwen35-eval.txt",

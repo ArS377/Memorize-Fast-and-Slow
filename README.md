@@ -1,142 +1,195 @@
-# NeuroSym submission preparation
+# NeuroSym
 
-Local research-code preparation for the persona memory comparison and supporting continual/interleaved memory benchmarks. This repository has fresh history derived from preparation commit `6a114c8d55ec74d05a2673c8fbd622824acbdf26`; historical revisions are provenance identifiers, not commits available in this repository.
+Inference-only persona-memory benchmark: sliding context, structured memory, hybrid KG memory, and Graphiti at 4K and 16K token budgets. Paper title and anonymous manuscript link await author confirmation.
 
-This is not yet an anonymized, licensed, reviewer-accessible release. No new model experiment is claimed. The historical primary table uses deterministic Surface A; the newer pair-conditioned Kimi surfaces are a separate selectable evaluation input.
+## Requirements
 
-## Supported scope
+**Quick start: verify Table 1 without a GPU.** Run from this repository's root with Python and the lightweight dependencies available. You also need the external saved-answer bundle below; bundled inputs alone cannot produce Table 1.
 
-| Mode | Input | Planned generations |
-|---|---|---:|
-| `historical_a` (default) | Historical deterministic Surface A | 960 |
-| `kimi_a` | Pair-conditioned Kimi Surface A | 960 |
-| `kimi_ab` | Pair-conditioned Kimi A and B | 1,920 |
-
-Every mode uses the same eight arms: sliding context, structured memory, hybrid KG, and Graphiti, each at 4K and 16K. Counts above describe plans, not completed new results. `persona_fixed_assignment_analysis` is retained for compatibility and validation of an older five-arm layout; it is not the main eight-arm comparison.
-
-The two supporting pipelines are `experiments.continual_memory_benchmark` and `experiments.interleaved_memory_benchmark_v3`. Shared helpers retain their existing module names and scientific behavior. Unrelated LongBench, RLM, standalone experiment, dashboard, and old-history audit workflows are not part of this package.
-
-## Inputs and artifact access
-
-Four complete persona corpora and their pair gate are bundled under `results/`: the parent `persona_conflict_conversations_v1`, historical `persona_conflict_conversations_surface_a_graphiti_build2`, modern `persona_conflict_conversations_surface_a`, modern `persona_conflict_conversations_surface_b`, and `persona_surface_pair_gate.json`. The 41 files occupy 14,168,913 raw bytes. Both modern modes require the parent, A, B, and pair gate even when only A is evaluated.
-
-These files are exact original Git-blob bytes. Git attributes disable text conversion and filters for bundled data and fixtures. Do not normalize, sanitize, replace, or re-sign corpus manifests: doing so breaks their pinned identity. Keep new outputs in `outputs/` or a separate fresh directory, never in bundled input directories.
-
-`configs/artifact_resources.json` lists required contents, roles, and trusted SHA-256 digests. Access commands require an explicit repo-shaped root containing `results/`; there is no fallback to an original checkout, automatic download, or artifact import.
-
-```bash
-python scripts/artifact_resources.py list
-python scripts/artifact_resources.py verify bundled-persona --root .
-python scripts/artifact_resources.py access kimi_a --root .
-python scripts/artifact_resources.py access synthetic-inputs --root /path/to/v002-git
-python scripts/artifact_resources.py access reference-results --root /path/to/v002-git
+```powershell
+$Python = "python"
+$Evidence = "C:\path\to\evidence"
+& $Python -B scripts/verify_paper_results.py --table1 --root "$Evidence"
 ```
 
-`access` returns paths only after verification succeeds. It is a read-only check, not a lock against later modification. It refuses mismatched/missing/extra members, unsafe paths, links, and unmaterialized LFS pointers. It does not expose or copy `baseline_source` as ordinary run output. Full synthetic inputs and historical reference results remain external and are ignored by Git if placed under `external-artifacts/` or unbundled `results/` directories.
+Replace `$Python` with your prepared interpreter if needed. `$Evidence` must contain the complete `results/persona_joint_surface_a_build2/` directory (15 files, 13,937,870 bytes); an existing `v002-git` root works directly.
 
-The current local historical source is the separately preserved `v002-git` bundle. Obtain that bundle from its custodian, preserving its repo-shaped layout and exact bytes. Verify it before use:
+Expected: exit code 0, `Verified pinned reference-persona artifacts and saved-record scores.`, then `120 conditions; 12 histories; 8 arms; 960 generations.` and the four-row table in [Results](#results). Missing or altered evidence fails without printing a table.
 
-```bash
-python scripts/paper_artifacts.py verify /path/to/v002-git --require-trusted --expected-manifest-sha256 cb432774f962b5d480c6958472bec5eac3343fea3376cad6de2d19b7e9141443
+For a **new, isolated lightweight environment**, the dependency-install command is:
+
+```powershell
+python -m pip install -r requirements.txt
 ```
 
-This checks all frozen contents, not only selected resource groups. `v002-git` verifies 47 historical file identities and inventories 141 additional entries. It does not contain new modern A/B benchmark results. `v001-as-found` is retained separately with digest `e1dfaaf42e478855dfbc869aa58eb2a9c715d2fb360440ca6d98e1ad9923e087` and 43 known historical hash mismatches from checkout conversion; those mismatches must not be repaired in the preserved snapshot.
+This is a specification, not a tested clean-install recipe. Verification used existing Python 3.13.7, NumPy 2.4.4, and the other versions pinned in `requirements.txt`; that file instead pins NumPy 2.2.6. Verification itself installs nothing.
 
-**Anonymous reviewer access for external bundles is not configured.** There are no public download URLs in this preparation repository. Hosting or ZIP inclusion, permissions/licensing, anonymization, and final supplementary-archive sizing remain release gates. Local access alone does not satisfy reviewer availability.
+### Dependencies for model execution
 
-## Lightweight usage and dependencies
+Keep these environments separate where indicated. Their evidence and unresolved dependencies are recorded in [dependency_environments.json](configs/dependency_environments.json).
 
-Use root-based `python -m` execution in an independently prepared Python environment. Dependency files are specifications, not validated locks; no package installation is part of this migration. The lightweight specification is `requirements.txt`. Optional environment specifications are kept separate for Scallop, dense retrieval, generation, historical direct evaluation, and Graphiti/extraction. See the environment details below before combining any files.
-
-### Environment specifications
-
-`configs/dependency_environments.json` records the basis and limitations of each specification.
-
-| Specification | Scope / recorded environment |
+| Specification | Role and recorded versions |
 |---|---|
-| `requirements.txt` | NumPy, rank-bm25, OpenAI, Neo4j, HTTPX, pytest; lightweight imports and offline checks |
-| `requirements-scallop.txt` | Scallopy 0.2.4 wheel only; CPython 3.10, Linux x86_64, glibc compatible with manylinux_2_27 |
-| `requirements-dense.txt` | Recorded continual Python 3.12.9 stack: sentence-transformers 3.4.1, transformers 4.57.6, tokenizers 0.22.2; its Torch build remains unresolved |
-| `requirements-generation.txt` | Primary persona stack: Torch 2.13.0 (recorded build `2.13.0+cu130`), transformers 5.15.1, sentence-transformers 3.4.1 |
-| `requirements-qwen35-eval.txt` | Unchanged separate direct-evaluation record: Torch 2.6.0 (recorded `+cu124`), transformers 5.15.0 and associated pins |
-| `requirements-graphiti-baseline.txt` | Optional graphiti-core 0.29.3 and pinned Neo4j/OpenAI clients; also needs a compatible embedding/generation environment |
-| `requirements-extraction.txt` | Separate vLLM 0.27.1 serving environment recorded in historical source notes |
+| [requirements.txt](requirements.txt) | Lightweight verification, previews, and tests; no model packages |
+| [requirements-generation.txt](requirements-generation.txt) | Primary persona generation: Torch 2.13.0 (recorded build `2.13.0+cu130`), Transformers 5.15.1, Sentence Transformers 6.0.0 |
+| [requirements-graphiti-baseline.txt](requirements-graphiti-baseline.txt) | Graphiti client additions: graphiti-core **0.29.3 exactly**, Neo4j driver 5.28.3, OpenAI 1.109.1; requires a compatible generation/embedding environment |
+| [requirements-extraction.txt](requirements-extraction.txt) | Independent extraction server: vLLM 0.27.1, Linux/GPU |
+| [requirements-scallop.txt](requirements-scallop.txt) | Independent validator: scallopy 0.2.4 **CPython 3.10 Linux x86_64** manylinux_2_27 wheel; not Windows Python 3.13 |
+| [requirements-dense.txt](requirements-dense.txt) | Supporting continual/dense run: Python 3.12.9, Sentence Transformers 3.4.1, Transformers 4.57.6, NumPy 2.2.6, tokenizers 0.22.2; Torch build unknown |
+| [requirements-qwen35-eval.txt](requirements-qwen35-eval.txt) | Separate historical direct evaluation: Torch 2.6.0 (recorded `+cu124`), Transformers 5.15.0; not the primary persona environment |
 
-Do **not** combine the conflicting Torch/Transformers specifications. CUDA wheel sources, drivers, binary compatibility, transitive resolution, and model/service integration remain unvalidated. Local checks use already available packages, including NumPy 2.4.4 rather than the recorded 2.2.6; they do not establish a reproducible installed lock. Existing comments in `requirements.txt` are preserved historical notes, not current installation instructions: `rlms` is excluded, Python-version bypasses are not recommended, and old claims about Neo4j release availability are not current facts.
+Do not merge the primary, continual/dense, direct-evaluation, Scallop, and extraction stacks into one environment or substitute versions from another run. See [Limitations and release status](#limitations-and-release-status) for validation status.
 
-All example paths beginning `/path/to/` are placeholders. Substitute absolute local paths and quote paths containing spaces. The same Python commands work in PowerShell with Windows paths.
+### Data access
 
-### Authenticated previews: no models, services, or writes
+The 41 bundled input files occupy 14,168,913 bytes under `results/`: the parent corpus, historical deterministic Surface A, pair-conditioned Kimi A/B, and their pair gate. They include dialogue, queries, facts, candidate updates, source documents, generation requests/responses, and manifests.
 
-```bash
-python -m experiments.paper_persona --mode historical_a --evidence-root . --output-root outputs/runsets --run-id trial01
-python -m experiments.paper_persona --mode kimi_a --evidence-root . --output-root outputs/runsets --run-id trial01
-python -m experiments.paper_persona --mode kimi_ab --evidence-root . --output-root outputs/runsets --run-id trial01
+**Saved answers are external.** Obtain the primary reference directory from the artifact custodian, preserving layout and bytes; nothing downloads automatically. [artifact_resources.json](configs/artifact_resources.json) lists required members. Reviewer access is a release gate below.
+
+## Training
+
+**Not applicable: there is no training or fine-tuning.** All models are used off-the-shelf for inference. No optimizer, training procedure, `train.py`, or newly trained checkpoint is needed or supplied. Memory ingestion and synthetic-data generation are not model training.
+
+## Evaluation
+
+### Verify saved results: CPU-only, exact saved-record check
+
+Use the quick-start command. It authenticates the primary reference files, rescores all 960 answers against recorded gold, checks all 16 EM/F1 values and eight overall paired contrasts, and rechecks file integrity before printing Table 1.
+
+It does not regenerate answers, reconstruct gold from dialogue, retokenize prompts, rebuild stores, or rerun stratified bootstraps. Models, Neo4j, Graphiti, Scallop, and Kimi API access are unnecessary. Failures return nonzero with no partial table; `--table1` writes only to stdout.
+
+[verify_paper_results.py](scripts/verify_paper_results.py) uses the original persona evaluator and [answer_eval.py](experiments/answer_eval.py). Scoring uses the first nonempty answer line, removes its answer prefix, and normalizes case, articles, punctuation, and whitespace.
+
+Token F1 uses multiset token overlap: precision divides overlap by prediction length, recall by gold length. Scores are aggregated over matched conditions, not model-tokenizer subwords.
+
+### Rerun the experiment: GPU and isolated services
+
+First inspect the authenticated plan; this command loads no models, contacts no services, and creates no output directories:
+
+```powershell
+& $Python -B -m experiments.paper_persona --mode historical_a --evidence-root . --output-root outputs/preview --run-id check
 ```
 
-Preview is the default. It authenticates provenance and returns a plan without creating directories, loading models, contacting services, or dispatching evaluators. It rejects wrong/missing parent or pair members and historical/modern substitution.
+| Mode | Input and scope | Planned generations |
+|---|---|---:|
+| `historical_a` | Deterministic historical Surface A; Table 1 input | 960 |
+| `kimi_a` | New pair-conditioned Kimi A; not Table 1 | 960 |
+| `kimi_ab` | New pair-conditioned Kimi A+B; not Table 1 | 1,920 |
 
-`--prepare` explicitly creates configurations and `plan.json` only. `--execute` explicitly starts a model/service experiment and requires separately prepared model paths, Scallop, Neo4j, Graphiti, and environment variables declared in the template. Neither action is needed for preview or offline verification. This migration does not execute experiments.
+Both Kimi modes authenticate the parent, both bundled siblings, and pair gate, even when only A is evaluated. Counts are plans, not evidence of completed runs. Kimi API access is not required to evaluate the bundled corpora.
 
-Each invocation uses `<output-root>/<mode>/<run-id>/` with independent surface outputs, caches, indexes, and Graphiti build IDs. Existing runsets are refused. Preparation consumes the run ID; subsequent top-level execution requires a fresh ID. Underlying evaluator resume remains subject to exact source/configuration/cache compatibility and does not permit reuse of an incompatible historical run.
+This is a pair-conditioned fixed-assignment comparison: the bootstrap unit is the base history. A/B are not statistically independent mapping replicates. B receives only a flat normalized list of A target phrases for collision avoidance, not A's mapping or dialogue.
 
-### Analyze saved results
+Prepare the model snapshots below, generation/Graphiti client environment, Scallop HTTP validator, Qwen3 extraction endpoint (recorded context 32,768), and dedicated hybrid/Graphiti Neo4j instances. Never reuse an active run's services, stores, caches, or output paths.
 
-Authenticate the external freeze before historical reaggregation:
+Supply the [execution settings](#advanced-execution-settings) from [the scientific configuration](configs/persona_end_to_end_joint_surface_a.json). The CLI supplies dataset/output/index/cache paths and build IDs. Once independently provisioned, invoke:
 
-```bash
-python scripts/verify_paper_results.py --root /path/to/v002-git --expected-manifest-sha256 cb432774f962b5d480c6958472bec5eac3343fea3376cad6de2d19b7e9141443
+```powershell
+& $Python -B -m experiments.paper_persona --mode historical_a --evidence-root . --output-root outputs/runsets --run-id rerun01 --execute
 ```
 
-This verifies all 16 primary EM/F1 values, eight overall paired contrasts, and supporting continual/interleaved saved-record aggregates. It does not rerun models, extraction, tokenization, Scallop, or full stratified primary bootstraps. Numerical agreement without the external digest is explicitly unauthenticated. Optional `--output` must point to a fresh report outside frozen evidence.
+**This execution command is not end-to-end validated here.** It writes outputs and mutates dedicated stores; it is not quick-start verification. Use a fresh run ID. `--prepare` creates configs only and consumes that ID; do not prepare and then execute the same ID.
 
-For new completed runs, pass the exact generated configurations:
+For a completed new historical-A run, use its exact generated config to analyze it into a fresh directory:
 
-```bash
-python -m experiments.paper_persona_analysis --mode historical_a --run-a /path/to/runset/surface_a --config-a /path/to/runset/configs/surface_a.json --evidence-root . --output-dir outputs/new-analysis
-python -m experiments.paper_persona_analysis --mode kimi_ab --run-a /path/to/runset/surface_a --config-a /path/to/runset/configs/surface_a.json --run-b /path/to/runset/surface_b --config-b /path/to/runset/configs/surface_b.json --evidence-root . --output-dir outputs/new-ab-analysis
+```powershell
+& $Python -B -m experiments.paper_persona_analysis --mode historical_a --run-a outputs/runsets/historical_a/rerun01/surface_a --config-a outputs/runsets/historical_a/rerun01/configs/surface_a.json --evidence-root . --output-dir outputs/analysis-rerun01
 ```
 
-For the preserved table, use `v002-git/results/persona_joint_surface_a_build2` and the exact frozen `v002-git/baseline_source/configs/persona_end_to_end_joint_surface_a.json`. Historical configuration/source bytes are verification references, not project imports or resolvable local Git revisions.
+This analysis command requires a completed new run and was not tested on one here. It does not replace the Table 1 verifier. A+B analysis also requires `--run-b` and `--config-b`; it clusters by the same 12 base histories, not 24 independent histories.
 
-Analysis checks complete eight-arm coverage, result and input hashes, configuration/model/source compatibility, and matched recorded checkpoints. A+B uses surface-qualified condition IDs but the same **12 base-history clusters**, not 24 independent histories. This is a pair-conditioned fixed-assignment comparison: the bootstrap unit is the base history, and A/B are not statistically independent mapping replicates. During generation, B receives only a flat normalized list of A target phrases for collision avoidance, not A's assignment mapping or dialogue.
+## Pre-trained Models
 
-### Supporting benchmark interfaces
+Only external, off-the-shelf models are used; no weights are redistributed. Obtain the exact snapshots from their upstream repositories for model execution. No model download is needed for saved-answer verification.
 
-Inspect these interfaces without executing an experiment:
+| Model | Role | Snapshot revision | Upstream license / terms |
+|---|---|---|---|
+| [Qwen/Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) | Primary answers **and primary-run tokenizer** | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | [Apache-2.0](https://huggingface.co/Qwen/Qwen3.5-4B/raw/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/LICENSE) |
+| [Qwen/Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B) | Graphiti extraction; separate schedule/supporting tokenizers | `1cfa9a7208912126459214e8b04321603b3df60c` | [Apache-2.0](https://huggingface.co/Qwen/Qwen3-4B/raw/1cfa9a7208912126459214e8b04321603b3df60c/LICENSE) |
+| [BAAI/bge-small-en-v1.5](https://huggingface.co/BAAI/bge-small-en-v1.5) | Hybrid and Graphiti embeddings | `5c38ec7c405ec4b44b94cc5a9bb96e735b38267a` | [MIT (pinned model card)](https://huggingface.co/BAAI/bge-small-en-v1.5/raw/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/README.md) |
+| Kimi K3 (`kimi-k3`) | Synthetic-data generation only | API identifier; immutable API revision not recorded | [Kimi OpenPlatform Terms](https://platform.kimi.ai/docs/agreement/modeluse), not a weights license |
 
-```bash
-python -m experiments.continual_memory_benchmark --help
-python -m experiments.interleaved_memory_benchmark_v3 --help
+The primary manifest records Qwen3.5/BGE revisions. Qwen3's revision is pinned for separate tokenizers, but extraction records name the model without its served revision. The extraction revision above is author-supplied and needs serving-record confirmation.
+
+The linked Kimi API terms are dated July 30, 2026. Authors must confirm the agreement applicable when the data was generated and permission to release the outputs; a model-weights license is not a substitute.
+
+## Results
+
+### Table 1: Primary end-to-end benchmark (historical Surface A)
+
+120 conditions, 12 histories, four methods at two budgets, 960 answers. Values are percentages; bold marks each column's maximum. The CPU verifier printed these values from authenticated saved answers, matching the supplied paper table.
+
+| Method | 4K EM | 4K F1 | 16K EM | 16K F1 |
+|---|---:|---:|---:|---:|
+| Sliding context | 35.00 | 37.42 | 60.00 | 64.58 |
+| Structured memory | 69.17 | 70.75 | 70.83 | 72.50 |
+| Graphiti | 48.33 | 54.33 | 66.67 | 69.17 |
+| Hybrid KG memory | **78.33** | **79.58** | **75.83** | **75.83** |
+
+Graphiti denotes **Graphiti ingestion with benchmark-matched retrieval**, not stock Graphiti. Primary decoding is greedy, batch size 1, 32 new tokens, thinking disabled, bfloat16, SDPA. Scientific settings remain in the shipped configuration and evaluator.
+
+Paired differences use 2,000 history-cluster bootstrap resamples (seed 73), with percentile 95% intervals. Hybrid minus Graphiti EM is +30.00 points [20.00, 37.50] at 4K and +9.17 [-1.67, 20.00] at 16K. Hybrid minus structured at 16K is +5.00 [-0.83, 10.00]; neither 16K interval excludes zero.
+
+### Recorded compute
+
+The reference run used a five-RTX-3090 host, extraction on GPU 0 and generation on GPU 2; embeddings ran on CPU. Three Neo4j 5.26.0 Community instances occupied separate ports: one pre-existing instance was untouched, and hybrid/Graphiti used separate instances.
+
+Summing `generation_seconds` over the 960 saved answers gives **89.12 minutes**: 18.81 at 4K and 70.31 at 16K. This excludes setup, Graphiti ingestion (312 episodes), KG construction, and analysis; it is not total experiment wall time or total GPU-hours.
+
+### Limitations and release status
+
+- Table 1 covers **historical A only**. The second-surface run is pending per the authors and was not inspected. No completed Kimi A/B or two-surface robustness result is claimed here.
+- The 12-history, synthetic, two-query-family comparison measures downstream utility, not state fidelity. Account scoping is supplied to both memory arms. One stochastic Graphiti ingestion build is represented; intervals omit between-build/model-run variance, and rerun scores may differ.
+- **None of the dependency environments has been clean-install validated.** Wheel sources, transitive resolution, CUDA/driver compatibility, and model/service integration remain unvalidated. Local offline success is not an installed lock or end-to-end replication.
+- CPU model/count, host RAM, measured peak memory/storage, excluded-stage timings, and complete research-project compute are not established here. Recorded generation time is only a partial compute disclosure.
+- **Anonymous reviewer access is not configured, and code/data licenses await author approval.** Exact metadata contains identifying provenance; do not sanitize bundled/frozen bytes or change their pins. An anonymous supplement requires a separately approved solution to this conflict.
+- Original execution-source recovery is incomplete. Verified saved artifacts and matching scores do not prove recovery of the complete historical runtime. The paper title/link and Appendix A.6 asset-license statements still need author confirmation.
+
+## Contributing
+
+Project and synthetic-data license grants await author approval; upstream licenses do not cover this repository. Propose changes as reviewable diffs, preserve scientific controls and bundled bytes, and run the offline checks. No identifying issue-tracker or paper link is supplied for review.
+
+Upstream software licenses: Scallop 0.2.4 [MIT](https://raw.githubusercontent.com/scallop-lang/scallop/0.2.4/LICENSE); Graphiti 0.29.3 [Apache-2.0](https://raw.githubusercontent.com/getzep/graphiti/v0.29.3/LICENSE); Neo4j 5.26.0 Community [GPLv3](https://raw.githubusercontent.com/neo4j/neo4j/release/5.26.0/LICENSE.txt). These links verify upstream declarations, not Appendix A.6 or compliance for a final distribution.
+
+## Advanced: execution settings
+
+Set these in a separately provisioned runtime; do not use credentials or service addresses belonging to another experiment. Paths must resolve to the exact local snapshots above, not an unpinned model name that triggers a download.
+
+| Variables | Required values |
+|---|---|
+| `PERSONA_QWEN_MODEL_PATH`, `PERSONA_QWEN_MODEL_ID`, `PERSONA_QWEN_DEVICE` | Local Qwen3.5 snapshot directory, `Qwen/Qwen3.5-4B`, assigned generation device |
+| `PERSONA_EMBEDDING_MODEL_PATH`, `PERSONA_EMBEDDING_MODEL_ID`, `PERSONA_EMBEDDING_REVISION`, `PERSONA_EMBEDDING_DEVICE` | Local BGE snapshot, `BAAI/bge-small-en-v1.5`, pinned revision above, `cpu` for the recorded run |
+| `PERSONA_SCALLOP_ENDPOINT` | Dedicated HTTP validator endpoint |
+| `PERSONA_NEO4J_URI`, `PERSONA_NEO4J_USER`, `PERSONA_NEO4J_PASSWORD`, `PERSONA_NEO4J_DATABASE` | Dedicated hybrid instance and its authorized credentials/database |
+| `PERSONA_GRAPHITI_NEO4J_URI`, `PERSONA_GRAPHITI_NEO4J_USER`, `PERSONA_GRAPHITI_NEO4J_PASSWORD`, `PERSONA_GRAPHITI_NEO4J_DATABASE` | Separate dedicated Graphiti instance and its authorized credentials/database |
+| `PERSONA_GRAPHITI_LLM_BASE_URL`, `PERSONA_GRAPHITI_LLM_API_KEY`, `PERSONA_GRAPHITI_LLM_MODEL`, `PERSONA_GRAPHITI_LLM_SMALL_MODEL` | Dedicated extraction endpoint and its credential; both model settings `Qwen/Qwen3-4B` |
+
+Supporting interfaces: `experiments.continual_memory_benchmark` and `experiments.interleaved_memory_benchmark_v3`. Their full datasets/results remain external. Inspect `--help` before separate provisioning. Optional Bash launchers are not Windows quick-start commands.
+
+## Advanced: artifact verification and maintenance
+
+```powershell
+& $Python -B scripts/artifact_resources.py verify bundled-persona --root .
+& $Python -B scripts/paper_artifacts.py verify "$Evidence" --require-trusted --expected-manifest-sha256 cb432774f962b5d480c6958472bec5eac3343fea3376cad6de2d19b7e9141443
 ```
 
-Continual execution requires `--dataset` pointing to the verified external `synthetic_temporal_preferences_1000_v4_stream`, a fresh `--output-dir`, and `--config configs/continual_memory_benchmark.json`. Interleaved v3 requires the verified `synthetic_temporal_preferences_1200_v5_interleaved`, a fresh `--output-dir`, and `--scallop-endpoint` (or `SCALLOP_VALIDATOR_URL`). Real execution additionally needs the recorded local tokenizers/embeddings and separately prepared service environment; those resources are not downloaded by these preparation commands.
+The first checks 41 inputs; the second requires the complete `v002-git` freeze. For supporting saved-record aggregates, run `scripts/verify_paper_results.py --root "$Evidence" --expected-manifest-sha256` with that same digest, without `--table1`.
 
-The two Bash Graphiti launchers are retained for later, explicit execution. Set `PYTHON_BIN` to an independently prepared interpreter's absolute path and supply the declared service/model variables. Launchers use fresh output paths and refuse destructive cleanup. Do not start them merely to check this package; `bash -n` is sufficient for syntax verification. Their inherited historical host comments describe provenance, not current services.
+Keep evidence read-only. Historical Git IDs and `source_export_inventory.json` describe provenance, not current working-tree identity. Preserve earlier source manifests; after edits create a fresh manifest and keep its printed SHA-256 independently:
 
-## Source archives and offline tests
-
-`source_manifest.json` is rebuilt for this curated source and dependency scope. Its externally retained digest is recorded with migration verification; it is not the old preparation manifest. After deliberate code/specification edits, create a new manifest at a fresh path and keep its digest independently:
-
-```bash
-python -m neurosym.application.source_provenance --create . --output source_manifest-new.json
-python -m neurosym.application.source_provenance --verify . --manifest source_manifest-new.json --sha256 MANIFEST_DIGEST
+```powershell
+& $Python -B -m neurosym.application.source_provenance --create . --output source_manifest-submission-materials.json
+& $Python -B -m neurosym.application.source_provenance --verify . --manifest source_manifest-submission-materials.json --sha256 MANIFEST_DIGEST
 ```
 
-When running without `.git`, set `NEUROSYM_SOURCE_MANIFEST` and `NEUROSYM_SOURCE_MANIFEST_SHA256` to that manifest and external digest. In PowerShell use `$env:NEUROSYM_SOURCE_MANIFEST` and `$env:NEUROSYM_SOURCE_MANIFEST_SHA256`; in Bash use `export`. Missing, changed, extra, or incompatible source files fail closed. The manifest authenticates declared source/config/dependency bytes, not installed packages or model weights. Dataset identities are checked separately.
+Creation refuses an existing path; choose a fresh name for later edits. Without `.git`, set `NEUROSYM_SOURCE_MANIFEST` and `NEUROSYM_SOURCE_MANIFEST_SHA256` to the matching manifest and independent digest. Source identity is separate from data hashes and environment validation.
 
-```bash
-python -B -m pytest -q
-bash -n scripts/run_graphiti_baseline.sh
-bash -n scripts/supervise_joint_run.sh
+### Offline checks
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = "1"
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1"
+& $Python -B -m pytest -q -p no:cacheprovider
 ```
 
-The retained offline suite uses bundled inputs and temporary Git repositories, not old source revisions. Real-data authentication and tampering checks remain active in archives. Tests distinguish POSIX directory-fsync requirements, optional package availability, and explicit full-evidence integration. Never treat unavailable platform/integration checks as passes. Historical reconstruction/AST audits remain in the original private provenance workflow, not the portable default suite. No test should discover or fall back to an active run or original checkout.
-
-Historical `paper_artifacts.py` maintenance commands (`inventory`, `freeze`, `source-audit`) require an explicit original `--repo` and `--selection`. Do not use this fresh repository to reconstruct old revisions. Ordinary verification and analysis require no original Git objects.
-
-## Provenance limits and release gates
-
-The primary evaluator/configuration have matching historical source blobs, but the complete original execution base/dirty files remain unresolved. Two continual source hashes are unresolved; interleaved source is candidate-only. Matching saved records and bytes is not proof of complete original execution recovery.
-
-Exact input metadata can contain identifying provenance. No sanitization or re-signing of historical corpus manifests occurred. A separate hash-aware anonymized release, licensing review, validated environment builds, model/service reruns if desired, anonymous external access, and final ZIP assembly remain future decisions. No license grant or final NeurIPS compliance claim is made here.
+Tests use temporary files, not model experiments. Report optional-package, POSIX-fsync, and external-evidence skips separately. Legacy comments in `requirements.txt` are not instructions to install `rlms`, bypass Python requirements, or infer current package availability.
