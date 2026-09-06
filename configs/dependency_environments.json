@@ -26,14 +26,16 @@
     },
     "continual_dense": {
       "specification": "requirements-dense.txt",
+      "includes": ["requirements.txt"],
       "python": "Recorded continual environment: Python 3.12.9",
-      "role": "Supporting benchmark Qwen3 tokenizer and BGE dense embedding",
+      "role": "Supporting benchmark Qwen3 tokenizer and BGE dense embedding, including the shared lightweight dependencies",
       "pin_basis": "Frozen continual manifest records NumPy 2.2.6, rank-bm25 0.2.2, sentence-transformers 3.4.1, transformers 4.57.6 and tokenizers 0.22.2",
       "limitations": "Torch/build was not recorded in that manifest and remains an unresolved transitive dependency. Do not infer it from the different direct-generation environment. Not compatible by assumption with the transformers 5.x persona environment."
     },
     "persona_generation": {
       "specification": "requirements-generation.txt",
-      "role": "Persona Qwen3.5 answer generation and BGE embeddings; combine only with separately validated lightweight and optional Graphiti specifications",
+      "includes": ["requirements.txt"],
+      "role": "Complete direct-dependency entry point for the primary persona experiment: Qwen3.5 answer generation, BGE embeddings, Graphiti 0.29.3, and shared lightweight dependencies; consolidation is not installation or compatibility validation",
       "pin_basis": "The primary manifest records torch 2.13.0+cu130 and transformers 5.15.1. All 120 primary hybrid retrieval records identify sentence-transformers 6.0.0 in their dense index metadata; the older general/continual 3.4.1 pin does not describe this primary embedding build.",
       "recorded_torch_build": "2.13.0+cu130",
       "embedding_version_evidence": {
@@ -63,9 +65,10 @@
     },
     "graphiti": {
       "specification": "requirements-graphiti-baseline.txt",
-      "role": "Optional Graphiti client, alongside separately compatible generation/embedding packages",
-      "pin_basis": "Scientific configuration requires graphiti-core 0.29.3 exactly; mature Neo4j/OpenAI pins satisfy original declared lower bounds",
-      "limitations": "No Graphiti install/service integration was performed. Graph database instances and the extraction endpoint must be separately provisioned; use isolated database identities and new caches."
+      "canonical_specification": "requirements-generation.txt",
+      "role": "Legacy filename retained as an include-only compatibility alias for the complete primary persona environment; not an independent environment or lightweight addon",
+      "pin_basis": "Scientific configuration requires graphiti-core 0.29.3 exactly, now declared in requirements-generation.txt; Neo4j/OpenAI client pins come from requirements.txt without version changes",
+      "limitations": "The alias now installs the full primary stack. Its existing comments are historical notes. No Graphiti install/service integration was performed. Graph database instances and the extraction endpoint must be separately provisioned; use isolated database identities and new caches."
     },
     "extraction_server": {
       "specification": "requirements-extraction.txt",

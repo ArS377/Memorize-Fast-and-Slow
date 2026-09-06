@@ -1,3 +1,4 @@
+-r requirements-generation.txt
 # Isolated environment additions for the Graphiti external memory baseline
 # (experiments/persona_graphiti_baseline.py). Install on top of the benchmark
 # environment; the arm refuses to run if the resolved graphiti-core version
@@ -5,8 +6,5 @@
 # Verified against the getzep/graphiti tag v0.29.3 (API: Graphiti, add_episode,
 # search, build_indices_and_constraints, Neo4jDriver, OpenAIGenericClient,
 # EmbedderClient, clear_data).
-graphiti-core==0.29.3
 # graphiti-core requires neo4j>=5.26.0 (still on the 5.x line required by
 # requirements.txt) and openai>=1.91.0 for the OpenAI-compatible LLM client.
-neo4j==5.28.3
-openai==1.109.1

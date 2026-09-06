@@ -4,19 +4,21 @@
 
 Use Linux x86_64, Bash, Python 3.12.9 and 3.10 with `venv`, Docker, curl, and NVIDIA GPUs with a CUDA 13-compatible driver. Run commands from the repository root. The examples assign extraction to GPU 0 and answer generation to GPU 1; adjust these device selections for your host.
 
-Install the separate environments below; their incompatible dependencies cannot share one environment. **These installation and full-experiment instructions have not been clean-install or end-to-end validated.** The supporting environment's historical Torch build and complete historical extraction-server settings remain unresolved.
+Each environment has one requirements entry point. `requirements-generation.txt` includes Graphiti and shared dependencies; `requirements-dense.txt` includes shared dependencies for the supporting benchmarks. Keep all four environments separate. **Installation and end-to-end execution remain unvalidated.**
 
 ```bash
 python3.12 -m venv .venv-persona
 .venv-persona/bin/python -m pip install 'torch==2.13.0+cu130' --index-url https://download.pytorch.org/whl/cu130
-.venv-persona/bin/python -m pip install -r requirements.txt -r requirements-generation.txt -r requirements-graphiti-baseline.txt
+.venv-persona/bin/python -m pip install -r requirements-generation.txt
 python3.12 -m venv .venv-extraction
 .venv-extraction/bin/python -m pip install -r requirements-extraction.txt
 python3.10 -m venv .venv-scallop
 .venv-scallop/bin/python -m pip install -r requirements-scallop.txt
 python3.12 -m venv .venv-support
-.venv-support/bin/python -m pip install -r requirements.txt -r requirements-dense.txt
+.venv-support/bin/python -m pip install -r requirements-dense.txt
 ```
+
+The main environment installs its recorded CUDA Torch build separately. The supporting Torch build and complete historical extraction-server settings remain unresolved. `requirements-graphiti-baseline.txt` is a compatibility alias for the complete main environment, not a fifth environment.
 
 Stop if installation fails; do not substitute dependency versions from another environment. Keep the same shell for the following steps so exported settings remain available.
 
