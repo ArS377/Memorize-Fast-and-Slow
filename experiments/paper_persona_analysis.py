@@ -4,6 +4,7 @@ import argparse
 from copy import deepcopy
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 from typing import Any, Mapping, Sequence
@@ -404,19 +405,97 @@ def analyze_paper_persona(*, mode: str = "historical_a", run_a: Path, config_a: 
     return result
 
 
+def render_primary_table(result: Mapping[str, Any], table_format: str = "markdown") -> str:
+    if table_format not in {"markdown", "latex"}:
+        raise ValueError("unsupported table format")
+    _require_equal(result.get("status"), "completed", "table analysis status")
+    _require_equal(result.get("mode"), "kimi_ab", "A/B table mode")
+    if not isinstance(result.get("surfaces"), Mapping) or set(result["surfaces"]) != {"A", "B"}:
+        raise ValueError("A/B table requires both surfaces")
+    panels = (("Surface A", result["surfaces"]["A"], 120),
+              ("Surface B", result["surfaces"]["B"], 120), ("Combined", result["pooled"], 240))
+    indexed = []
+    for label, summary, conditions in panels:
+        for key, expected in (("row_count", conditions * 8), ("condition_count", conditions), ("history_cluster_count", 12)):
+            _require_equal(summary.get(key), expected, f"{label} {key}")
+        rows = summary["aggregates"]["by_arm"]
+        by_arm = {row["arm"]: row for row in rows}
+        if len(rows) != 8 or set(by_arm) != ARM_NAMES:
+            raise ValueError(f"{label} requires exactly eight distinct arms")
+        for arm, row in by_arm.items():
+            _require_equal(row.get("row_count"), conditions, f"{label} {arm} row count")
+            _require_equal(row.get("history_cluster_count"), 12, f"{label} {arm} history clusters")
+            for metric in ("exact_match", "f1"):
+                value = row[metric]
+                if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1:
+                    raise ValueError(f"{label} {arm} {metric} must be a finite fraction in [0, 1]")
+        indexed.append(by_arm)
+    for arm in ARM_NAMES:
+        for metric in ("exact_match", "f1"):
+            expected = (120 * indexed[0][arm][metric] + 120 * indexed[1][arm][metric]) / 240
+            if not math.isclose(indexed[2][arm][metric], expected, rel_tol=0.0, abs_tol=1e-12):
+                raise ValueError(f"Combined {arm} {metric} differs from the unrounded pooled scores")
+    methods = (("Sliding context", "sliding_context"), ("Structured memory", "structured_memory"),
+               ("Graphiti", "graphiti_memory"), ("Hybrid KG memory", "hybrid_kg_memory"))
+    columns = ("4K EM", "4K F1", "16K EM", "16K F1")
+    values = [[panel[f"{kind}_{budget}"][metric] for panel in indexed
+               for budget in (4096, 16384) for metric in ("exact_match", "f1")]
+              for _, kind in methods]
+    maxima = [max(row[column] for row in values) for column in range(12)]
+    formatted = []
+    for (label, _), row in zip(methods, values):
+        cells = []
+        for column, score in enumerate(row):
+            text = f"{score * 100:.2f}"
+            if score == maxima[column]:
+                text = rf"\textbf{{{text}}}" if table_format == "latex" else f"**{text}**"
+            cells.append(text)
+        formatted.append([label, *cells])
+    if table_format == "markdown":
+        return "\n".join([
+            "### Primary end-to-end results: Surface A, Surface B, and Combined", "",
+            "Each surface: 120 conditions and 960 answers. Combined: 240 conditions and 1,920 answers; "
+            "12 base-history clusters shared across A/B, not 24 independent histories.", "",
+            "| " + " | ".join(["Method", *(f"{label} {column}" for label, _, _ in panels for column in columns)]) + " |",
+            "|---|" + "---:|" * 12,
+            *("| " + " | ".join(row) + " |" for row in formatted), "",
+            "EM and F1 are percentages. Combined values use unrounded pooled scores; bold marks each column's maximum.",
+        ])
+    return "\n".join([
+        r"\begin{table}[H]", r"\centering",
+        r"\caption{Primary end-to-end results on pair-conditioned Surface A and Surface B (120 conditions each) and their combined evaluation (240 conditions over 12 shared base histories). EM and F1 are percentages.}",
+        r"\label{tab:primary-results}", r"\small", r"\resizebox{\linewidth}{!}{%",
+        r"\begin{tabular}{lcccccccccccc}", r"\toprule",
+        "& " + " & ".join(rf"\multicolumn{{4}}{{c}}{{\textbf{{{label}}}}}" for label, _, _ in panels) + r" \\",
+        r"\cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}",
+        " & ".join([r"\textbf{Method}", *(rf"\textbf{{{column}}}" for _ in panels for column in columns)]) + r" \\",
+        r"\midrule", *(" & ".join(row) + r" \\" for row in formatted),
+        r"\bottomrule", r"\end{tabular}%", "}", r"\end{table}",
+    ])
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Authenticate saved persona runs and optionally render the matched A/B/Combined paper table.")
     parser.add_argument("--mode", choices=MODES, default="historical_a")
     for name in ("run-a", "config-a", "evidence-root", "output-dir"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--run-b", type=Path)
     parser.add_argument("--config-b", type=Path)
     parser.add_argument("--pair-gate-sha256", default=PAIR_GATE_SHA256)
+    parser.add_argument("--table-format", choices=("markdown", "latex"), help="Print the Surface A, Surface B, and Combined table after validation; requires --mode kimi_ab. analysis.json is still saved.")
     args = parser.parse_args(argv)
+    table_format = args.table_format
+    del args.table_format
+    if table_format is not None and args.mode != "kimi_ab":
+        parser.error("--table-format requires --mode kimi_ab and both complete eight-arm surfaces")
     try:
         result = analyze_paper_persona(**vars(args))
+        table = render_primary_table(result, table_format) if table_format is not None else None
     except (OSError, ValueError, KeyError, TypeError) as error:
         parser.error(str(error))
+    if table is not None:
+        print(table)
+        return 0
     print(json.dumps({"mode": result["mode"], "status": result["status"], "output_dir": str(args.output_dir),
                       "surfaces": {key: {field: value[field] for field in ("row_count", "condition_count", "history_cluster_count")}
                                    for key, value in result["surfaces"].items()},

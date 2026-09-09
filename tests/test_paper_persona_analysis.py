@@ -475,3 +475,139 @@ def test_generation_manifest_scientific_mismatch_rejected(pair, tmp_path):
     with pytest.raises(ValueError, match="generation manifest prompt_instruction"):
         analysis.analyze_paper_persona(**_arguments(pair, tmp_path))
     assert not (tmp_path / "analysis-output").exists()
+
+
+@pytest.fixture
+def ab_table_result():
+    result = {"status": "completed", "mode": "kimi_ab", "surfaces": {}}
+    kinds = {kind: index for index, kind in enumerate((
+        "sliding_context", "structured_memory", "graphiti_memory", "hybrid_kg_memory"
+    ))}
+    for assignment, offset in (("A", 0.0), ("B", 0.05)):
+        rows = []
+        for arm in analysis.ARMS:
+            score = 0.1 * (kinds[arm["kind"]] + 1) + offset + (0.1 if arm["prompt_token_cap"] == 16384 else 0.0)
+            rows.append({"arm": arm["name"], "exact_match": score, "f1": score + 0.025,
+                         "row_count": 120, "history_cluster_count": 12})
+        result["surfaces"][assignment] = {
+            "row_count": 960, "condition_count": 120, "history_cluster_count": 12,
+            "aggregates": {"by_arm": rows[::-1]},
+        }
+    rows = []
+    for left, right in zip(result["surfaces"]["A"]["aggregates"]["by_arm"], result["surfaces"]["B"]["aggregates"]["by_arm"]):
+        rows.append({"arm": left["arm"], "row_count": 240, "history_cluster_count": 12,
+                     **{key: (left[key] + right[key]) / 2 for key in ("exact_match", "f1")}})
+    result["pooled"] = {"row_count": 1920, "condition_count": 240, "history_cluster_count": 12,
+                        "aggregates": {"by_arm": rows}}
+    return result
+
+
+def test_ab_table_markdown_has_three_panels_and_computed_maxima(ab_table_result):
+    before = deepcopy(ab_table_result)
+    table = analysis.render_primary_table(ab_table_result)
+    rows = [line for line in table.splitlines() if line.startswith("|")]
+    assert len(rows) == 6
+    assert "Surface A 4K EM" in rows[0] and "Surface B 4K F1" in rows[0] and "Combined 16K F1" in rows[0]
+    assert rows[-1] == "| Hybrid KG memory | **40.00** | **42.50** | **50.00** | **52.50** | **45.00** | **47.50** | **55.00** | **57.50** | **42.50** | **45.00** | **52.50** | **55.00** |"
+    assert [row.split("|")[1].strip() for row in rows[2:]] == ["Sliding context", "Structured memory", "Graphiti", "Hybrid KG memory"]
+    assert "240 conditions" in table and "12 base-history clusters" in table
+    assert ab_table_result == before
+
+
+def test_ab_table_latex_matches_grouped_paper_layout(ab_table_result):
+    table = analysis.render_primary_table(ab_table_result, "latex")
+    assert table.startswith(r"\begin{table}[H]")
+    assert r"\begin{tabular}{lcccccccccccc}" in table
+    for label in ("Surface A", "Surface B", "Combined"):
+        assert rf"\multicolumn{{4}}{{c}}{{\textbf{{{label}}}}}" in table
+    assert r"\cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}" in table
+    assert r"Hybrid KG memory & \textbf{40.00} & \textbf{42.50}" in table
+    assert table.endswith(r"\end{table}")
+    body = table.split(r"\midrule")[1].split(r"\bottomrule")[0]
+    assert all(row.count("&") == 12 for row in body.strip().splitlines())
+
+
+def test_ab_table_combined_rounding_uses_unrounded_scores(ab_table_result):
+    for panel, values in (("A", (49 / 120, 63 / 120)), ("B", (48 / 120, 70 / 120)), ("pooled", (97 / 240, 133 / 240))):
+        summary = ab_table_result["pooled"] if panel == "pooled" else ab_table_result["surfaces"][panel]
+        for budget, value in zip((4096, 16384), values):
+            row = next(row for row in summary["aggregates"]["by_arm"] if row["arm"] == f"graphiti_memory_{budget}")
+            row["exact_match"] = value
+    table = analysis.render_primary_table(ab_table_result)
+    cells = next(line for line in table.splitlines() if line.startswith("| Graphiti |")).split("|")
+    assert cells[10].strip(" *") == "40.42"
+    assert cells[12].strip(" *") == "55.42"
+
+
+@pytest.mark.parametrize("change", ["missing_b", "missing_pooled", "missing_f1", "duplicate_arm", "extra_arm", "bad_clusters", "bad_count", "nan", "out_of_range", "bad_combined", "historical", "incomplete"])
+def test_ab_table_rejects_incomplete_or_inconsistent_summaries(ab_table_result, change):
+    if change == "missing_b":
+        del ab_table_result["surfaces"]["B"]
+    elif change == "missing_pooled":
+        del ab_table_result["pooled"]
+    elif change == "missing_f1":
+        del ab_table_result["surfaces"]["B"]["aggregates"]["by_arm"][0]["f1"]
+    elif change in {"duplicate_arm", "extra_arm"}:
+        rows = ab_table_result["surfaces"]["B"]["aggregates"]["by_arm"]
+        rows.append({**rows[0], **({"arm": "full_qwen_context"} if change == "extra_arm" else {})})
+    elif change == "bad_clusters":
+        ab_table_result["pooled"]["history_cluster_count"] = 24
+    elif change == "bad_count":
+        ab_table_result["pooled"]["condition_count"] = 120
+    elif change in {"nan", "out_of_range", "bad_combined"}:
+        ab_table_result["pooled"]["aggregates"]["by_arm"][0]["f1"] = {"nan": float("nan"), "out_of_range": 1.1, "bad_combined": 0.99}[change]
+    elif change == "historical":
+        ab_table_result["mode"] = "historical_a"
+    else:
+        ab_table_result["status"] = "running"
+    with pytest.raises((ValueError, KeyError)):
+        analysis.render_primary_table(ab_table_result)
+
+
+@pytest.mark.parametrize("table_format", ["markdown", "latex"])
+def test_ab_table_cli_validates_and_formats_results(pair, tmp_path, capsys, table_format):
+    kwargs = _arguments(pair, tmp_path)
+    argv = [part for key, value in kwargs.items() for part in ("--" + key.replace("_", "-"), str(value))]
+    assert analysis.main([*argv, "--table-format", table_format]) == 0
+    captured = capsys.readouterr()
+    assert "Surface A" in captured.out and "Surface B" in captured.out and "Combined" in captured.out
+    assert "Hybrid KG memory" in captured.out and not captured.err
+    result = json.loads((tmp_path / "analysis-output/analysis.json").read_bytes())
+    assert result["pooled"]["row_count"] == 1920 and result["pooled"]["history_cluster_count"] == 12
+    assert len(list((tmp_path / "analysis-output").iterdir())) == 1
+
+
+def test_ab_table_cli_rejects_mismatched_runs_without_output(pair, tmp_path, capsys):
+    path = pair["B"]["run"] / "manifest.json"
+    manifest = json.loads(path.read_bytes())
+    manifest["model"]["resolved_revision"] = "different"
+    manifest["tokenizer"]["resolved_revision"] = "different"
+    _write_json(path, manifest)
+    kwargs = _arguments(pair, tmp_path)
+    argv = [part for key, value in kwargs.items() for part in ("--" + key.replace("_", "-"), str(value))]
+    with pytest.raises(SystemExit) as error:
+        analysis.main([*argv, "--table-format", "latex"])
+    assert error.value.code == 2
+    assert not capsys.readouterr().out
+    assert not (tmp_path / "analysis-output").exists()
+
+
+@pytest.mark.parametrize("mode", ["historical_a", "kimi_a"])
+def test_ab_table_cli_requires_both_surfaces_before_analysis(tmp_path, monkeypatch, mode):
+    monkeypatch.setattr(analysis, "analyze_paper_persona", lambda **kwargs: pytest.fail("single-surface table request reached analysis"))
+    argv = ["--mode", mode, "--table-format", "markdown"]
+    for flag in ("run-a", "config-a", "evidence-root", "output-dir"):
+        argv.extend(["--" + flag, str(tmp_path / flag)])
+    with pytest.raises(SystemExit) as error:
+        analysis.main(argv)
+    assert error.value.code == 2
+    assert not list(tmp_path.iterdir())
+
+
+def test_readme_primary_workflow_uses_both_surfaces():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    primary = readme.split("### Table 1", 1)[1].split("### Continual", 1)[0]
+    assert "--mode kimi_ab" in primary and "--run-b" in primary and "--config-b" in primary
+    assert "--table-format markdown" in primary and "--table-format latex" in primary
+    assert "1,920" in primary and "12 base-history clusters" in primary
+    assert "Historical single-surface reference" in primary

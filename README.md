@@ -18,14 +18,11 @@ python3.12 -m venv .venv-support
 
 ## Evaluation
 
-### Table 1 — Primary end-to-end benchmark
+### Table 1 — Surface A, Surface B, and Combined
 
-| Method | 4K EM | 4K F1 | 16K EM | 16K F1 |
-|---|---:|---:|---:|---:|
-| Sliding context | 35.00 | 37.42 | 60.00 | 64.58 |
-| Structured memory | 69.17 | 70.75 | 70.83 | 72.50 |
-| Graphiti | 48.33 | 54.33 | 66.67 | 69.17 |
-| Hybrid KG memory | **78.33** | **79.58** | **75.83** | **75.83** |
+The primary workflow is `kimi_ab`: both pair-conditioned Kimi surfaces, with four methods at 4K and 16K. Each surface has 120 conditions and 960 answers; together they have 240 conditions and **1,920 answers over 12 base-history clusters**, not 24 independent histories. Combined EM/F1 use unrounded pooled scores.
+
+The complete matched A/B result artifacts and F1 values for the updated paper table have not been imported into this checkout. Step 6 generates all three table panels from validated results; it does not infer F1 from EM or silently merge older five-arm runs with newer partial runs. The historical single-surface scores are kept separately below.
 
 **1. Download the pinned models.** The benchmark inputs are already bundled under `results/`. Saved answers and Kimi API access are not needed. These downloads also populate the cache used by the supporting experiments.
 
@@ -83,21 +80,41 @@ export PERSONA_GRAPHITI_NEO4J_PASSWORD="$DB_PASSWORD"
 export PERSONA_GRAPHITI_LLM_MODEL=Qwen/Qwen3-4B PERSONA_GRAPHITI_LLM_SMALL_MODEL=Qwen/Qwen3-4B
 ```
 
-**5. Run the entire benchmark.** This rebuilds the memory stores, performs extraction and retrieval, generates all 960 answers, and computes EM, F1, and paired bootstrap comparisons. Use a new run ID for each fresh experiment; do not run `--prepare` first with the same ID.
+**5. Run both surfaces.** This rebuilds the memory stores, performs extraction and retrieval, generates 960 answers per surface, and computes each surface's metrics. A and B get separate outputs, caches, indexes, and Graphiti build IDs. Use a new run ID for each fresh experiment; do not run `--prepare` first with the same ID.
 
 ```bash
-.venv-persona/bin/python -m experiments.paper_persona --mode historical_a --evidence-root . --output-root outputs/runsets --run-id table1 --execute
+.venv-persona/bin/python -m experiments.paper_persona --mode kimi_ab --evidence-root . --output-root outputs/runsets --run-id table1 --execute
 ```
 
-Outputs are in `outputs/runsets/historical_a/table1/surface_a/`: `generations.jsonl`, `predictions.jsonl`, `metrics.json`, and `manifest.json`. Completion requires `status: completed` and 960 generations.
+Outputs are in `outputs/runsets/kimi_ab/table1/surface_a/` and `surface_b/`, with generated configurations in `configs/` under the same runset. Both manifests must report `status: completed` and 960 generations. The legacy default remains `historical_a`, so specify `--mode kimi_ab` explicitly for the current paper.
 
-**6. Generate the readable results report from this new run.** It lists the eight method/budget combinations underlying Table 1, confidence intervals, and query-family results.
+**6. Verify, pool, and print Table 1.** This checks input hashes, complete eight-arm coverage, saved EM/F1 scores, and A/B model/source/configuration/checkpoint compatibility before publishing combined results. The output directory must be new and outside the source, input, and run directories.
 
 ```bash
-.venv-persona/bin/python -m experiments.persona_graphiti_analysis --run-dir outputs/runsets/historical_a/table1/surface_a --corpus-dir results/persona_conflict_conversations_surface_a_graphiti_build2 --output-dir outputs/table1-report --verify-inputs
+.venv-persona/bin/python -m experiments.paper_persona_analysis --mode kimi_ab \
+  --run-a outputs/runsets/kimi_ab/table1/surface_a \
+  --config-a outputs/runsets/kimi_ab/table1/configs/surface_a.json \
+  --run-b outputs/runsets/kimi_ab/table1/surface_b \
+  --config-b outputs/runsets/kimi_ab/table1/configs/surface_b.json \
+  --evidence-root . --output-dir ../mfs-table1-ab-report --table-format markdown
 ```
 
-Read `outputs/table1-report/README.md` and `analysis.md`. Use a fresh report directory for subsequent runs.
+The command prints the Surface A / Surface B / Combined table and saves full metrics and paired confidence intervals in `../mfs-table1-ab-report/analysis.json`. Replace `--table-format markdown` with `--table-format latex` for the grouped Overleaf table (requires `booktabs`, `graphicx`, and `float`). Use a fresh report directory for each invocation. Combined bootstrap comparisons keep A and B together within the same 12 base-history clusters.
+
+Do not combine historical deterministic A with modern B. Shared corpus names or similar percentages do not establish matched runs. If the new artifacts contain only hybrid/Graphiti arms, supply compatible complete eight-arm results before using this report; missing baseline rows or F1 values are not filled automatically.
+
+#### Historical single-surface reference
+
+These scores use the older deterministic `historical_a` corpus, not the pair-conditioned A/B corpora. They are retained for reference and are not the current three-panel Table 1.
+
+| Method | 4K EM | 4K F1 | 16K EM | 16K F1 |
+|---|---:|---:|---:|---:|
+| Sliding context | 35.00 | 37.42 | 60.00 | 64.58 |
+| Structured memory | 69.17 | 70.75 | 70.83 | 72.50 |
+| Graphiti | 48.33 | 54.33 | 66.67 | 69.17 |
+| Hybrid KG memory | **78.33** | **79.58** | **75.83** | **75.83** |
+
+`historical_a` and `kimi_a` remain supported for explicitly requested single-surface work. The legacy `scripts/verify_paper_results.py --table1` command verifies saved historical-A results only; it does not produce the current A/B/Combined table.
 
 ### Continual Memory and Lineage (§4.2)
 
