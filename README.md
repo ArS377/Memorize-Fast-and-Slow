@@ -16,13 +16,42 @@ python3.12 -m venv .venv-support
 .venv-support/bin/python -m pip install -r requirements-dense.txt
 ```
 
+## Anonymous review package
+
+Build the reviewer ZIP from this checkout using Python's standard library:
+
+```bash
+python3 -B scripts/package_submission.py --output ../supplementary_code.zip
+```
+
+Use a new output filename each time. The command refuses to overwrite files, verifies the 41 bundled input files, and packages source, tests, and those inputs under `supplementary_code/`. It excludes Git metadata, local environments, caches, and run outputs. ZIP comments are empty, timestamps are fixed, and no owner metadata is copied. GitHub's **Download ZIP** may attach a commit ID in the archive comment; use this packaging command for the review upload instead.
+
+The command checks for personal home-directory paths, unapproved GitHub repository links, and stored Git commit IDs. These checks are not a guarantee of anonymity: review names, affiliations, document contents, and any separately supplied artifacts before uploading. Third-party model revisions, dependency versions, and original bundled-data checksums are retained.
+
+`tests/fixtures/historical_persona_manifest.json` is an explicitly anonymized test fixture: its dataset paths are relative to the project root and its historical Git identity is removed. Its test checksum identifies this sanitized copy, not the original execution record. The configuration test supplies a synthetic source identity in memory; production provenance checks are unchanged. No bundled dataset or original external manifest was rewritten.
+
+### Running from the extracted ZIP
+
+Extract the ZIP into any directory, enter `supplementary_code/`, and configure archive verification in the shell used for the experiments:
+
+```bash
+export NEUROSYM_SOURCE_MANIFEST=source_manifest.json
+export NEUROSYM_SOURCE_MANIFEST_SHA256="$(cat source_manifest.sha256)"
+python3 -B -m neurosym.application.source_provenance --verify .
+python3 -B scripts/artifact_resources.py verify bundled-persona --root .
+```
+
+`source_manifest.json` records source-file checksums; `package_manifest.json` additionally inventories tests and bundled inputs. The adjacent digest detects changes relative to the packaged manifest, not the identity of its author. Keep the archive SHA-256 printed by the packaging command separately when distributing it. Reviewers do not need the original Git checkout. Leave both environment variables set when following the evaluation commands below.
+
+This ZIP contains the persona benchmark inputs, not the external saved A/B runs or the supporting continual/interleaved datasets. Anonymous access to those missing artifacts must be supplied separately; packaging alone does not make every reported experiment reproducible.
+
 ## Evaluation
 
 ### Table 1 — Surface A, Surface B, and Combined
 
 The primary workflow is `kimi_ab`: both pair-conditioned Kimi surfaces, with four methods at 4K and 16K. Each surface has 120 conditions and 960 answers; together they have 240 conditions and **1,920 answers over 12 base-history clusters**, not 24 independent histories. Combined EM/F1 use unrounded pooled scores.
 
-These are the [published matched eight-arm A/B results](https://github.com/ArS377/NeuroSym/blob/667c26a53b8a3455fa0ba0f91f0bff60e30e2bfe/results/persona_joint_kimi_ab_a100_build1/analysis/analysis.json). Full run artifacts remain external to this branch. There is one stochastic Graphiti ingestion realization per surface; fresh runs may produce different scores. The historical single-surface reference is separate below.
+These are the matched eight-arm A/B results reported in the paper. Full run artifacts remain external to this package; an anonymous download is not yet configured. There is one stochastic Graphiti ingestion realization per surface; fresh runs may produce different scores. The historical single-surface reference is separate below.
 
 **Exact match (%)**
 

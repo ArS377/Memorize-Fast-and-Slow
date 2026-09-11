@@ -453,14 +453,23 @@ def test_real_gate_rejects_corpus_mixing(bundled_corpora, tmp_path, change):
         analysis._authenticate_surface(root, "kimi_a", "A", analysis.PAIR_GATE_SHA256)
 
 
-def test_historical_manifest_and_canonical_config_contract(bundled_corpora, tmp_path):
+def test_anonymized_historical_fixture_and_canonical_config_contract(bundled_corpora, tmp_path):
     _, provenance, _ = analysis._authenticate_surface(bundled_corpora, "historical_a", "A", analysis.PAIR_GATE_SHA256)
     manifest_bytes = (ROOT / "tests/fixtures/historical_persona_manifest.json").read_bytes()
-    assert hashlib.sha256(manifest_bytes).hexdigest() == "10abe1a44eb415a0bebec230fa51f8deb9aeca41b18f39259156477d1dbe80cf"
+    # Pin the sanitized test fixture, not the untouched external run manifest.
+    assert hashlib.sha256(manifest_bytes).hexdigest() == "9284a94c9a731d0b3a355e16582e2964b9bec704e2825abfb0941ea61dd73f54"
+    manifest = json.loads(manifest_bytes)
+    assert "git" not in manifest
+    assert manifest["anonymization"]["purpose"].startswith("Test fixture only;")
+    assert not Path(manifest["dataset"]["path"]).is_absolute()
+    assert not Path(manifest["dataset"]["parent_path"]).is_absolute()
+    # This test checks the configuration contract, not execution provenance.
+    # Supply an explicitly synthetic identity in memory; never ship it as a run.
+    manifest["git"] = {"git_head": "0" * 40, "dirty": False}
     config_bytes = (ROOT / "configs/persona_end_to_end_joint_surface_a.json").read_bytes()
     config_path = tmp_path / "canonical-config.json"
     config_path.write_bytes(config_bytes)
-    analysis._validate_config(json.loads(manifest_bytes), json.loads(config_bytes), config_path, provenance, "historical_a", "A")
+    analysis._validate_config(manifest, json.loads(config_bytes), config_path, provenance, "historical_a", "A")
 
 
 def test_generation_manifest_scientific_mismatch_rejected(pair, tmp_path):

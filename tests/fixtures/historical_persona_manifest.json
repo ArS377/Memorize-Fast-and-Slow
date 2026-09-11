@@ -1,4 +1,8 @@
 {
+  "anonymization": {
+    "purpose": "Test fixture only; not an unmodified historical execution manifest.",
+    "changes": ["Personal dataset paths made repository-relative", "Historical Git identity removed"]
+  },
   "arms": [
     {
       "kind": "sliding_context",
@@ -73,8 +77,8 @@
     "generation_manifest_sha256": "c64c5c4268d93691b9bdf12119fa31a91cc7e9a798182135593c85128fc89c89",
     "generation_model": "deterministic-derived-surface",
     "parent_generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
-    "parent_path": "/home/aaronlee2207/neurosym-graphiti/results/persona_conflict_conversations_v1",
-    "path": "/home/aaronlee2207/neurosym-graphiti/results/persona_conflict_conversations_surface_a"
+    "parent_path": "results/persona_conflict_conversations_v1",
+    "path": "results/persona_conflict_conversations_surface_a"
   },
   "decoding": {
     "batch_size": 1,
@@ -86,12 +90,6 @@
   "evaluator_version": "persona_end_to_end_qwen.v2",
   "generation_count": 960,
   "generation_manifest_sha256": "c8e4d4f579e98379f3b72e044136a377011fabdb9138858a2cf6442790eb776e",
-  "git": {
-    "dirty": true,
-    "dirty_diff_sha256": "957a370c7ab29761c1a9c9f7f42a2a1e6d3e161090250260b8fab52a1edacf97",
-    "git_head": "19a720ea1044d22e5e7e30d7248d444ea3d47e62",
-    "untracked_file_count": 2
-  },
   "graphiti_memory": {
     "arm_label": "Graphiti ingestion with benchmark-matched retrieval",
     "backend": "graphiti_core",
