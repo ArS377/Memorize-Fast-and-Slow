@@ -99,8 +99,16 @@ python -m dashboard.server --host 0.0.0.0 --port 8080
 
 Open `http://127.0.0.1:8080/` on the host. See `dashboard/README.md` for
 configuration, endpoints, and tests.
-The consolidated August evidence index, including runs that predate the
+The consolidated evidence index, including runs that predate the
 dashboard artifact contract, is [`docs/recent-results.md`](docs/recent-results.md).
+
+The [matched Kimi A/B result](results/persona_joint_kimi_ab_a100_build1/README.md)
+compares sliding context, structured memory, hybrid KG, and Graphiti at 4K and
+16K on two fixed wordings. Pooled hybrid-minus-Graphiti exact-match differences
+were +27.08 points at 4K and +13.75 points at 16K. Both surfaces share 12 latent
+histories and use one stochastic Graphiti ingestion realization per surface;
+see the [surface coverage audit](docs/persona-surface-coverage.md) for scope and
+limitations.
 
 ### Differentiable admission benchmark
 
