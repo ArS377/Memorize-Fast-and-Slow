@@ -22,7 +22,38 @@ python3.12 -m venv .venv-support
 
 The primary workflow is `kimi_ab`: both pair-conditioned Kimi surfaces, with four methods at 4K and 16K. Each surface has 120 conditions and 960 answers; together they have 240 conditions and **1,920 answers over 12 base-history clusters**, not 24 independent histories. Combined EM/F1 use unrounded pooled scores.
 
-The complete matched A/B result artifacts and F1 values for the updated paper table have not been imported into this checkout. Step 6 generates all three table panels from validated results; it does not infer F1 from EM or silently merge older five-arm runs with newer partial runs. The historical single-surface scores are kept separately below.
+These are the [published matched eight-arm A/B results](https://github.com/ArS377/NeuroSym/blob/667c26a53b8a3455fa0ba0f91f0bff60e30e2bfe/results/persona_joint_kimi_ab_a100_build1/analysis/analysis.json). Full run artifacts remain external to this branch. There is one stochastic Graphiti ingestion realization per surface; fresh runs may produce different scores. The historical single-surface reference is separate below.
+
+**Exact match (%)**
+
+| Method | Surface A 4K | Surface A 16K | Surface B 4K | Surface B 16K | Combined 4K | Combined 16K |
+|---|---:|---:|---:|---:|---:|---:|
+| Sliding context | 32.50 | 50.00 | 28.33 | 55.83 | 30.42 | 52.92 |
+| Structured memory | 62.50 | 60.83 | 59.17 | 63.33 | 60.83 | 62.08 |
+| Graphiti | 40.83 | 52.50 | 40.00 | 58.33 | 40.42 | 55.42 |
+| Hybrid KG memory | **69.17** | **71.67** | **65.83** | **66.67** | **67.50** | **69.17** |
+
+**Token F1 (%)**
+
+| Method | Surface A 4K | Surface A 16K | Surface B 4K | Surface B 16K | Combined 4K | Combined 16K |
+|---|---:|---:|---:|---:|---:|---:|
+| Sliding context | 35.83 | 55.64 | 31.44 | 59.19 | 33.64 | 57.42 |
+| Structured memory | 64.50 | 64.00 | 61.03 | 65.19 | 62.76 | 64.60 |
+| Graphiti | 47.28 | 57.92 | 48.15 | 61.64 | 47.71 | 59.78 |
+| Hybrid KG memory | **71.19** | **72.57** | **68.86** | **67.92** | **70.03** | **70.24** |
+
+**Combined paired exact-match effects (percentage points)**
+
+| Comparison | Budget | EM gain | 95% CI |
+|---|---|---:|---|
+| Hybrid - sliding | 4K | +37.08 | [30.42, 44.58] |
+| Hybrid - structured | 4K | +6.67 | [-0.42, 15.00] |
+| Hybrid - Graphiti | 4K | +27.08 | [19.17, 35.42] |
+| Hybrid - sliding | 16K | +16.25 | [7.08, 25.00] |
+| Hybrid - structured | 16K | +7.08 | [1.25, 13.33] |
+| Hybrid - Graphiti | 16K | +13.75 | [5.42, 21.25] |
+
+Intervals use 2,000 bootstrap resamples of the 12 shared histories (seed 73), keeping A and B together. The 4K hybrid-versus-structured EM interval includes zero; all other listed EM intervals exclude zero.
 
 **1. Download the pinned models.** The benchmark inputs are already bundled under `results/`. Saved answers and Kimi API access are not needed. These downloads also populate the cache used by the supporting experiments.
 
@@ -101,7 +132,7 @@ Outputs are in `outputs/runsets/kimi_ab/table1/surface_a/` and `surface_b/`, wit
 
 The command prints the Surface A / Surface B / Combined table and saves full metrics and paired confidence intervals in `../mfs-table1-ab-report/analysis.json`. Replace `--table-format markdown` with `--table-format latex` for the grouped Overleaf table (requires `booktabs`, `graphicx`, and `float`). Use a fresh report directory for each invocation. Combined bootstrap comparisons keep A and B together within the same 12 base-history clusters.
 
-Do not combine historical deterministic A with modern B. Shared corpus names or similar percentages do not establish matched runs. If the new artifacts contain only hybrid/Graphiti arms, supply compatible complete eight-arm results before using this report; missing baseline rows or F1 values are not filled automatically.
+Use the matched eight-arm A/B outputs for every method. Do not substitute older five-arm baseline results or combine historical deterministic A with modern B; shared corpus names or similar percentages do not establish matched runs.
 
 #### Historical single-surface reference
 

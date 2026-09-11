@@ -611,3 +611,43 @@ def test_readme_primary_workflow_uses_both_surfaces():
     assert "--table-format markdown" in primary and "--table-format latex" in primary
     assert "1,920" in primary and "12 base-history clusters" in primary
     assert "Historical single-surface reference" in primary
+
+
+def _readme_table_rows(heading):
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    block = readme.split(heading + "\n\n", 1)[1].split("\n\n", 1)[0]
+    return [[cell.strip().strip("*") for cell in line.strip("|").split("|")]
+            for line in block.splitlines()[2:]]
+
+
+@pytest.mark.parametrize("heading,expected", [
+    ("**Exact match (%)**", [
+        ["Sliding context", "32.50", "50.00", "28.33", "55.83", "30.42", "52.92"],
+        ["Structured memory", "62.50", "60.83", "59.17", "63.33", "60.83", "62.08"],
+        ["Graphiti", "40.83", "52.50", "40.00", "58.33", "40.42", "55.42"],
+        ["Hybrid KG memory", "69.17", "71.67", "65.83", "66.67", "67.50", "69.17"],
+    ]),
+    ("**Token F1 (%)**", [
+        ["Sliding context", "35.83", "55.64", "31.44", "59.19", "33.64", "57.42"],
+        ["Structured memory", "64.50", "64.00", "61.03", "65.19", "62.76", "64.60"],
+        ["Graphiti", "47.28", "57.92", "48.15", "61.64", "47.71", "59.78"],
+        ["Hybrid KG memory", "71.19", "72.57", "68.86", "67.92", "70.03", "70.24"],
+    ]),
+])
+def test_readme_primary_scores_match_published_ab_results(heading, expected):
+    assert _readme_table_rows(heading) == expected
+
+
+def test_readme_combined_intervals_match_published_analysis():
+    assert _readme_table_rows("**Combined paired exact-match effects (percentage points)**") == [
+        ["Hybrid - sliding", "4K", "+37.08", "[30.42, 44.58]"],
+        ["Hybrid - structured", "4K", "+6.67", "[-0.42, 15.00]"],
+        ["Hybrid - Graphiti", "4K", "+27.08", "[19.17, 35.42]"],
+        ["Hybrid - sliding", "16K", "+16.25", "[7.08, 25.00]"],
+        ["Hybrid - structured", "16K", "+7.08", "[1.25, 13.33]"],
+        ["Hybrid - Graphiti", "16K", "+13.75", "[5.42, 21.25]"],
+    ]
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "667c26a53b8a3455fa0ba0f91f0bff60e30e2bfe/results/persona_joint_kimi_ab_a100_build1/analysis/analysis.json" in readme
+    assert "have not been imported" not in readme
+    assert "The 4K hybrid-versus-structured EM interval includes zero" in readme
