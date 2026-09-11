@@ -1,0 +1,20 @@
+{
+  "built_at_utc": "2026-09-06T06:47:49+00:00",
+  "dtype": "float32",
+  "embedding_batch_size": 32,
+  "embedding_device": "cpu",
+  "fact_count": 946,
+  "fact_template_version": "fact_text.v1",
+  "model_name": "/xuanwu-tank/north/kylezheng/.hf-home/hub/models--BAAI--bge-small-en-v1.5/snapshots/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "normalized": true,
+  "ordered_fact_digest": "eec2e4e65b059b226b17cd69a8e7d7be4678e26759d90660c5eeb60f3def6935",
+  "query_template_version": "bge_query.v1",
+  "requested_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "schema_version": "dense_fact_index.v1",
+  "sentence_transformers_version": "6.0.0",
+  "similarity": "cosine_dot_product",
+  "source_session_id": "persona-2cfdbf187052-34bebce638f1",
+  "source_snapshot_sha256": "4fa819bb5d1318dfec0cb3e562dfe3dcd49f0f8b2e15686fa1d3acc205690355",
+  "vector_dimension": 384
+}
