@@ -1,0 +1,4223 @@
+{
+  "historical_source_caveat": null,
+  "mode": "kimi_ab",
+  "pooled": {
+    "aggregates": {
+      "by_arm": [
+        {
+          "arm": "graphiti_memory_16384",
+          "exact_match": 0.5541666666666667,
+          "f1": 0.5977777777777777,
+          "history_cluster_count": 12,
+          "row_count": 240
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "exact_match": 0.4041666666666667,
+          "f1": 0.47712301587301587,
+          "history_cluster_count": 12,
+          "row_count": 240
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "exact_match": 0.6916666666666667,
+          "f1": 0.7024404761904762,
+          "history_cluster_count": 12,
+          "row_count": 240
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "exact_match": 0.675,
+          "f1": 0.7002777777777778,
+          "history_cluster_count": 12,
+          "row_count": 240
+        },
+        {
+          "arm": "sliding_context_16384",
+          "exact_match": 0.5291666666666667,
+          "f1": 0.5741666666666667,
+          "history_cluster_count": 12,
+          "row_count": 240
+        },
+        {
+          "arm": "sliding_context_4096",
+          "exact_match": 0.30416666666666664,
+          "f1": 0.3363888888888889,
+          "history_cluster_count": 12,
+          "row_count": 240
+        },
+        {
+          "arm": "structured_memory_16384",
+          "exact_match": 0.6208333333333333,
+          "f1": 0.6459722222222222,
+          "history_cluster_count": 12,
+          "row_count": 240
+        },
+        {
+          "arm": "structured_memory_4096",
+          "exact_match": 0.6083333333333333,
+          "f1": 0.6276388888888889,
+          "history_cluster_count": 12,
+          "row_count": 240
+        }
+      ],
+      "by_arm_condition": [
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.25,
+          "f1": 0.32222222222222224,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "post_update",
+          "exact_match": 0.6041666666666666,
+          "f1": 0.6763888888888889,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 0.9166666666666666,
+          "f1": 0.9166666666666666,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.5,
+          "f1": 0.5395833333333333,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.5,
+          "f1": 0.5340277777777778,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.22916666666666666,
+          "f1": 0.3153769841269841,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "post_update",
+          "exact_match": 0.625,
+          "f1": 0.6958333333333333,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.875,
+          "f1": 0.8833333333333333,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.125,
+          "f1": 0.25069444444444444,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.16666666666666666,
+          "f1": 0.24037698412698413,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.4375,
+          "f1": 0.4666666666666667,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "post_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 0.7083333333333334,
+          "f1": 0.7083333333333334,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.7083333333333334,
+          "f1": 0.7142857142857143,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.6041666666666666,
+          "f1": 0.6229166666666667,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.5833333333333334,
+          "f1": 0.6020833333333333,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "post_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.6875,
+          "f1": 0.6875,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.5833333333333334,
+          "f1": 0.6465277777777778,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.5208333333333334,
+          "f1": 0.5652777777777778,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.20833333333333334,
+          "f1": 0.23958333333333334,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "post_update",
+          "exact_match": 0.6041666666666666,
+          "f1": 0.6555555555555556,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "pre_update",
+          "exact_match": 0.9791666666666666,
+          "f1": 0.9791666666666666,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.4166666666666667,
+          "f1": 0.49583333333333335,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.4375,
+          "f1": 0.5006944444444444,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.0,
+          "f1": 0.0,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "post_update",
+          "exact_match": 0.6458333333333334,
+          "f1": 0.70625,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "pre_update",
+          "exact_match": 0.8541666666666666,
+          "f1": 0.8541666666666666,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.020833333333333332,
+          "f1": 0.09236111111111112,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.0,
+          "f1": 0.029166666666666667,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.4791666666666667,
+          "f1": 0.4895833333333333,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "post_update",
+          "exact_match": 0.6041666666666666,
+          "f1": 0.6555555555555556,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 0.9791666666666666,
+          "f1": 0.9791666666666666,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.5208333333333334,
+          "f1": 0.5555555555555556,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.5208333333333334,
+          "f1": 0.55,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.7291666666666666,
+          "f1": 0.7291666666666666,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "post_update",
+          "exact_match": 0.6458333333333334,
+          "f1": 0.70625,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.8541666666666666,
+          "f1": 0.8541666666666666,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.3541666666666667,
+          "f1": 0.3798611111111111,
+          "history_cluster_count": 12,
+          "row_count": 48
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.4583333333333333,
+          "f1": 0.46875,
+          "history_cluster_count": 12,
+          "row_count": 48
+        }
+      ],
+      "by_arm_condition_query_family": [
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.0,
+          "f1": 0.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.5,
+          "f1": 0.6444444444444445,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "post_update",
+          "exact_match": 0.5,
+          "f1": 0.5208333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "post_update",
+          "exact_match": 0.7083333333333334,
+          "f1": 0.8319444444444445,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 0.8333333333333334,
+          "f1": 0.8333333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.16666666666666666,
+          "f1": 0.18055555555555555,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.8333333333333334,
+          "f1": 0.8986111111111111,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.125,
+          "f1": 0.15555555555555556,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.875,
+          "f1": 0.9125,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.125,
+          "f1": 0.125,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.3333333333333333,
+          "f1": 0.5057539682539682,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "post_update",
+          "exact_match": 0.5416666666666666,
+          "f1": 0.5791666666666667,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "post_update",
+          "exact_match": 0.7083333333333334,
+          "f1": 0.8125,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.8333333333333334,
+          "f1": 0.8333333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.9166666666666666,
+          "f1": 0.9333333333333333,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.08333333333333333,
+          "f1": 0.11805555555555555,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.16666666666666666,
+          "f1": 0.38333333333333336,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.0,
+          "f1": 0.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.3333333333333333,
+          "f1": 0.48075396825396827,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.0,
+          "f1": 0.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.875,
+          "f1": 0.9333333333333333,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "post_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "post_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 0.4583333333333333,
+          "f1": 0.4583333333333333,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 0.9583333333333334,
+          "f1": 0.9583333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.4166666666666667,
+          "f1": 0.42857142857142855,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.20833333333333334,
+          "f1": 0.24583333333333335,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.20833333333333334,
+          "f1": 0.225,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.9583333333333334,
+          "f1": 0.9791666666666666,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "post_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "post_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.4166666666666667,
+          "f1": 0.4166666666666667,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.9583333333333334,
+          "f1": 0.9583333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.20833333333333334,
+          "f1": 0.3347222222222222,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.9583333333333334,
+          "f1": 0.9583333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.125,
+          "f1": 0.17916666666666667,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.9166666666666666,
+          "f1": 0.9513888888888888,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.0,
+          "f1": 0.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.4166666666666667,
+          "f1": 0.4791666666666667,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "post_update",
+          "exact_match": 0.4583333333333333,
+          "f1": 0.4583333333333333,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "post_update",
+          "exact_match": 0.75,
+          "f1": 0.8527777777777777,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "pre_update",
+          "exact_match": 0.9583333333333334,
+          "f1": 0.9583333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "pre_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.16666666666666666,
+          "f1": 0.18055555555555555,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.6666666666666666,
+          "f1": 0.8111111111111111,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.125,
+          "f1": 0.14166666666666666,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.75,
+          "f1": 0.8597222222222223,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.0,
+          "f1": 0.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.0,
+          "f1": 0.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "post_update",
+          "exact_match": 0.5833333333333334,
+          "f1": 0.6,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "post_update",
+          "exact_match": 0.7083333333333334,
+          "f1": 0.8125,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "pre_update",
+          "exact_match": 0.8333333333333334,
+          "f1": 0.8333333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "pre_update",
+          "exact_match": 0.875,
+          "f1": 0.875,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.041666666666666664,
+          "f1": 0.09305555555555556,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.0,
+          "f1": 0.09166666666666667,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.0,
+          "f1": 0.020833333333333332,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "sliding_context_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.0,
+          "f1": 0.0375,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.0,
+          "f1": 0.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "delayed_probe",
+          "exact_match": 0.9583333333333334,
+          "f1": 0.9791666666666666,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "post_update",
+          "exact_match": 0.4583333333333333,
+          "f1": 0.4583333333333333,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "post_update",
+          "exact_match": 0.75,
+          "f1": 0.8527777777777777,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 0.9583333333333334,
+          "f1": 0.9583333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "pre_update",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.16666666666666666,
+          "f1": 0.18055555555555555,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "token_distance_4096",
+          "exact_match": 0.875,
+          "f1": 0.9305555555555556,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.125,
+          "f1": 0.14166666666666666,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_16384",
+          "condition": "token_distance_8192",
+          "exact_match": 0.9166666666666666,
+          "f1": 0.9583333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 0.4583333333333333,
+          "f1": 0.4583333333333333,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "delayed_probe",
+          "exact_match": 1.0,
+          "f1": 1.0,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "post_update",
+          "exact_match": 0.5833333333333334,
+          "f1": 0.6,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "post_update",
+          "exact_match": 0.7083333333333334,
+          "f1": 0.8125,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.8333333333333334,
+          "f1": 0.8333333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "pre_update",
+          "exact_match": 0.875,
+          "f1": 0.875,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.041666666666666664,
+          "f1": 0.09305555555555556,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "token_distance_4096",
+          "exact_match": 0.6666666666666666,
+          "f1": 0.6666666666666666,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.0,
+          "f1": 0.020833333333333332,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 24
+        },
+        {
+          "arm": "structured_memory_4096",
+          "condition": "token_distance_8192",
+          "exact_match": 0.9166666666666666,
+          "f1": 0.9166666666666666,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 24
+        }
+      ],
+      "by_arm_query_family": [
+        {
+          "arm": "graphiti_memory_16384",
+          "exact_match": 0.325,
+          "f1": 0.33805555555555555,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 120
+        },
+        {
+          "arm": "graphiti_memory_16384",
+          "exact_match": 0.7833333333333333,
+          "f1": 0.8575,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 120
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "exact_match": 0.31666666666666665,
+          "f1": 0.33111111111111113,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 120
+        },
+        {
+          "arm": "graphiti_memory_4096",
+          "exact_match": 0.49166666666666664,
+          "f1": 0.6231349206349206,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 120
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "exact_match": 0.4166666666666667,
+          "f1": 0.42654761904761906,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 120
+        },
+        {
+          "arm": "hybrid_kg_memory_16384",
+          "exact_match": 0.9666666666666667,
+          "f1": 0.9783333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 120
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "exact_match": 0.39166666666666666,
+          "f1": 0.4311111111111111,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 120
+        },
+        {
+          "arm": "hybrid_kg_memory_4096",
+          "exact_match": 0.9583333333333334,
+          "f1": 0.9694444444444444,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 120
+        },
+        {
+          "arm": "sliding_context_16384",
+          "exact_match": 0.3416666666666667,
+          "f1": 0.3477777777777778,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 120
+        },
+        {
+          "arm": "sliding_context_16384",
+          "exact_match": 0.7166666666666667,
+          "f1": 0.8005555555555556,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 120
+        },
+        {
+          "arm": "sliding_context_4096",
+          "exact_match": 0.2916666666666667,
+          "f1": 0.30944444444444447,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 120
+        },
+        {
+          "arm": "sliding_context_4096",
+          "exact_match": 0.31666666666666665,
+          "f1": 0.36333333333333334,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 120
+        },
+        {
+          "arm": "structured_memory_16384",
+          "exact_match": 0.3416666666666667,
+          "f1": 0.3477777777777778,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 120
+        },
+        {
+          "arm": "structured_memory_16384",
+          "exact_match": 0.9,
+          "f1": 0.9441666666666667,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 120
+        },
+        {
+          "arm": "structured_memory_4096",
+          "exact_match": 0.38333333333333336,
+          "f1": 0.4011111111111111,
+          "history_cluster_count": 12,
+          "query_family": "preference_change",
+          "row_count": 120
+        },
+        {
+          "arm": "structured_memory_4096",
+          "exact_match": 0.8333333333333334,
+          "f1": 0.8541666666666666,
+          "history_cluster_count": 12,
+          "query_family": "preference_incongruity",
+          "row_count": 120
+        }
+      ]
+    },
+    "condition_count": 240,
+    "history_cluster_count": 12,
+    "paired_deltas": [
+      {
+        "bootstrap_samples": 2000,
+        "bootstrap_seed": 73,
+        "exact_match_delta": 0.37083333333333335,
+        "exact_match_delta_ci_95": [
+          0.30416666666666664,
+          0.44583333333333336
+        ],
+        "f1_delta": 0.3638888888888889,
+        "f1_delta_ci_95": [
+          0.2966666666666667,
+          0.43375
+        ],
+        "history_cluster_count": 12,
+        "left_arm": "hybrid_kg_memory_4096",
+        "paired_row_count": 240,
+        "right_arm": "sliding_context_4096"
+      },
+      {
+        "bootstrap_samples": 2000,
+        "bootstrap_seed": 73,
+        "exact_match_delta": 0.1625,
+        "exact_match_delta_ci_95": [
+          0.07083333333333333,
+          0.25
+        ],
+        "f1_delta": 0.1282738095238095,
+        "f1_delta_ci_95": [
+          0.05341269841269841,
+          0.19938492063492064
+        ],
+        "history_cluster_count": 12,
+        "left_arm": "hybrid_kg_memory_16384",
+        "paired_row_count": 240,
+        "right_arm": "sliding_context_16384"
+      },
+      {
+        "bootstrap_samples": 2000,
+        "bootstrap_seed": 73,
+        "exact_match_delta": 0.1,
+        "exact_match_delta_ci_95": [
+          0.041666666666666664,
+          0.15833333333333333
+        ],
+        "f1_delta": 0.140734126984127,
+        "f1_delta_ci_95": [
+          0.08212301587301588,
+          0.1984126984126984
+        ],
+        "history_cluster_count": 12,
+        "left_arm": "graphiti_memory_4096",
+        "paired_row_count": 240,
+        "right_arm": "sliding_context_4096"
+      },
+      {
+        "bootstrap_samples": 2000,
+        "bootstrap_seed": 73,
+        "exact_match_delta": 0.025,
+        "exact_match_delta_ci_95": [
+          -0.025,
+          0.06666666666666667
+        ],
+        "f1_delta": 0.02361111111111111,
+        "f1_delta_ci_95": [
+          -0.019583333333333335,
+          0.05333333333333334
+        ],
+        "history_cluster_count": 12,
+        "left_arm": "graphiti_memory_16384",
+        "paired_row_count": 240,
+        "right_arm": "sliding_context_16384"
+      },
+      {
+        "bootstrap_samples": 2000,
+        "bootstrap_seed": 73,
+        "exact_match_delta": 0.2708333333333333,
+        "exact_match_delta_ci_95": [
+          0.19166666666666668,
+          0.3541666666666667
+        ],
+        "f1_delta": 0.2231547619047619,
+        "f1_delta_ci_95": [
+          0.14819444444444443,
+          0.3022222222222222
+        ],
+        "history_cluster_count": 12,
+        "left_arm": "hybrid_kg_memory_4096",
+        "paired_row_count": 240,
+        "right_arm": "graphiti_memory_4096"
+      },
+      {
+        "bootstrap_samples": 2000,
+        "bootstrap_seed": 73,
+        "exact_match_delta": 0.1375,
+        "exact_match_delta_ci_95": [
+          0.05416666666666667,
+          0.2125
+        ],
+        "f1_delta": 0.10466269841269842,
+        "f1_delta_ci_95": [
+          0.034305555555555554,
+          0.16938492063492064
+        ],
+        "history_cluster_count": 12,
+        "left_arm": "hybrid_kg_memory_16384",
+        "paired_row_count": 240,
+        "right_arm": "graphiti_memory_16384"
+      },
+      {
+        "bootstrap_samples": 2000,
+        "bootstrap_seed": 73,
+        "exact_match_delta": 0.06666666666666667,
+        "exact_match_delta_ci_95": [
+          -0.004166666666666667,
+          0.15
+        ],
+        "f1_delta": 0.07263888888888889,
+        "f1_delta_ci_95": [
+          0.0037500000000000007,
+          0.15722222222222224
+        ],
+        "history_cluster_count": 12,
+        "left_arm": "hybrid_kg_memory_4096",
+        "paired_row_count": 240,
+        "right_arm": "structured_memory_4096"
+      },
+      {
+        "bootstrap_samples": 2000,
+        "bootstrap_seed": 73,
+        "exact_match_delta": 0.07083333333333333,
+        "exact_match_delta_ci_95": [
+          0.0125,
+          0.13333333333333333
+        ],
+        "f1_delta": 0.056468253968253966,
+        "f1_delta_ci_95": [
+          0.0025000000000000014,
+          0.11357142857142857
+        ],
+        "history_cluster_count": 12,
+        "left_arm": "hybrid_kg_memory_16384",
+        "paired_row_count": 240,
+        "right_arm": "structured_memory_16384"
+      }
+    ],
+    "row_count": 1920
+  },
+  "scope": "Descriptive fixed pair-conditioned A/B surfaces, not independent replications; history-cluster bootstrap keeps both surfaces in each of 12 sampled history clusters.",
+  "status": "completed",
+  "surfaces": {
+    "A": {
+      "aggregates": {
+        "by_arm": [
+          {
+            "arm": "graphiti_memory_16384",
+            "exact_match": 0.525,
+            "f1": 0.5791666666666667,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "exact_match": 0.4083333333333333,
+            "f1": 0.4727777777777778,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "exact_match": 0.7166666666666667,
+            "f1": 0.7257142857142858,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "exact_match": 0.6916666666666667,
+            "f1": 0.7119444444444445,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "sliding_context_16384",
+            "exact_match": 0.5,
+            "f1": 0.5563888888888889,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "sliding_context_4096",
+            "exact_match": 0.325,
+            "f1": 0.35833333333333334,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "structured_memory_16384",
+            "exact_match": 0.6083333333333333,
+            "f1": 0.64,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "structured_memory_4096",
+            "exact_match": 0.625,
+            "f1": 0.645,
+            "history_cluster_count": 12,
+            "row_count": 120
+          }
+        ],
+        "by_arm_condition": [
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.25,
+            "f1": 0.33194444444444443,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.6694444444444444,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.48194444444444445,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.4583333333333333,
+            "f1": 0.49583333333333335,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.20833333333333334,
+            "f1": 0.27361111111111114,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7458333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9583333333333334,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.125,
+            "f1": 0.25833333333333336,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.12777777777777777,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.4583333333333333,
+            "f1": 0.475,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.7916666666666666,
+            "f1": 0.7916666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.7083333333333334,
+            "f1": 0.7202380952380952,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.625,
+            "f1": 0.6416666666666667,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6833333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.7083333333333334,
+            "f1": 0.7083333333333334,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.6375,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.5,
+            "f1": 0.5305555555555556,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.20833333333333334,
+            "f1": 0.22916666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "post_update",
+            "exact_match": 0.5416666666666666,
+            "f1": 0.6277777777777778,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.375,
+            "f1": 0.46111111111111114,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.375,
+            "f1": 0.4638888888888889,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7458333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.041666666666666664,
+            "f1": 0.1125,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.016666666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.5416666666666666,
+            "f1": 0.6277777777777778,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.5,
+            "f1": 0.5347222222222222,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.5,
+            "f1": 0.5375,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.7083333333333334,
+            "f1": 0.7083333333333334,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7458333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.375,
+            "f1": 0.3958333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.4583333333333333,
+            "f1": 0.4583333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          }
+        ],
+        "by_arm_condition_query_family": [
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.5,
+            "f1": 0.6638888888888889,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.5833333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.7555555555555555,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.8333333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.16666666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7972222222222223,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.16666666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.75,
+            "f1": 0.825,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.25,
+            "f1": 0.25,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.2972222222222222,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7916666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.125,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.39166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.25555555555555554,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.95,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.5833333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.44047619047619047,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.25,
+            "f1": 0.2833333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.3333333333333333,
+            "f1": 0.3666666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4166666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.275,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.11666666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9444444444444444,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4583333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "post_update",
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "post_update",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.7555555555555555,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.16666666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.7555555555555555,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.11666666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.8111111111111111,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7916666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.125,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.0,
+            "f1": 0.1,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.03333333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.7555555555555555,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.16666666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.9027777777777778,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.11666666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4166666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.7916666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.125,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          }
+        ],
+        "by_arm_query_family": [
+          {
+            "arm": "graphiti_memory_16384",
+            "exact_match": 0.35,
+            "f1": 0.35,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "exact_match": 0.7,
+            "f1": 0.8083333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "exact_match": 0.38333333333333336,
+            "f1": 0.3983333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "exact_match": 0.43333333333333335,
+            "f1": 0.5472222222222223,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "exact_match": 0.45,
+            "f1": 0.4614285714285714,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "exact_match": 0.9833333333333333,
+            "f1": 0.99,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "exact_match": 0.4,
+            "f1": 0.435,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "exact_match": 0.9833333333333333,
+            "f1": 0.9888888888888889,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "sliding_context_16384",
+            "exact_match": 0.35,
+            "f1": 0.3566666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "sliding_context_16384",
+            "exact_match": 0.65,
+            "f1": 0.7561111111111111,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "sliding_context_4096",
+            "exact_match": 0.3333333333333333,
+            "f1": 0.34833333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "sliding_context_4096",
+            "exact_match": 0.31666666666666665,
+            "f1": 0.36833333333333335,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "structured_memory_16384",
+            "exact_match": 0.35,
+            "f1": 0.3566666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "structured_memory_16384",
+            "exact_match": 0.8666666666666667,
+            "f1": 0.9233333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "structured_memory_4096",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.43166666666666664,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "structured_memory_4096",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.8583333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          }
+        ]
+      },
+      "assignment": "A",
+      "condition_count": 120,
+      "config_path": "/xuanwu-tank/north/kylezheng/ns-pab/runsets/kimi_ab/a100-build1/configs/surface_a.json",
+      "config_sha256": "4d4db750758a85aa9816c0394037545ec02d0f3e3d8fd2de1a924329774f0159",
+      "dataset": {
+        "artifact_sha256": {
+          "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+          "dialogue.jsonl": "3324fbe6a91b8998ec05e932b862e8dbed68be49c583b0fdd6831f56d8fae8e3",
+          "events.jsonl": "fe0617008cbe0fcbce6b2a5c8cbd4d77b0ade1521b5d82ba791fa08e0509d656",
+          "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+          "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+          "queries.jsonl": "cfe2d27b10350ed08c65823a34fd6f713be5f299d03027bc67a481b477a0a1e0",
+          "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+        },
+        "assignment": "A",
+        "checkpoint_policy": "authenticated_parent_exact_indices",
+        "generation_manifest_sha256": "2cfdbf18705204a9ca7412e9e962ad3bb03bd08b2426f09270abbc387b047f65",
+        "generation_model": "kimi-k3",
+        "method": "kimi-pair-conditioned-surface-and-dialogue.v2",
+        "pair_gate_sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b",
+        "parent_generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+        "parent_path": "/home/kylezheng/NeuroSym-integration/results/persona_conflict_conversations_v1",
+        "path": "/home/kylezheng/NeuroSym-integration/results/persona_conflict_conversations_surface_a",
+        "seed": 137
+      },
+      "history_cluster_count": 12,
+      "paired_deltas": [
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.36666666666666664,
+          "exact_match_delta_ci_95": [
+            0.275,
+            0.475
+          ],
+          "f1_delta": 0.3536111111111111,
+          "f1_delta_ci_95": [
+            0.2702777777777778,
+            0.45166666666666666
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_4096",
+          "paired_row_count": 120,
+          "right_arm": "sliding_context_4096"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.21666666666666667,
+          "exact_match_delta_ci_95": [
+            0.09166666666666666,
+            0.35
+          ],
+          "f1_delta": 0.16932539682539682,
+          "f1_delta_ci_95": [
+            0.06253968253968255,
+            0.2748809523809524
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_16384",
+          "paired_row_count": 120,
+          "right_arm": "sliding_context_16384"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.08333333333333333,
+          "exact_match_delta_ci_95": [
+            0.0,
+            0.18333333333333332
+          ],
+          "f1_delta": 0.11444444444444445,
+          "f1_delta_ci_95": [
+            0.034999999999999996,
+            0.205
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "graphiti_memory_4096",
+          "paired_row_count": 120,
+          "right_arm": "sliding_context_4096"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.025,
+          "exact_match_delta_ci_95": [
+            -0.008333333333333333,
+            0.058333333333333334
+          ],
+          "f1_delta": 0.02277777777777778,
+          "f1_delta_ci_95": [
+            -0.0077777777777777776,
+            0.04777777777777778
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "graphiti_memory_16384",
+          "paired_row_count": 120,
+          "right_arm": "sliding_context_16384"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.2833333333333333,
+          "exact_match_delta_ci_95": [
+            0.18333333333333332,
+            0.38333333333333336
+          ],
+          "f1_delta": 0.23916666666666667,
+          "f1_delta_ci_95": [
+            0.14333333333333334,
+            0.3325
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_4096",
+          "paired_row_count": 120,
+          "right_arm": "graphiti_memory_4096"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.19166666666666668,
+          "exact_match_delta_ci_95": [
+            0.058333333333333334,
+            0.31666666666666665
+          ],
+          "f1_delta": 0.14654761904761904,
+          "f1_delta_ci_95": [
+            0.04182539682539683,
+            0.24321428571428572
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_16384",
+          "paired_row_count": 120,
+          "right_arm": "graphiti_memory_16384"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.06666666666666667,
+          "exact_match_delta_ci_95": [
+            -0.025,
+            0.175
+          ],
+          "f1_delta": 0.06694444444444445,
+          "f1_delta_ci_95": [
+            -0.015833333333333335,
+            0.16527777777777777
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_4096",
+          "paired_row_count": 120,
+          "right_arm": "structured_memory_4096"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.10833333333333334,
+          "exact_match_delta_ci_95": [
+            0.008333333333333333,
+            0.21666666666666667
+          ],
+          "f1_delta": 0.08571428571428572,
+          "f1_delta_ci_95": [
+            -0.0005555555555555545,
+            0.1825793650793651
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_16384",
+          "paired_row_count": 120,
+          "right_arm": "structured_memory_16384"
+        }
+      ],
+      "row_count": 960,
+      "run_manifest_sha256": "aff695070f2a128ea3b58368c2aa835355ca4a3071151a1a9f8822a1d4d3532b",
+      "run_path": "/xuanwu-tank/north/kylezheng/ns-pab/runsets/kimi_ab/a100-build1/surface_a"
+    },
+    "B": {
+      "aggregates": {
+        "by_arm": [
+          {
+            "arm": "graphiti_memory_16384",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.6163888888888889,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "exact_match": 0.4,
+            "f1": 0.481468253968254,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6791666666666667,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "exact_match": 0.6583333333333333,
+            "f1": 0.6886111111111111,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "sliding_context_16384",
+            "exact_match": 0.5583333333333333,
+            "f1": 0.5919444444444445,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "sliding_context_4096",
+            "exact_match": 0.2833333333333333,
+            "f1": 0.31444444444444447,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "structured_memory_16384",
+            "exact_match": 0.6333333333333333,
+            "f1": 0.6519444444444444,
+            "history_cluster_count": 12,
+            "row_count": 120
+          },
+          {
+            "arm": "structured_memory_4096",
+            "exact_match": 0.5916666666666667,
+            "f1": 0.6102777777777778,
+            "history_cluster_count": 12,
+            "row_count": 120
+          }
+        ],
+        "by_arm_condition": [
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.25,
+            "f1": 0.3125,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.625,
+            "f1": 0.6833333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.5972222222222222,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.5416666666666666,
+            "f1": 0.5722222222222222,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.25,
+            "f1": 0.35714285714285715,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.6458333333333334,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.7916666666666666,
+            "f1": 0.8083333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.125,
+            "f1": 0.24305555555555555,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.25,
+            "f1": 0.3529761904761905,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4583333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.625,
+            "f1": 0.625,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.7083333333333334,
+            "f1": 0.7083333333333334,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.6041666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.5,
+            "f1": 0.5208333333333334,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.5833333333333334,
+            "f1": 0.6555555555555556,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.5416666666666666,
+            "f1": 0.6,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.20833333333333334,
+            "f1": 0.25,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6833333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "pre_update",
+            "exact_match": 0.9583333333333334,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.4583333333333333,
+            "f1": 0.5305555555555556,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.5,
+            "f1": 0.5375,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "post_update",
+            "exact_match": 0.625,
+            "f1": 0.6666666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "pre_update",
+            "exact_match": 0.7916666666666666,
+            "f1": 0.7916666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.0,
+            "f1": 0.07222222222222222,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.041666666666666664,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.4583333333333333,
+            "f1": 0.4791666666666667,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6833333333333333,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.9583333333333334,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.5416666666666666,
+            "f1": 0.5763888888888888,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.5416666666666666,
+            "f1": 0.5625,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.75,
+            "f1": 0.75,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.625,
+            "f1": 0.6666666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.7916666666666666,
+            "f1": 0.7916666666666666,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.3333333333333333,
+            "f1": 0.3638888888888889,
+            "history_cluster_count": 12,
+            "row_count": 24
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.4583333333333333,
+            "f1": 0.4791666666666667,
+            "history_cluster_count": 12,
+            "row_count": 24
+          }
+        ],
+        "by_arm_condition_query_family": [
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.5,
+            "f1": 0.625,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4583333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.9083333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.8333333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.19444444444444445,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.14444444444444443,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.5,
+            "f1": 0.7142857142857143,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4583333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.75,
+            "f1": 0.8333333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.75,
+            "f1": 0.75,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.8666666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.1111111111111111,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.375,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.5,
+            "f1": 0.705952380952381,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.3333333333333333,
+            "f1": 0.3333333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4166666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.20833333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.08333333333333333,
+            "f1": 0.08333333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "post_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4166666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.25,
+            "f1": 0.39444444444444443,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.24166666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.5,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "post_update",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4166666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "post_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.95,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.19444444444444445,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.75,
+            "f1": 0.8666666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.16666666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.9083333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "post_update",
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "post_update",
+            "exact_match": 0.75,
+            "f1": 0.8333333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "pre_update",
+            "exact_match": 0.75,
+            "f1": 0.75,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "pre_update",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.8333333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.0,
+            "f1": 0.06111111111111111,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.0,
+            "f1": 0.08333333333333333,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.041666666666666664,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "sliding_context_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.041666666666666664,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.0,
+            "f1": 0.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "delayed_probe",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.4166666666666667,
+            "f1": 0.4166666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "post_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.95,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "pre_update",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.19444444444444445,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_4096",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.16666666666666666,
+            "f1": 0.16666666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_16384",
+            "condition": "token_distance_8192",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9583333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "delayed_probe",
+            "exact_match": 1.0,
+            "f1": 1.0,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.5,
+            "f1": 0.5,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "post_update",
+            "exact_match": 0.75,
+            "f1": 0.8333333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.75,
+            "f1": 0.75,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "pre_update",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.8333333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.0,
+            "f1": 0.06111111111111111,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_4096",
+            "exact_match": 0.6666666666666666,
+            "f1": 0.6666666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.0,
+            "f1": 0.041666666666666664,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 12
+          },
+          {
+            "arm": "structured_memory_4096",
+            "condition": "token_distance_8192",
+            "exact_match": 0.9166666666666666,
+            "f1": 0.9166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 12
+          }
+        ],
+        "by_arm_query_family": [
+          {
+            "arm": "graphiti_memory_16384",
+            "exact_match": 0.3,
+            "f1": 0.32611111111111113,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "graphiti_memory_16384",
+            "exact_match": 0.8666666666666667,
+            "f1": 0.9066666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "exact_match": 0.25,
+            "f1": 0.2638888888888889,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "graphiti_memory_4096",
+            "exact_match": 0.55,
+            "f1": 0.699047619047619,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "exact_match": 0.38333333333333336,
+            "f1": 0.39166666666666666,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "hybrid_kg_memory_16384",
+            "exact_match": 0.95,
+            "f1": 0.9666666666666667,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "exact_match": 0.38333333333333336,
+            "f1": 0.4272222222222222,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "hybrid_kg_memory_4096",
+            "exact_match": 0.9333333333333333,
+            "f1": 0.95,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "sliding_context_16384",
+            "exact_match": 0.3333333333333333,
+            "f1": 0.3388888888888889,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "sliding_context_16384",
+            "exact_match": 0.7833333333333333,
+            "f1": 0.845,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "sliding_context_4096",
+            "exact_match": 0.25,
+            "f1": 0.27055555555555555,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "sliding_context_4096",
+            "exact_match": 0.31666666666666665,
+            "f1": 0.35833333333333334,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "structured_memory_16384",
+            "exact_match": 0.3333333333333333,
+            "f1": 0.3388888888888889,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "structured_memory_16384",
+            "exact_match": 0.9333333333333333,
+            "f1": 0.965,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          },
+          {
+            "arm": "structured_memory_4096",
+            "exact_match": 0.35,
+            "f1": 0.3705555555555556,
+            "history_cluster_count": 12,
+            "query_family": "preference_change",
+            "row_count": 60
+          },
+          {
+            "arm": "structured_memory_4096",
+            "exact_match": 0.8333333333333334,
+            "f1": 0.85,
+            "history_cluster_count": 12,
+            "query_family": "preference_incongruity",
+            "row_count": 60
+          }
+        ]
+      },
+      "assignment": "B",
+      "condition_count": 120,
+      "config_path": "/xuanwu-tank/north/kylezheng/ns-pab/runsets/kimi_ab/a100-build1/configs/surface_b.json",
+      "config_sha256": "4844cda74158dcfd877ee621da6f531dda8be90bc05ec21eb4e987525cadc10e",
+      "dataset": {
+        "artifact_sha256": {
+          "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+          "dialogue.jsonl": "dc90ff5ffddadf71ead7895885fd389ae386ae2ecb5cad990a08c32b2bbf7ca9",
+          "events.jsonl": "2bdcd86c5c4e7be0987fca6f02a85e18d9edd9ee52c424a4f385c4058caf8c39",
+          "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+          "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+          "queries.jsonl": "688cc5d4bdd1b7b20dd0a99dbef780aa6650fac323f7e3e0d33461db8fc0ee02",
+          "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+        },
+        "assignment": "B",
+        "checkpoint_policy": "authenticated_parent_exact_indices",
+        "generation_manifest_sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121",
+        "generation_model": "kimi-k3",
+        "method": "kimi-pair-conditioned-surface-and-dialogue.v2",
+        "pair_gate_sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b",
+        "parent_generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+        "parent_path": "/home/kylezheng/NeuroSym-integration/results/persona_conflict_conversations_v1",
+        "path": "/home/kylezheng/NeuroSym-integration/results/persona_conflict_conversations_surface_b",
+        "seed": 911
+      },
+      "history_cluster_count": 12,
+      "paired_deltas": [
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.375,
+          "exact_match_delta_ci_95": [
+            0.31666666666666665,
+            0.43333333333333335
+          ],
+          "f1_delta": 0.37416666666666665,
+          "f1_delta_ci_95": [
+            0.31416666666666665,
+            0.43333333333333335
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_4096",
+          "paired_row_count": 120,
+          "right_arm": "sliding_context_4096"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.10833333333333334,
+          "exact_match_delta_ci_95": [
+            0.03333333333333333,
+            0.175
+          ],
+          "f1_delta": 0.08722222222222223,
+          "f1_delta_ci_95": [
+            0.016666666666666666,
+            0.14583333333333334
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_16384",
+          "paired_row_count": 120,
+          "right_arm": "sliding_context_16384"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.11666666666666667,
+          "exact_match_delta_ci_95": [
+            0.025,
+            0.21666666666666667
+          ],
+          "f1_delta": 0.16702380952380952,
+          "f1_delta_ci_95": [
+            0.09238095238095238,
+            0.24452380952380953
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "graphiti_memory_4096",
+          "paired_row_count": 120,
+          "right_arm": "sliding_context_4096"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.025,
+          "exact_match_delta_ci_95": [
+            -0.05,
+            0.09166666666666666
+          ],
+          "f1_delta": 0.024444444444444446,
+          "f1_delta_ci_95": [
+            -0.035833333333333335,
+            0.0661111111111111
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "graphiti_memory_16384",
+          "paired_row_count": 120,
+          "right_arm": "sliding_context_16384"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.25833333333333336,
+          "exact_match_delta_ci_95": [
+            0.15,
+            0.35
+          ],
+          "f1_delta": 0.20714285714285713,
+          "f1_delta_ci_95": [
+            0.1175,
+            0.2904761904761905
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_4096",
+          "paired_row_count": 120,
+          "right_arm": "graphiti_memory_4096"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.08333333333333333,
+          "exact_match_delta_ci_95": [
+            0.008333333333333333,
+            0.16666666666666666
+          ],
+          "f1_delta": 0.06277777777777778,
+          "f1_delta_ci_95": [
+            -0.012499999999999999,
+            0.14166666666666666
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_16384",
+          "paired_row_count": 120,
+          "right_arm": "graphiti_memory_16384"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.06666666666666667,
+          "exact_match_delta_ci_95": [
+            0.0,
+            0.15
+          ],
+          "f1_delta": 0.07833333333333334,
+          "f1_delta_ci_95": [
+            0.009166666666666667,
+            0.16333333333333333
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_4096",
+          "paired_row_count": 120,
+          "right_arm": "structured_memory_4096"
+        },
+        {
+          "bootstrap_samples": 2000,
+          "bootstrap_seed": 73,
+          "exact_match_delta": 0.03333333333333333,
+          "exact_match_delta_ci_95": [
+            -0.03333333333333333,
+            0.1
+          ],
+          "f1_delta": 0.02722222222222222,
+          "f1_delta_ci_95": [
+            -0.035277777777777776,
+            0.08777777777777777
+          ],
+          "history_cluster_count": 12,
+          "left_arm": "hybrid_kg_memory_16384",
+          "paired_row_count": 120,
+          "right_arm": "structured_memory_16384"
+        }
+      ],
+      "row_count": 960,
+      "run_manifest_sha256": "d2ab3fa80c075c927cc7988f5f697d901f586f041d0b6a0f196e6990e8cfb144",
+      "run_path": "/xuanwu-tank/north/kylezheng/ns-pab/runsets/kimi_ab/a100-build1/surface_b"
+    }
+  },
+  "verification_scope": {
+    "checkpoints": "Recorded checkpoint identities matched across surfaces; tokenizer distances are not recomputed.",
+    "datasets": "Fixed corpus hashes and historical transformation or modern pair-gate authentication.",
+    "generation": "No model, ingestion, or Scallop execution is performed by this analysis.",
+    "results": "Declared result hashes and manifest/config consistency; not independent execution attestation.",
+    "scores": "Saved answers rescored against gold labels re-derived from authenticated corpus events, queries, and checkpoint contracts."
+  },
+  "version": "paper_persona_analysis.v1"
+}

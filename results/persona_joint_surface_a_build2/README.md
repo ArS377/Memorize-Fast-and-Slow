@@ -1,6 +1,10 @@
-# Qwen Persona Graphiti External Baseline
+# Qwen Persona Graphiti Ingestion With Benchmark-Matched Retrieval
 
 This run completed 960 deterministic generations across 120 authenticated conditions and 8 matched arms.
+
+**Surface coverage:** this run used the historical deterministic corpus `persona_conflict_conversations_surface_a_graphiti_build2` only.
+It did not use either member of the later pair-conditioned Kimi A/B corpus, and there is no matched Surface-B result for this historical corpus.
+The [later matched Kimi A/B comparison](../persona_joint_kimi_ab_a100_build1/README.md) evaluates two wordings of a separate corpus; it does not establish wording robustness for this historical run.
 
 ## Memoryless floor
 
@@ -59,6 +63,7 @@ The model was `Qwen/Qwen3.5-4B` revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd
 
 ## What this artifact does not establish
 
+- Wording robustness is not established for this historical corpus, which was evaluated on deterministic Surface A only.
 - State fidelity is not reported. `graphiti_store_states.json` exports the valid-fact sets, but the alignment from Graphiti's extracted vocabulary to the corpus's canonical fact space is unimplemented, so only downstream generation is measured here.
 - Only the two delayed query families are probed directly. Scope exceptions, lineage retraction, and backdated correction are present in the stream as interference, so their effects are observable but not attributable.
 - No audit cost is measured: no latency, storage, or ledger-overhead comparison is made between arms.

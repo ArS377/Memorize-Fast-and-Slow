@@ -877,6 +877,8 @@ It evaluates no structured-context generation, so it cannot confirm or refute th
 This 0.8B pilot does not measure `Qwen/Qwen3.5-4B`.
 A separate 120-condition persona benchmark under `results/persona_end_to_end_qwen35_4b_neurosym_v1/` now measures Qwen3.5-4B revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` with direct Transformers inference, Scallop-gated live Neo4j memory, scoped two-hop traversal, and sparse+dense RRF.
 That separate protocol reports 75.83% exact match for hybrid KG memory at 4K and 80.83% at 16K, but it does not retroactively change this pilot's dataset, task, or conclusions.
+That standalone run used the original parent persona corpus rather than the pair-conditioned Kimi A/B surfaces.
+A later matched eight-arm run under `results/persona_joint_kimi_ab_a100_build1/` evaluates hybrid KG and Graphiti on both fixed Kimi surfaces; it remains limited to one stochastic Graphiti ingestion realization per surface.
 
 Create the isolated evaluator environment with a host-compatible CUDA PyTorch installation and the pinned evaluator requirements, then run or rescore the pilot:
 
