@@ -1,0 +1,686 @@
+{
+  "dataset": {
+    "feature_names": [
+      "candidate_confidence_score",
+      "candidate_source_authority",
+      "candidate_has_supersedes",
+      "active_conflict_count",
+      "max_active_conflict_confidence_score",
+      "equal_evidence_conflict",
+      "resolves_ambiguity"
+    ],
+    "hard_gate_counts": {
+      "dev": {
+        "authority_conflict_without_supersession": 150,
+        "direct_correction_resolves_ambiguity": 150,
+        "direct_correction_supersedes": 150,
+        "hard_constraint_violation": 150,
+        "no_hard_gate": 600,
+        "tombstone_resurrection": 150
+      },
+      "test": {
+        "authority_conflict_without_supersession": 150,
+        "direct_correction_resolves_ambiguity": 150,
+        "direct_correction_supersedes": 150,
+        "hard_constraint_violation": 150,
+        "no_hard_gate": 600,
+        "tombstone_resurrection": 150
+      },
+      "train": {
+        "authority_conflict_without_supersession": 700,
+        "direct_correction_resolves_ambiguity": 700,
+        "direct_correction_supersedes": 700,
+        "hard_constraint_violation": 700,
+        "no_hard_gate": 2800,
+        "tombstone_resurrection": 700
+      }
+    },
+    "split_counts": {
+      "dev": 1350,
+      "test": 1350,
+      "train": 6300
+    }
+  },
+  "interpretation": {
+    "limitations": [
+      "The noise model is synthetic and does not substitute for natural-language extraction evaluation.",
+      "The oracle upper bound is invariant by construction and is not deployable.",
+      "History identities are held out, but event and candidate-family templates repeat across splits."
+    ],
+    "stress_protocol": "Confidence-noise scenarios add deterministic Gaussian noise only to observed candidate and active-conflict confidence scores. Gold decisions and hard-gate truth remain fixed to measure robustness to extraction uncertainty. Noise draws are paired across standard deviations, and stress headlines use eligible-only accuracy so invariant hard rejects cannot dilute errors.",
+    "summary": "The clean split remains a ceiling result because histories repeat deterministic feature templates; clean accuracy verifies execution rather than model advantage."
+  },
+  "models": {
+    "differentiable_scallop": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "stress": {
+        "confidence_noise_stddev_0.05": {
+          "accuracy_max": 1.0,
+          "accuracy_mean": 1.0,
+          "accuracy_min": 1.0,
+          "eligible_accuracy_max": 1.0,
+          "eligible_accuracy_mean": 1.0,
+          "eligible_accuracy_min": 1.0,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stddev": 0.05
+        },
+        "confidence_noise_stddev_0.15": {
+          "accuracy_max": 0.9896296296296296,
+          "accuracy_mean": 0.9869629629629628,
+          "accuracy_min": 0.9829629629629629,
+          "eligible_accuracy_max": 0.9844444444444445,
+          "eligible_accuracy_mean": 0.9804444444444445,
+          "eligible_accuracy_min": 0.9744444444444444,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9829629629629629,
+            0.9896296296296296,
+            0.9851851851851852,
+            0.9881481481481481,
+            0.9888888888888889
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9744444444444444,
+            0.9844444444444445,
+            0.9777777777777777,
+            0.9822222222222222,
+            0.9833333333333333
+          ],
+          "stddev": 0.15
+        },
+        "confidence_noise_stddev_0.3": {
+          "accuracy_max": 0.9725925925925926,
+          "accuracy_mean": 0.969037037037037,
+          "accuracy_min": 0.9592592592592593,
+          "eligible_accuracy_max": 0.9588888888888889,
+          "eligible_accuracy_mean": 0.9535555555555556,
+          "eligible_accuracy_min": 0.9388888888888889,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9696296296296296,
+            0.9725925925925926,
+            0.9592592592592593,
+            0.9718518518518519,
+            0.9718518518518519
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9544444444444444,
+            0.9588888888888889,
+            0.9388888888888889,
+            0.9577777777777777,
+            0.9577777777777777
+          ],
+          "stddev": 0.3
+        }
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "training": {
+        "final_loss": 9.993308669349755e-06,
+        "initial_loss": 0.4426752297012579
+      }
+    },
+    "fixed_symbolic_scallop": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "stress": {
+        "confidence_noise_stddev_0.05": {
+          "accuracy_max": 0.9562962962962963,
+          "accuracy_mean": 0.9477037037037037,
+          "accuracy_min": 0.9377777777777778,
+          "eligible_accuracy_max": 0.9344444444444444,
+          "eligible_accuracy_mean": 0.9215555555555556,
+          "eligible_accuracy_min": 0.9066666666666666,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9466666666666667,
+            0.9562962962962963,
+            0.9377777777777778,
+            0.9503703703703704,
+            0.9474074074074074
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.92,
+            0.9344444444444444,
+            0.9066666666666666,
+            0.9255555555555556,
+            0.9211111111111111
+          ],
+          "stddev": 0.05
+        },
+        "confidence_noise_stddev_0.15": {
+          "accuracy_max": 0.9585185185185185,
+          "accuracy_mean": 0.9515555555555556,
+          "accuracy_min": 0.942962962962963,
+          "eligible_accuracy_max": 0.9377777777777778,
+          "eligible_accuracy_mean": 0.9273333333333333,
+          "eligible_accuracy_min": 0.9144444444444444,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9503703703703704,
+            0.9585185185185185,
+            0.942962962962963,
+            0.9548148148148148,
+            0.9511111111111111
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9255555555555556,
+            0.9377777777777778,
+            0.9144444444444444,
+            0.9322222222222222,
+            0.9266666666666666
+          ],
+          "stddev": 0.15
+        },
+        "confidence_noise_stddev_0.3": {
+          "accuracy_max": 0.9562962962962963,
+          "accuracy_mean": 0.9506666666666665,
+          "accuracy_min": 0.9422222222222222,
+          "eligible_accuracy_max": 0.9344444444444444,
+          "eligible_accuracy_mean": 0.9259999999999999,
+          "eligible_accuracy_min": 0.9133333333333333,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9525925925925925,
+            0.9562962962962963,
+            0.9422222222222222,
+            0.9518518518518518,
+            0.9503703703703704
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9288888888888889,
+            0.9344444444444444,
+            0.9133333333333333,
+            0.9277777777777778,
+            0.9255555555555556
+          ],
+          "stddev": 0.3
+        }
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      }
+    },
+    "logistic_regression": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "stress": {
+        "confidence_noise_stddev_0.05": {
+          "accuracy_max": 0.9896296296296296,
+          "accuracy_mean": 0.986962962962963,
+          "accuracy_min": 0.9844444444444445,
+          "eligible_accuracy_max": 0.9844444444444445,
+          "eligible_accuracy_mean": 0.9804444444444446,
+          "eligible_accuracy_min": 0.9766666666666667,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9844444444444445,
+            0.9896296296296296,
+            0.9859259259259259,
+            0.9874074074074074,
+            0.9874074074074074
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9766666666666667,
+            0.9844444444444445,
+            0.9788888888888889,
+            0.9811111111111112,
+            0.9811111111111112
+          ],
+          "stddev": 0.05
+        },
+        "confidence_noise_stddev_0.15": {
+          "accuracy_max": 0.977037037037037,
+          "accuracy_mean": 0.9705185185185184,
+          "accuracy_min": 0.9629629629629629,
+          "eligible_accuracy_max": 0.9655555555555555,
+          "eligible_accuracy_mean": 0.9557777777777778,
+          "eligible_accuracy_min": 0.9444444444444444,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9688888888888889,
+            0.977037037037037,
+            0.9629629629629629,
+            0.9711111111111111,
+            0.9725925925925926
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9533333333333334,
+            0.9655555555555555,
+            0.9444444444444444,
+            0.9566666666666667,
+            0.9588888888888889
+          ],
+          "stddev": 0.15
+        },
+        "confidence_noise_stddev_0.3": {
+          "accuracy_max": 0.9629629629629629,
+          "accuracy_mean": 0.9588148148148148,
+          "accuracy_min": 0.9488888888888889,
+          "eligible_accuracy_max": 0.9444444444444444,
+          "eligible_accuracy_mean": 0.9382222222222222,
+          "eligible_accuracy_min": 0.9233333333333333,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9622222222222222,
+            0.9629629629629629,
+            0.9488888888888889,
+            0.9622222222222222,
+            0.9577777777777777
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9433333333333334,
+            0.9444444444444444,
+            0.9233333333333333,
+            0.9433333333333334,
+            0.9366666666666666
+          ],
+          "stddev": 0.3
+        }
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "training": {
+        "final_loss": 0.003182695326173589,
+        "initial_loss": 0.7636139928726923
+      }
+    },
+    "mlp": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "stress": {
+        "confidence_noise_stddev_0.05": {
+          "accuracy_max": 1.0,
+          "accuracy_mean": 1.0,
+          "accuracy_min": 1.0,
+          "eligible_accuracy_max": 1.0,
+          "eligible_accuracy_mean": 1.0,
+          "eligible_accuracy_min": 1.0,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stddev": 0.05
+        },
+        "confidence_noise_stddev_0.15": {
+          "accuracy_max": 0.9962962962962963,
+          "accuracy_mean": 0.991851851851852,
+          "accuracy_min": 0.9874074074074074,
+          "eligible_accuracy_max": 0.9944444444444445,
+          "eligible_accuracy_mean": 0.9877777777777779,
+          "eligible_accuracy_min": 0.9811111111111112,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9874074074074074,
+            0.9962962962962963,
+            0.9911111111111112,
+            0.9940740740740741,
+            0.9903703703703703
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9811111111111112,
+            0.9944444444444445,
+            0.9866666666666667,
+            0.9911111111111112,
+            0.9855555555555555
+          ],
+          "stddev": 0.15
+        },
+        "confidence_noise_stddev_0.3": {
+          "accuracy_max": 0.9777777777777777,
+          "accuracy_mean": 0.9730370370370369,
+          "accuracy_min": 0.9688888888888889,
+          "eligible_accuracy_max": 0.9666666666666667,
+          "eligible_accuracy_mean": 0.9595555555555556,
+          "eligible_accuracy_min": 0.9533333333333334,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            0.9725925925925926,
+            0.9718518518518519,
+            0.9688888888888889,
+            0.9777777777777777,
+            0.9740740740740741
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            0.9588888888888889,
+            0.9577777777777777,
+            0.9533333333333334,
+            0.9666666666666667,
+            0.9611111111111111
+          ],
+          "stddev": 0.3
+        }
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "training": {
+        "final_loss": 1.93882829141027e-05,
+        "initial_loss": 0.5041310126511823
+      }
+    },
+    "oracle_soft_upper_bound": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "stress": {
+        "confidence_noise_stddev_0.05": {
+          "accuracy_max": 1.0,
+          "accuracy_mean": 1.0,
+          "accuracy_min": 1.0,
+          "eligible_accuracy_max": 1.0,
+          "eligible_accuracy_mean": 1.0,
+          "eligible_accuracy_min": 1.0,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stddev": 0.05
+        },
+        "confidence_noise_stddev_0.15": {
+          "accuracy_max": 1.0,
+          "accuracy_mean": 1.0,
+          "accuracy_min": 1.0,
+          "eligible_accuracy_max": 1.0,
+          "eligible_accuracy_mean": 1.0,
+          "eligible_accuracy_min": 1.0,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stddev": 0.15
+        },
+        "confidence_noise_stddev_0.3": {
+          "accuracy_max": 1.0,
+          "accuracy_mean": 1.0,
+          "accuracy_min": 1.0,
+          "eligible_accuracy_max": 1.0,
+          "eligible_accuracy_mean": 1.0,
+          "eligible_accuracy_min": 1.0,
+          "hard_gate_violations_max": 0,
+          "repeat_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "repeat_count": 5,
+          "repeat_eligible_accuracies": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "stddev": 0.3
+        }
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "eligible_accuracy": 1.0,
+        "eligible_count": 900,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      }
+    }
+  },
+  "runtime": {
+    "scallopy": "0.2.4",
+    "torch": "2.5.1+cpu"
+  }
+}

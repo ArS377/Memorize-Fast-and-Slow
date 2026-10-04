@@ -1,0 +1,26 @@
+[build_kg_facts_file] session=prejul31_pilot50_shard3 validate=True examples=12 model=Qwen/Qwen3-4B
+[build_kg_facts_file] (1/12) extracting 66ebb0e55a08c7b9b35ddd6a
+           extracted=15 supported=15 llm_rejected=0 validator_rejected=0 committed_total=15
+[build_kg_facts_file] (2/12) extracting 66ebc3165a08c7b9b35deb38
+           extracted=20 supported=20 llm_rejected=0 validator_rejected=0 committed_total=35
+[build_kg_facts_file] (3/12) extracting 66ebca1e5a08c7b9b35df5e8
+           extracted=8 supported=8 llm_rejected=0 validator_rejected=1 committed_total=42
+[build_kg_facts_file] (4/12) extracting 66ebd0825a08c7b9b35dfe9d
+           extracted=23 supported=23 llm_rejected=0 validator_rejected=2 committed_total=63
+[build_kg_facts_file] (5/12) extracting 66ebd2975a08c7b9b35e01e3
+           extracted=50 supported=50 llm_rejected=0 validator_rejected=0 committed_total=113
+[build_kg_facts_file] (6/12) extracting 66ebd49a5a08c7b9b35e0550
+           extracted=15 supported=15 llm_rejected=0 validator_rejected=0 committed_total=128
+[build_kg_facts_file] (7/12) extracting 66ebd92d5a08c7b9b35e0bf0
+           extracted=9 supported=9 llm_rejected=0 validator_rejected=0 committed_total=137
+[build_kg_facts_file] (8/12) extracting 66ebdd1c5a08c7b9b35e113b
+           extracted=49 supported=49 llm_rejected=0 validator_rejected=11 committed_total=175
+[build_kg_facts_file] (9/12) extracting 66ebe30a5a08c7b9b35e1693
+           extracted=16 supported=1 llm_rejected=15 validator_rejected=0 committed_total=176
+[build_kg_facts_file] (10/12) extracting 66ebee0a5a08c7b9b35e1d05
+           extracted=21 supported=21 llm_rejected=0 validator_rejected=0 committed_total=197
+[build_kg_facts_file] (11/12) extracting 66ec088c821e116aacb194d9
+           extracted=7 supported=7 llm_rejected=0 validator_rejected=1 committed_total=203
+[build_kg_facts_file] (12/12) extracting 66ec0d51821e116aacb19b0f
+           extracted=16 supported=16 llm_rejected=0 validator_rejected=0 committed_total=219
+[build_kg_facts_file] done. session=prejul31_pilot50_shard3 mirrored=219 -> results/kg_builds/prejul31_pilot50_shard3_facts.jsonl; rejections -> results/kg_builds/prejul31_pilot50_shard3_rejections.jsonl

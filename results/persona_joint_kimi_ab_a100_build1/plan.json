@@ -1,0 +1,162 @@
+{
+  "controls": {
+    "analysis": {
+      "bootstrap_samples": 2000,
+      "bootstrap_seed": 73,
+      "paired_comparisons": [
+        [
+          "hybrid_kg_memory_4096",
+          "sliding_context_4096"
+        ],
+        [
+          "hybrid_kg_memory_16384",
+          "sliding_context_16384"
+        ],
+        [
+          "graphiti_memory_4096",
+          "sliding_context_4096"
+        ],
+        [
+          "graphiti_memory_16384",
+          "sliding_context_16384"
+        ],
+        [
+          "hybrid_kg_memory_4096",
+          "graphiti_memory_4096"
+        ],
+        [
+          "hybrid_kg_memory_16384",
+          "graphiti_memory_16384"
+        ],
+        [
+          "hybrid_kg_memory_4096",
+          "structured_memory_4096"
+        ],
+        [
+          "hybrid_kg_memory_16384",
+          "structured_memory_16384"
+        ]
+      ]
+    },
+    "arms": [
+      {
+        "kind": "sliding_context",
+        "name": "sliding_context_4096",
+        "prompt_token_cap": 4096
+      },
+      {
+        "kind": "sliding_context",
+        "name": "sliding_context_16384",
+        "prompt_token_cap": 16384
+      },
+      {
+        "kind": "structured_memory",
+        "name": "structured_memory_4096",
+        "prompt_token_cap": 4096
+      },
+      {
+        "kind": "structured_memory",
+        "name": "structured_memory_16384",
+        "prompt_token_cap": 16384
+      },
+      {
+        "kind": "hybrid_kg_memory",
+        "name": "hybrid_kg_memory_4096",
+        "prompt_token_cap": 4096
+      },
+      {
+        "kind": "hybrid_kg_memory",
+        "name": "hybrid_kg_memory_16384",
+        "prompt_token_cap": 16384
+      },
+      {
+        "kind": "graphiti_memory",
+        "name": "graphiti_memory_4096",
+        "prompt_token_cap": 4096
+      },
+      {
+        "kind": "graphiti_memory",
+        "name": "graphiti_memory_16384",
+        "prompt_token_cap": 16384
+      }
+    ],
+    "generation": {
+      "attention_implementation": "sdpa",
+      "dtype": "bfloat16",
+      "local_files_only": true,
+      "max_new_tokens": 32,
+      "use_kernels": false
+    },
+    "graphiti": {
+      "embedding_batch_size": 32,
+      "episode_variant": "e2e",
+      "graphiti_core_version": "0.29.3",
+      "llm_max_tokens": 4096,
+      "max_concurrent_histories": 4,
+      "max_episode_failures": 0,
+      "num_results": 8,
+      "retrieval_state": "point_in_time",
+      "timestamp_base": "2024-01-01T00:00:00+00:00",
+      "timestamp_step_seconds": 60
+    },
+    "prompt_instruction": "Use only the conversation record. Answer with the shortest exact preference value, or UNKNOWN when the record does not establish one. Do not explain your answer.",
+    "retrieval": {
+      "embedding_batch_size": 32,
+      "hops": 2,
+      "rrf_k": 60,
+      "top_k": 8
+    },
+    "scallop": {
+      "timeout_seconds": 30.0
+    },
+    "schedule": {
+      "concurrent_accounts": 8,
+      "max_segment_events": 8,
+      "min_segment_events": 4,
+      "query_suffixes": [
+        "-preference-change-delayed",
+        "-preference-incongruity-delayed"
+      ],
+      "seed": 73,
+      "source_profile": "anti_shortcut_interleaved_v3",
+      "source_split": "test",
+      "token_distance_thresholds": [
+        4096,
+        8192
+      ]
+    }
+  },
+  "count_status": "planned; tokenizer checkpoint validation occurs in the evaluator",
+  "generation_count": 1920,
+  "mode": "kimi_ab",
+  "pair_gate_sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b",
+  "parent_generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+  "run_id": "a100-build1",
+  "surfaces": [
+    {
+      "assignment": "A",
+      "build_id": "kimi_ab__a100-build1__surface_a__7201209a2310",
+      "cache_dir": "surface_a/caches",
+      "condition_count": 120,
+      "config_path": "configs/surface_a.json",
+      "dataset_manifest_sha256": "2cfdbf18705204a9ca7412e9e962ad3bb03bd08b2426f09270abbc387b047f65",
+      "dataset_relative_path": "results/persona_conflict_conversations_surface_a",
+      "generation_count": 960,
+      "index_dir": "surface_a/embedding_indexes",
+      "run_dir": "surface_a"
+    },
+    {
+      "assignment": "B",
+      "build_id": "kimi_ab__a100-build1__surface_b__7201209a2310",
+      "cache_dir": "surface_b/caches",
+      "condition_count": 120,
+      "config_path": "configs/surface_b.json",
+      "dataset_manifest_sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121",
+      "dataset_relative_path": "results/persona_conflict_conversations_surface_b",
+      "generation_count": 960,
+      "index_dir": "surface_b/embedding_indexes",
+      "run_dir": "surface_b"
+    }
+  ],
+  "version": 1
+}

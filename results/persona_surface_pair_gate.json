@@ -1,0 +1,61 @@
+{
+  "assurances": {
+    "artifact_integrity": "sha256-verified",
+    "deferred": {
+      "checkpoint_identity": "scheduler_with_configured_tokenizer_before_qwen"
+    },
+    "proved": [
+      "parent_and_sibling_hash_binding",
+      "latent_causal_preservation",
+      "cross_assignment_surface_disjointness",
+      "a_to_b_flat_target_conditioning",
+      "fresh_kimi_response_provenance",
+      "dialogue_semantic_validation"
+    ],
+    "provider_identity": "endpoint-self-reported"
+  },
+  "completed_at": "2026-08-18T08:16:50.819223+00:00",
+  "method": "kimi-pair-conditioned-surface-and-dialogue.v2",
+  "parent_generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+  "paths": {
+    "A": "persona_conflict_conversations_surface_a",
+    "B": "persona_conflict_conversations_surface_b",
+    "parent": "persona_conflict_conversations_v1"
+  },
+  "status": "completed",
+  "variants": {
+    "A": {
+      "artifact_sha256": {
+        "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+        "dialogue.jsonl": "3324fbe6a91b8998ec05e932b862e8dbed68be49c583b0fdd6831f56d8fae8e3",
+        "events.jsonl": "fe0617008cbe0fcbce6b2a5c8cbd4d77b0ade1521b5d82ba791fa08e0509d656",
+        "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+        "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+        "queries.jsonl": "cfe2d27b10350ed08c65823a34fd6f713be5f299d03027bc67a481b477a0a1e0",
+        "raw_responses.jsonl": "2da57ae9dd9e141b6864b1f055eef32e5120dee0f81e1e146e280c15ef6cd221",
+        "requests.jsonl": "4ff4900036fd01c786b52a6720f73db8f2db68802af2e6d742e5737fecd8eef9",
+        "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+      },
+      "generation_controls_sha256": "4ca466cef415840abcb469e6230ad41cce925f39f324ed1d1a82ec38a9f00001",
+      "generation_manifest_sha256": "2cfdbf18705204a9ca7412e9e962ad3bb03bd08b2426f09270abbc387b047f65",
+      "surface_mapping_sha256": "a077d6a8b4400c46e3f9f4eb9e4a83fac99901695e05a1a4d5e5a1c0ba053cb4"
+    },
+    "B": {
+      "artifact_sha256": {
+        "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+        "dialogue.jsonl": "dc90ff5ffddadf71ead7895885fd389ae386ae2ecb5cad990a08c32b2bbf7ca9",
+        "events.jsonl": "2bdcd86c5c4e7be0987fca6f02a85e18d9edd9ee52c424a4f385c4058caf8c39",
+        "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+        "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+        "queries.jsonl": "688cc5d4bdd1b7b20dd0a99dbef780aa6650fac323f7e3e0d33461db8fc0ee02",
+        "raw_responses.jsonl": "3c92b5fa3b5076ba8bc0ec85bf39714308e0d3ebae686c215d246c1f110874da",
+        "requests.jsonl": "39d478d381e5b5bae5be3914261a70220f10f9d964a46c5a9b34baaa51fbadde",
+        "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+      },
+      "generation_controls_sha256": "4ca466cef415840abcb469e6230ad41cce925f39f324ed1d1a82ec38a9f00001",
+      "generation_manifest_sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121",
+      "surface_mapping_sha256": "bd9c4749ae5d433aa14261bb11863ac3a58cedc6fd4ced42b7dae692f85148b5"
+    }
+  },
+  "version": "persona-surface-pair-gate.v2"
+}

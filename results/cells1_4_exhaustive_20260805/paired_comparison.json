@@ -1,0 +1,10 @@
+{
+  "both_correct": 8,
+  "cell2_only_correct": 1,
+  "cell3_only_correct": 7,
+  "both_wrong": 34,
+  "same_prediction": 38,
+  "different_prediction": 12,
+  "mcnemar_exact_two_sided_p": 0.0703125,
+  "cell2_chance_lower_tail_p": 0.16368390025009158
+}

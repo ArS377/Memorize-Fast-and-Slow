@@ -1,0 +1,24 @@
+{
+  "hybrid": {
+    "a_label": "gitmain_cell6_hybrid",
+    "b_label": "combined_hybrid",
+    "n_shared": 50,
+    "both_correct": 11,
+    "a_only_correct": 3,
+    "b_only_correct": 9,
+    "both_wrong": 27,
+    "same_prediction_or_both_wrong_count": 38,
+    "mcnemar_exact_two_sided_p": 0.146
+  },
+  "dense_ppr": {
+    "a_label": "gitmain_cell6_dense_ppr",
+    "b_label": "combined_dense_ppr",
+    "n_shared": 50,
+    "both_correct": 8,
+    "a_only_correct": 6,
+    "b_only_correct": 4,
+    "both_wrong": 32,
+    "same_prediction_or_both_wrong_count": 40,
+    "mcnemar_exact_two_sided_p": 0.7539
+  }
+}

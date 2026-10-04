@@ -1,0 +1,31 @@
+<mxfile host="app.diagrams.net" modified="2026-08-09T00:00:00.000Z" agent="NeuroSym" version="24.7.17">
+  <diagram id="neurosym-dashboard" name="NeuroSym Dashboard">
+    <mxGraphModel dx="1180" dy="620" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="runner" value="Experiment runners&#xa;Temporal benchmark&#xa;Cell orchestration&#xa;Inference / training" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3f0e7;strokeColor=#10231d;fontColor=#10231d;align=left;spacing=16;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="280" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="results" value="results/**&#xa;&#xa;metrics.json   manifest.json   report.md&#xa;&#xa;Files may arrive in any order." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3f0e7;strokeColor=#10231d;fontColor=#10231d;align=left;spacing=16;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="425" y="70" width="310" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="server" value="Dashboard server&#xa;&#xa;Scan on every API request&#xa;Normalize state + provenance&#xa;Serve safe local links" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0e2d24;strokeColor=#0e2d24;fontColor=#ffffff;align=left;spacing=16;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="840" y="70" width="300" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="browser" value="Browser research surface&#xa;&#xa;KPIs / current state     Run comparison     Artifact + code references&#xa;Incomplete warnings     15-second refresh     No external CDN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6e1d5;strokeColor=#10231d;fontColor=#10231d;align=left;spacing=16;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="402" width="1100" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#ef6435;strokeWidth=3;endArrow=block;endFill=1;" edge="1" parent="1" source="runner" target="results">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#ef6435;strokeWidth=3;endArrow=block;endFill=1;" edge="1" parent="1" source="results" target="server">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#ef6435;strokeWidth=3;endArrow=block;endFill=1;" edge="1" parent="1" source="server" target="browser">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

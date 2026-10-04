@@ -1,0 +1,41 @@
+{
+  "generation": {
+    "endpoint_env": "KIMI_BASE_URL",
+    "api_key_env": "KIMI_API_KEY",
+    "model_env": "KIMI_MODEL",
+    "timeout_seconds": 300.0,
+    "seed": 23,
+    "max_tokens": 8192,
+    "history_count": 4,
+    "condition": "lexical",
+    "hardness_profile": "anti_shortcut_stream_v2",
+    "split_counts": [1, 1, 2],
+    "prompt_schema_version": "persona-conversation.v2",
+    "turn_pairs_per_event": 1,
+    "minimum_words_per_turn": 1,
+    "events_per_request": 100,
+    "enable_thinking": false,
+    "max_validation_attempts": 2,
+    "resume_existing": true
+  },
+  "evaluation": {
+    "endpoint_env": "QWEN_BASE_URL",
+    "api_key_env": "QWEN_API_KEY",
+    "model_env": "QWEN_MODEL",
+    "timeout_seconds": 300.0,
+    "seed": 23,
+    "max_tokens": 64,
+    "history_limit": 1,
+    "max_concurrent_requests": 4,
+    "interference_tiers": ["no_interference", "deep_context_rot"],
+    "query_suffixes": [
+      "-preference-change-delayed",
+      "-preference-incongruity-delayed"
+    ],
+    "context_tiers": [
+      {"name": "window_4k", "max_tokens": 4096},
+      {"name": "window_16k", "max_tokens": 16384}
+    ],
+    "prompt_schema_version": "persona-recall.v1"
+  }
+}

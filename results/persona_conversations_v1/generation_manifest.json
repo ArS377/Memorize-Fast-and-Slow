@@ -1,0 +1,51 @@
+{
+  "artifact_sha256": {
+    "candidate_updates.jsonl": "4b85e79c778651497fd21ce7d801bba65f463bcdeee44efd8a7fa84e53973928",
+    "events.jsonl": "555608ff1da4c2967264a0a764d758223f53b5881d58fc9aae46fa8721cc26e3",
+    "examples.jsonl": "42ac074387787876e09fb90f8b97f10e7e1de9a03a9378b8f91c1f8973d2ed18",
+    "facts.jsonl": "fdd303da2793128f48d29813cbf7de65dfdcdc21c55f1c62836e83d22ca5a6d5",
+    "queries.jsonl": "fc8856503ccf8658ed054adb90e990b028dd46e69a156081a3e37a3d3fcc100b",
+    "raw_responses.jsonl": "dd0bef00193262f044a2d063063df1cb15a4e60beeecba553688d5397048beaa",
+    "requests.jsonl": "2a04f65580512ef026fa4ab6944d32724b657a2dfeee98ea935460caebce61cb"
+  },
+  "completed_at": "2026-08-14T12:01:33.444592+00:00",
+  "completion_status": "completed",
+  "controls": {
+    "full_structured_memory": "oracle control"
+  },
+  "generator_role": "Kimi K3 generation-only surface realization",
+  "model_identity": "kimi-k3",
+  "prompt_schema_version": "persona-conversation.v2",
+  "prompt_sha256": [
+    "76cf7f879bff2f4fa9d5ff243de87ca7c1162e895499b653a53e5cbfbe7af4bb",
+    "a9dbbb2abc630c2d4cfc86714f8cd35941ece39d6c32bd2c47f948d28aaf9660",
+    "89d1c7b9319b0272a1a6fbd6229045a88aa28fa1e4564fc6e9e85d4c5c9791f2",
+    "409ffd63ccadff52f5d25ad2893cc8a0af830048d10b622ceb8a408e1d3f2144"
+  ],
+  "provider_identity_assurance": "endpoint-self-reported; artifact hashes are cryptographic",
+  "request_parameters": {
+    "max_tokens": 8192,
+    "model": "kimi-k3",
+    "seed": 23,
+    "temperature": 0,
+    "timeout_seconds": 300.0
+  },
+  "response_sha256": [
+    "cf82c1a4407ef7590d3a673fe17015cb80217ae1907600afa2d743e0af65d0a1",
+    "2d48db57addc1ab5d31683c72fb88f35afa826e7c5d5cd01c6e6ce1752a29d0f",
+    "e4cf280c1158828991e65420c2ad73ef22098ccac61356d9bf7b6eca62ea6e0f",
+    "5b683afbb74e7116293d5a3ff3837175773e624aa13325ac4ac51ac033e0a6e0"
+  ],
+  "source_generation": {
+    "condition": "lexical",
+    "hardness_profile": "anti_shortcut_stream_v2",
+    "history_count": 4,
+    "split_counts": [
+      1,
+      1,
+      2
+    ]
+  },
+  "started_at": "2026-08-14T11:57:00.309121+00:00",
+  "status": "completed"
+}

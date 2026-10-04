@@ -1,0 +1,197 @@
+{
+  "age_distribution": {
+    "checkpoint_count": 2047,
+    "fraction_above_128k": 0.5222276502198339,
+    "fraction_above_64k": 0.789447972642892,
+    "maximum_token_age": 293733,
+    "median_token_age": 137011,
+    "minimum_token_age": 5245
+  },
+  "benchmark_version": "interleaved_delayed_retrieval.v3",
+  "by_checkpoint_kind": {
+    "preference-change-delayed": {
+      "sliding_context:131072": {
+        "checkpoint_count": 1024,
+        "complete_provenance_rate": 0.462890625,
+        "evidence_recall": 0.467529296875,
+        "grounded_answer_accuracy": 0.462890625,
+        "oracle_resolver_answer_accuracy": 0.4814453125,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "sliding_context:65536": {
+        "checkpoint_count": 1024,
+        "complete_provenance_rate": 0.193359375,
+        "evidence_recall": 0.20068359375,
+        "grounded_answer_accuracy": 0.193359375,
+        "oracle_resolver_answer_accuracy": 0.220703125,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "structured_capacity_top1:131072": {
+        "checkpoint_count": 1024,
+        "complete_provenance_rate": 0.8720703125,
+        "evidence_recall": 0.873779296875,
+        "grounded_answer_accuracy": 0.8720703125,
+        "oracle_resolver_answer_accuracy": 0.87890625,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "structured_capacity_top1:65536": {
+        "checkpoint_count": 1024,
+        "complete_provenance_rate": 0.802734375,
+        "evidence_recall": 0.804443359375,
+        "grounded_answer_accuracy": 0.802734375,
+        "oracle_resolver_answer_accuracy": 0.8095703125,
+        "stale_memory_intrusion_rate": 0.0
+      }
+    },
+    "preference-incongruity-delayed": {
+      "sliding_context:131072": {
+        "checkpoint_count": 1023,
+        "complete_provenance_rate": 0.49266862170087977,
+        "evidence_recall": 0.49364613880742914,
+        "grounded_answer_accuracy": 0.49266862170087977,
+        "oracle_resolver_answer_accuracy": 0.4946236559139785,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "sliding_context:65536": {
+        "checkpoint_count": 1023,
+        "complete_provenance_rate": 0.2238514173998045,
+        "evidence_recall": 0.22727272727272727,
+        "grounded_answer_accuracy": 0.2238514173998045,
+        "oracle_resolver_answer_accuracy": 0.23069403714565004,
+        "stale_memory_intrusion_rate": 0.0
+      },
+      "structured_capacity_top1:131072": {
+        "checkpoint_count": 1023,
+        "complete_provenance_rate": 0.5747800586510264,
+        "evidence_recall": 0.5762463343108505,
+        "grounded_answer_accuracy": 0.5747800586510264,
+        "oracle_resolver_answer_accuracy": 0.5777126099706745,
+        "stale_memory_intrusion_rate": 0.3870967741935484
+      },
+      "structured_capacity_top1:65536": {
+        "checkpoint_count": 1023,
+        "complete_provenance_rate": 0.36070381231671556,
+        "evidence_recall": 0.36314760508308896,
+        "grounded_answer_accuracy": 0.36070381231671556,
+        "oracle_resolver_answer_accuracy": 0.3655913978494624,
+        "stale_memory_intrusion_rate": 0.581622678396872
+      }
+    }
+  },
+  "capsules": {
+    "candidate_count": 5120,
+    "capacity": 1024,
+    "compaction_policy": "lowest stable content hashes among causal Scallop-derived valid capsules",
+    "compaction_within_admitted_capsules_is_relation_blind": true,
+    "gold_or_evidence_contract_visible_to_selector": false,
+    "history_blind_compaction": true,
+    "history_id_visible_to_selector": false,
+    "natural_relation_description_visible_in_capsule_text": true,
+    "query_blind_compaction": true,
+    "retained_count": 1024,
+    "selector": "global BM25 top-1 over capsule text using only visible query text",
+    "structured_relation_label_field_visible_to_selector": false,
+    "validity_admission_uses_scallop_relation_kind": true
+  },
+  "dataset": {
+    "evaluated_checkpoint_count": 2047,
+    "event_count": 26624,
+    "excluded_query_ids": [
+      "history-599-preference-incongruity-delayed"
+    ],
+    "history_count": 1024,
+    "query_count": 2048
+  },
+  "interpretation": {
+    "claim": "grounded context availability under delayed peer-task interference",
+    "non_claim": "not LLM generation, extraction, or independent reasoning accuracy"
+  },
+  "methods": {
+    "sliding_context:131072": {
+      "checkpoint_count": 2047,
+      "complete_provenance_rate": 0.4777723497801661,
+      "evidence_recall": 0.48058133854421103,
+      "grounded_answer_accuracy": 0.4777723497801661,
+      "oracle_resolver_answer_accuracy": 0.4880312652662433,
+      "stale_memory_intrusion_rate": 0.0
+    },
+    "sliding_context:65536": {
+      "checkpoint_count": 2047,
+      "complete_provenance_rate": 0.20859794821690278,
+      "evidence_recall": 0.21397166585246702,
+      "grounded_answer_accuracy": 0.20859794821690278,
+      "oracle_resolver_answer_accuracy": 0.2256961406936981,
+      "stale_memory_intrusion_rate": 0.0
+    },
+    "structured_capacity_top1:131072": {
+      "checkpoint_count": 2047,
+      "complete_provenance_rate": 0.7234978016609672,
+      "evidence_recall": 0.725085490962384,
+      "grounded_answer_accuracy": 0.7234978016609672,
+      "oracle_resolver_answer_accuracy": 0.7283829995114802,
+      "stale_memory_intrusion_rate": 0.19345383488031265
+    },
+    "structured_capacity_top1:65536": {
+      "checkpoint_count": 2047,
+      "complete_provenance_rate": 0.5818270639960919,
+      "evidence_recall": 0.5839032730825598,
+      "grounded_answer_accuracy": 0.5818270639960919,
+      "oracle_resolver_answer_accuracy": 0.5876893014167074,
+      "stale_memory_intrusion_rate": 0.2906692721055203
+    }
+  },
+  "paired_grounded_comparison": {
+    "131072": {
+      "bootstrap_samples": 2000,
+      "confidence_interval_95": [
+        0.23095703125,
+        0.2607421875
+      ],
+      "history_cluster_count": 1024,
+      "matched_checkpoint_count": 2047,
+      "paired_delta": 0.24560546875,
+      "seed": 47
+    },
+    "65536": {
+      "bootstrap_samples": 2000,
+      "confidence_interval_95": [
+        0.359375,
+        0.3876953125
+      ],
+      "history_cluster_count": 1024,
+      "matched_checkpoint_count": 2047,
+      "paired_delta": 0.373046875,
+      "seed": 47
+    }
+  },
+  "schedule": {
+    "concurrent_accounts": 8,
+    "seed": 47,
+    "token_count": 2738857,
+    "turn_count": 26624
+  },
+  "selector_diagnostics": {
+    "checkpoint_count": 2047,
+    "expected_family_selection_rate": 0.49975574010747437,
+    "stale_given_structured_error_128k": 0.6996466431095406,
+    "stale_given_structured_error_64k": 0.6950934579439252,
+    "structured_error_count_128k": 566,
+    "structured_error_count_64k": 856,
+    "target_history_and_family_selection_rate": 0.4606741573033708,
+    "target_history_selection_rate": 0.9213483146067416
+  },
+  "sweep_interval_tokens": 262144,
+  "tokenizer": {
+    "add_special_tokens": false,
+    "implementation": "Qwen2TokenizerFast",
+    "local_files_only": true,
+    "requested_name": "Qwen/Qwen3-4B",
+    "requested_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "resolved_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "transformers_version": "4.57.6"
+  },
+  "windows": [
+    65536,
+    131072
+  ]
+}

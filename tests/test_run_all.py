@@ -1,0 +1,214 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+from experiments._cli import build_arg_parser
+from neurosym.adapters.rlm import FULL_CONTEXT_TOTAL_TOKEN_BUDGET
+import pytest
+from neurosym.domain.retrieval_config import RetrievalConfig
+from experiments.run_all import _common_cell_args, _materialize_pilot_input
+
+
+def test_materialize_pilot_input_freezes_one_sorted_shared_slice(tmp_path: Path) -> None:
+    source = tmp_path / "source.jsonl"
+    rows = [
+        {"_id": "c", "context": "third"},
+        {"_id": "a", "context": "first"},
+        {"_id": "b", "context": "second"},
+    ]
+    source.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+    frozen = tmp_path / "run" / "pilot_input.jsonl"
+
+    metadata = _materialize_pilot_input(source, frozen, limit=2, seed=0)
+
+    selected = [json.loads(line) for line in frozen.read_text().splitlines()]
+    assert [row["_id"] for row in selected] == ["a", "b"]
+    assert metadata["example_count"] == 2
+    assert metadata["example_ids"] == ["a", "b"]
+    assert metadata["path"] == str(frozen)
+    assert len(metadata["sha256"]) == 64
+
+
+def test_raw_cell_defaults_keep_cell1_capped_and_cell4_full_context() -> None:
+    cell1 = build_arg_parser(
+        cell_id=1,
+        label="flat_raw",
+        kind="flat",
+        retrieval="raw",
+    ).parse_args([])
+    cell4 = build_arg_parser(
+        cell_id=4,
+        label="rlm_raw",
+        kind="rlm",
+        retrieval="raw",
+    ).parse_args([])
+    cell5 = build_arg_parser(
+        cell_id=5,
+        label="rlm_kg_noscallop",
+        kind="rlm",
+        retrieval="kg",
+    ).parse_args([])
+    cell6 = build_arg_parser(
+        cell_id=6,
+        label="rlm_kg_scallop",
+        kind="rlm",
+        retrieval="kg",
+    ).parse_args([])
+
+    assert cell1.raw_max_chars == 32_000
+    assert cell4.raw_max_chars is None
+    assert cell4.max_tokens == FULL_CONTEXT_TOTAL_TOKEN_BUDGET
+    assert cell5.max_tokens == 64_000
+    assert cell6.max_tokens == 64_000
+
+
+def test_run_all_passes_no_cell4_cap_unless_explicitly_requested(tmp_path: Path) -> None:
+    common = SimpleNamespace(
+        input=tmp_path / "input.jsonl",
+        pilot_input=tmp_path / "pilot.jsonl",
+        limit=1,
+        seed=0,
+        model="Qwen/Qwen3-4B",
+        vllm_base_url="http://localhost:8000/v1",
+        results_dir=tmp_path / "results",
+        run_id="run",
+        raw_max_chars=32_000,
+        cell4_raw_max_chars=None,
+        max_depth=2,
+        max_iterations=10,
+        max_tokens=64_000,
+        cell4_max_tokens=FULL_CONTEXT_TOTAL_TOKEN_BUDGET,
+    )
+
+    cell1 = _common_cell_args(common, 1)
+    cell4 = _common_cell_args(common, 4)
+    assert cell1[cell1.index("--raw-max-chars") + 1] == "32000"
+    assert "--raw-max-chars" not in cell4
+    assert cell4[cell4.index("--max-tokens") + 1] == str(
+        FULL_CONTEXT_TOTAL_TOKEN_BUDGET
+    )
+
+    common.cell4_raw_max_chars = 48_000
+    capped_cell4 = _common_cell_args(common, 4)
+    assert capped_cell4[capped_cell4.index("--raw-max-chars") + 1] == "48000"
+
+
+def test_cell6_arguments_match_shared_retrieval_mode_by_default(tmp_path: Path) -> None:
+    args = SimpleNamespace(
+        input=tmp_path / "input.jsonl",
+        pilot_input=tmp_path / "pilot.jsonl",
+        limit=1,
+        seed=0,
+        model="Qwen/Qwen3-4B",
+        vllm_base_url="http://localhost:8000/v1",
+        results_dir=tmp_path / "results",
+        run_id="run",
+        neo4j_uri=None,
+        neo4j_user=None,
+        kg_sessions={5: "session", 6: "session"},
+        hops=2,
+        limit_triples=50,
+        memory_scope="example",
+        retrieval_mode="hybrid",
+        embedding_model="fake/bge",
+        embedding_device="cpu",
+        embedding_batch_size=32,
+        dense_index_root=tmp_path / "indexes",
+        dense_failure_policy="error",
+        rrf_k=60,
+        embedding_revision=None,
+        source_session=[],
+        scallop_validator_url=None,
+        max_depth=2,
+        max_iterations=3,
+        max_tokens=64000,
+        fixed_kg_retrieval=True,
+    )
+
+    cell6 = _common_cell_args(args, 6)
+    other_cell = _common_cell_args(args, 5)
+
+    assert cell6[cell6.index("--retrieval-mode") + 1] == "hybrid"
+    assert not any(value.startswith("--ppr-") for value in cell6)
+    assert other_cell[other_cell.index("--retrieval-mode") + 1] == "hybrid"
+    assert not any(value.startswith("--ppr-") for value in other_cell)
+    assert "ppr" not in RetrievalConfig().to_dict()
+    assert RetrievalConfig(mode="dense_ppr").to_dict()["ppr"]["seed_count"] == 20
+
+
+def test_cell_arguments_use_explicit_facts_file_for_skipped_kg_build(tmp_path: Path) -> None:
+    facts_file = tmp_path / "noscallop_facts.jsonl"
+    facts_file.write_text("{}\n", encoding="utf-8")
+    args = SimpleNamespace(
+        input=tmp_path / "input.jsonl",
+        pilot_input=tmp_path / "pilot.jsonl",
+        limit=1,
+        seed=0,
+        model="Qwen/Qwen3-4B",
+        vllm_base_url="http://localhost:8000/v1",
+        results_dir=tmp_path / "results",
+        run_id="run",
+        neo4j_uri=None,
+        neo4j_user=None,
+        kg_sessions={2: "noscallop", 3: "scallop"},
+        hops=2,
+        limit_triples=50,
+        memory_scope="example",
+        retrieval_mode="sparse",
+        embedding_model="fake/bge",
+        embedding_device="cpu",
+        embedding_batch_size=32,
+        dense_index_root=tmp_path / "indexes",
+        dense_failure_policy="error",
+        rrf_k=60,
+        embedding_revision=None,
+        source_session=[],
+        scallop_validator_url=None,
+        facts_file_noscallop=facts_file,
+        facts_file_scallop=None,
+        fixed_kg_retrieval=True,
+    )
+
+    cell2 = _common_cell_args(args, 2)
+
+    assert cell2[cell2.index("--facts-file") + 1] == str(facts_file)
+
+
+def test_cell_arguments_reject_missing_explicit_facts_file(tmp_path: Path) -> None:
+    args = SimpleNamespace(
+        input=tmp_path / "input.jsonl",
+        pilot_input=tmp_path / "pilot.jsonl",
+        limit=1,
+        seed=0,
+        model="Qwen/Qwen3-4B",
+        vllm_base_url="http://localhost:8000/v1",
+        results_dir=tmp_path / "results",
+        run_id="run",
+        neo4j_uri=None,
+        neo4j_user=None,
+        kg_sessions={2: "noscallop"},
+        hops=2,
+        limit_triples=50,
+        memory_scope="example",
+        retrieval_mode="sparse",
+        embedding_model="fake/bge",
+        embedding_device="cpu",
+        embedding_batch_size=32,
+        dense_index_root=tmp_path / "indexes",
+        dense_failure_policy="error",
+        rrf_k=60,
+        embedding_revision=None,
+        source_session=[],
+        scallop_validator_url=None,
+        facts_file_noscallop=tmp_path / "missing.jsonl",
+        facts_file_scallop=None,
+        fixed_kg_retrieval=True,
+    )
+
+    with pytest.raises(FileNotFoundError, match="facts file does not exist"):
+        _common_cell_args(args, 2)

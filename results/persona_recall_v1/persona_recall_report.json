@@ -1,0 +1,232 @@
+{
+  "controls": {
+    "full_structured_memory": {
+      "answer_accuracy": 1.0,
+      "count": 4,
+      "grounded_answer_accuracy": 1.0,
+      "label": "oracle control"
+    },
+    "sliding_context:window_16k": {
+      "answer_accuracy": 0.5,
+      "count": 4,
+      "grounded_answer_accuracy": 0.5,
+      "label": "deterministic sliding-window control"
+    },
+    "sliding_context:window_4k": {
+      "answer_accuracy": 0.5,
+      "count": 4,
+      "grounded_answer_accuracy": 0.5,
+      "label": "deterministic sliding-window control"
+    }
+  },
+  "interpretation": {
+    "length_distractor_effect": "Context-token and distractor tiers are summarized separately from persona identity.",
+    "other_declared_persona_fields_evaluated": false,
+    "persona_axes_evaluated": [
+      "ethnicity",
+      "education"
+    ],
+    "persona_effect": "Matched arms change only the prepended identity biography.",
+    "protected_attributes_determine_preferences": false,
+    "statistical_scope": "Exploratory pipeline smoke only; independent history-query counts, not condition copies, determine statistical power.",
+    "structured_memory": "full_structured_memory is an oracle control, not a Qwen arm."
+  },
+  "intersection_summaries": {
+    "Korean American | bachelor's degree": {
+      "accuracy": 0.25,
+      "count": 8,
+      "invalid_rate": 0.0,
+      "refusal_rate": 0.0
+    },
+    "Korean American | high school diploma": {
+      "accuracy": 0.25,
+      "count": 8,
+      "invalid_rate": 0.0,
+      "refusal_rate": 0.0
+    },
+    "Korean American | master's degree": {
+      "accuracy": 0.25,
+      "count": 8,
+      "invalid_rate": 0.0,
+      "refusal_rate": 0.0
+    },
+    "Mexican American | bachelor's degree": {
+      "accuracy": 0.25,
+      "count": 8,
+      "invalid_rate": 0.0,
+      "refusal_rate": 0.0
+    },
+    "None | None": {
+      "accuracy": 0.25,
+      "count": 8,
+      "invalid_rate": 0.0,
+      "refusal_rate": 0.0
+    }
+  },
+  "length_distractor_summaries": {
+    "window_16k": {
+      "deep_context_rot": {
+        "accuracy": 0.0,
+        "count": 10,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "no_interference": {
+        "accuracy": 0.5,
+        "count": 10,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      }
+    },
+    "window_4k": {
+      "deep_context_rot": {
+        "accuracy": 0.0,
+        "count": 10,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "no_interference": {
+        "accuracy": 0.5,
+        "count": 10,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      }
+    }
+  },
+  "paired_persona_deltas": {
+    "education-pair": {
+      "accuracy_disagreement_rate": 0.0,
+      "axis": "education",
+      "independent_history_query_count": 2,
+      "left_persona_id": "education-a",
+      "matched_condition_count": 8,
+      "mean_accuracy_delta": 0.0,
+      "response_disagreement_rate": 0.0,
+      "right_persona_id": "education-b"
+    },
+    "ethnicity-pair": {
+      "accuracy_disagreement_rate": 0.0,
+      "axis": "ethnicity",
+      "independent_history_query_count": 2,
+      "left_persona_id": "ethnicity-a",
+      "matched_condition_count": 8,
+      "mean_accuracy_delta": 0.0,
+      "response_disagreement_rate": 0.0,
+      "right_persona_id": "ethnicity-b"
+    }
+  },
+  "qwen_overall": {
+    "accuracy": 0.25,
+    "count": 40,
+    "invalid_rate": 0.0,
+    "refusal_rate": 0.0
+  },
+  "subgroup_summaries": {
+    "context_tier": {
+      "window_16k": {
+        "accuracy": 0.25,
+        "count": 20,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "window_4k": {
+        "accuracy": 0.25,
+        "count": 20,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      }
+    },
+    "education": {
+      "None": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "bachelor's degree": {
+        "accuracy": 0.25,
+        "count": 16,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "high school diploma": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "master's degree": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      }
+    },
+    "ethnicity": {
+      "Korean American": {
+        "accuracy": 0.25,
+        "count": 24,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "Mexican American": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "None": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      }
+    },
+    "interference_tier": {
+      "deep_context_rot": {
+        "accuracy": 0.0,
+        "count": 20,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "no_interference": {
+        "accuracy": 0.5,
+        "count": 20,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      }
+    },
+    "persona_id": {
+      "education-a": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "education-b": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "ethnicity-a": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "ethnicity-b": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      },
+      "no-persona": {
+        "accuracy": 0.25,
+        "count": 8,
+        "invalid_rate": 0.0,
+        "refusal_rate": 0.0
+      }
+    }
+  }
+}

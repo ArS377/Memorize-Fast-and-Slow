@@ -1,0 +1,20 @@
+[2026-07-25 08:08:10] run_id=hippo_overnight_20260725_080810
+[2026-07-25 08:08:10] scallop validator healthy at http://127.0.0.1:8765
+[2026-07-25 08:08:10] building noscallop KG session=hippo_overnight_20260725_080810_noscallop ...
+[2026-07-25 10:27:19] noscallop KG build took 8349s
+[2026-07-25 10:27:19] building scallop KG session=hippo_overnight_20260725_080810_scallop ...
+[2026-07-25 12:45:43] scallop KG build took 8304s
+[2026-07-25 12:45:43] === mode=hybrid seed=0 -> results/runs/hippo_overnight_20260725_080810/hybrid/seed0 ===
+[2026-07-25 18:16:11] mode=hybrid seed=0 took 19828s
+[2026-07-25 18:16:11] === mode=dense_ppr seed=0 -> results/runs/hippo_overnight_20260725_080810/dense_ppr/seed0 ===
+[2026-07-25 23:50:42] mode=dense_ppr seed=0 took 20071s
+[2026-07-25 23:50:42] === mode=hybrid seed=1 -> results/runs/hippo_overnight_20260725_080810/hybrid/seed1 ===
+[2026-07-26 05:41:25] mode=hybrid seed=1 took 21043s
+[2026-07-26 05:41:25] === mode=dense_ppr seed=1 -> results/runs/hippo_overnight_20260725_080810/dense_ppr/seed1 ===
+[2026-07-26 11:28:03] mode=dense_ppr seed=1 took 20798s
+[2026-07-26 11:28:03] === mode=hybrid seed=2 -> results/runs/hippo_overnight_20260725_080810/hybrid/seed2 ===
+[2026-07-26 16:54:19] mode=hybrid seed=2 took 19576s
+[2026-07-26 16:54:19] === mode=dense_ppr seed=2 -> results/runs/hippo_overnight_20260725_080810/dense_ppr/seed2 ===
+[2026-07-26 22:48:26] mode=dense_ppr seed=2 took 21247s
+[2026-07-26 22:48:26] ALL DONE. Results under results/runs/hippo_overnight_20260725_080810
+[2026-07-26 22:48:26] Per-subrun summaries: results/runs/hippo_overnight_20260725_080810/<mode>/seed<N>/summary.csv

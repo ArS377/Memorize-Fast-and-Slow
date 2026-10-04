@@ -1,0 +1,20 @@
+{
+  "built_at_utc": "2026-08-02T21:24:56+00:00",
+  "dtype": "float32",
+  "embedding_batch_size": 32,
+  "embedding_device": "cpu",
+  "fact_count": 0,
+  "fact_template_version": "fact_text.v1",
+  "model_name": "BAAI/bge-small-en-v1.5",
+  "normalized": true,
+  "ordered_fact_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "query_template_version": "bge_query.v1",
+  "requested_revision": null,
+  "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "schema_version": "dense_fact_index.v1",
+  "sentence_transformers_version": "5.3.0",
+  "similarity": "cosine_dot_product",
+  "source_session_id": "pilot2-matched_noscallop",
+  "source_snapshot_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "vector_dimension": 384
+}

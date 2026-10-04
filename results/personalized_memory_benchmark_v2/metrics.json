@@ -1,0 +1,156 @@
+{
+  "conditions": {
+    "lexical": {
+      "accept_all": {
+        "candidate_accept_count": 300,
+        "candidate_decision_accuracy": 0.3333333333333333,
+        "candidate_reject_count": 0,
+        "query_accuracy": {
+          "bm25": 0.7777777777777778,
+          "full_history": 0.6666666666666666,
+          "no_history": 0.0,
+          "recency": 0.0
+        },
+        "query_accuracy_by_kind": {
+          "bm25": {
+            "ambiguity": 1.0,
+            "preference": 0.6666666666666666,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "full_history": {
+            "ambiguity": 1.0,
+            "preference": 0.5,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "no_history": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          },
+          "recency": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          }
+        }
+      },
+      "scallop_fail_closed": {
+        "candidate_accept_count": 200,
+        "candidate_decision_accuracy": 1.0,
+        "candidate_reject_count": 100,
+        "query_accuracy": {
+          "bm25": 0.4444444444444444,
+          "full_history": 1.0,
+          "no_history": 0.0,
+          "recency": 0.0
+        },
+        "query_accuracy_by_kind": {
+          "bm25": {
+            "ambiguity": 1.0,
+            "preference": 0.16666666666666666,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "full_history": {
+            "ambiguity": 1.0,
+            "preference": 1.0,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "no_history": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          },
+          "recency": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          }
+        }
+      }
+    },
+    "paraphrase": {
+      "accept_all": {
+        "candidate_accept_count": 300,
+        "candidate_decision_accuracy": 0.3333333333333333,
+        "candidate_reject_count": 0,
+        "query_accuracy": {
+          "bm25": 0.5555555555555556,
+          "full_history": 0.6666666666666666,
+          "no_history": 0.0,
+          "recency": 0.0
+        },
+        "query_accuracy_by_kind": {
+          "bm25": {
+            "ambiguity": 1.0,
+            "preference": 0.3333333333333333,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "full_history": {
+            "ambiguity": 1.0,
+            "preference": 0.5,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "no_history": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          },
+          "recency": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          }
+        }
+      },
+      "scallop_fail_closed": {
+        "candidate_accept_count": 200,
+        "candidate_decision_accuracy": 1.0,
+        "candidate_reject_count": 100,
+        "query_accuracy": {
+          "bm25": 0.5555555555555556,
+          "full_history": 1.0,
+          "no_history": 0.0,
+          "recency": 0.0
+        },
+        "query_accuracy_by_kind": {
+          "bm25": {
+            "ambiguity": 1.0,
+            "preference": 0.3333333333333333,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "full_history": {
+            "ambiguity": 1.0,
+            "preference": 1.0,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "no_history": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          },
+          "recency": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          }
+        }
+      }
+    }
+  }
+}

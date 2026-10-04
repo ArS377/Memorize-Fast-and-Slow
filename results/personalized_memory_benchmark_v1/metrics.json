@@ -1,0 +1,52 @@
+{
+  "conditions": {
+    "lexical": {
+      "accept_all": {
+        "candidate_accept_count": 200,
+        "candidate_decision_accuracy": 0.5,
+        "candidate_reject_count": 0,
+        "query_accuracy": {
+          "bm25": 1.0,
+          "full_history": 0.8,
+          "no_history": 0.0,
+          "recency": 0.0
+        }
+      },
+      "scallop_fail_closed": {
+        "candidate_accept_count": 100,
+        "candidate_decision_accuracy": 1.0,
+        "candidate_reject_count": 100,
+        "query_accuracy": {
+          "bm25": 1.0,
+          "full_history": 1.0,
+          "no_history": 0.0,
+          "recency": 0.0
+        }
+      }
+    },
+    "paraphrase": {
+      "accept_all": {
+        "candidate_accept_count": 200,
+        "candidate_decision_accuracy": 0.5,
+        "candidate_reject_count": 0,
+        "query_accuracy": {
+          "bm25": 0.8,
+          "full_history": 0.8,
+          "no_history": 0.0,
+          "recency": 0.0
+        }
+      },
+      "scallop_fail_closed": {
+        "candidate_accept_count": 100,
+        "candidate_decision_accuracy": 1.0,
+        "candidate_reject_count": 100,
+        "query_accuracy": {
+          "bm25": 1.0,
+          "full_history": 1.0,
+          "no_history": 0.0,
+          "recency": 0.0
+        }
+      }
+    }
+  }
+}

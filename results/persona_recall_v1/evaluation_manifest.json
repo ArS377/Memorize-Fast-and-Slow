@@ -1,0 +1,169 @@
+{
+  "artifact_sha256": {
+    "persona_recall_report.json": "6881d515beb0454b6fb97d26152159539826a20b5898e67ea72522eb807de755",
+    "qwen_predictions.jsonl": "715968cf24e6ddee097afa4463dde18fc7c1f04550baf194857b658c454a6810"
+  },
+  "completed_at": "2026-08-14T12:02:40.856673+00:00",
+  "controls": {
+    "full_structured_memory": "oracle control"
+  },
+  "dataset": {
+    "artifact_sha256": {
+      "candidate_updates.jsonl": "4b85e79c778651497fd21ce7d801bba65f463bcdeee44efd8a7fa84e53973928",
+      "events.jsonl": "555608ff1da4c2967264a0a764d758223f53b5881d58fc9aae46fa8721cc26e3",
+      "examples.jsonl": "42ac074387787876e09fb90f8b97f10e7e1de9a03a9378b8f91c1f8973d2ed18",
+      "facts.jsonl": "fdd303da2793128f48d29813cbf7de65dfdcdc21c55f1c62836e83d22ca5a6d5",
+      "queries.jsonl": "fc8856503ccf8658ed054adb90e990b028dd46e69a156081a3e37a3d3fcc100b"
+    },
+    "generation_manifest_sha256": "8c7b91d86aefaf3621e83484254465c46319839f4daf8088d2007e2666522c54",
+    "generation_model": "kimi-k3",
+    "path": "results/persona_conversations_v1"
+  },
+  "evaluator_model_family": "Qwen only; Kimi is not used in evaluation",
+  "model_identities": [
+    "Qwen/Qwen3-4B"
+  ],
+  "personas": [
+    {
+      "age": null,
+      "biography": "",
+      "counterfactual_axis": null,
+      "disability": null,
+      "education": null,
+      "ethnicity": null,
+      "gender_identity": null,
+      "interests": [],
+      "languages": [],
+      "locale": null,
+      "name": "",
+      "occupation": null,
+      "pair_id": null,
+      "persona_id": "no-persona",
+      "religion": null,
+      "socioeconomic_background": null
+    },
+    {
+      "age": 34,
+      "biography": "Alex Morgan is 34 and works as a municipal project coordinator in Columbus, Ohio. Alex is Korean American, holds a bachelor's degree, and enjoys community gardening and mystery novels.",
+      "counterfactual_axis": "ethnicity",
+      "disability": "no disclosed disability",
+      "education": "bachelor's degree",
+      "ethnicity": "Korean American",
+      "gender_identity": "nonbinary",
+      "interests": [
+        "community gardening",
+        "mystery novels"
+      ],
+      "languages": [
+        "English"
+      ],
+      "locale": "Columbus, Ohio",
+      "name": "Alex Morgan",
+      "occupation": "municipal project coordinator",
+      "pair_id": "ethnicity-pair",
+      "persona_id": "ethnicity-a",
+      "religion": "not religious",
+      "socioeconomic_background": "middle-income household"
+    },
+    {
+      "age": 34,
+      "biography": "Alex Morgan is 34 and works as a municipal project coordinator in Columbus, Ohio. Alex is Mexican American, holds a bachelor's degree, and enjoys community gardening and mystery novels.",
+      "counterfactual_axis": "ethnicity",
+      "disability": "no disclosed disability",
+      "education": "bachelor's degree",
+      "ethnicity": "Mexican American",
+      "gender_identity": "nonbinary",
+      "interests": [
+        "community gardening",
+        "mystery novels"
+      ],
+      "languages": [
+        "English"
+      ],
+      "locale": "Columbus, Ohio",
+      "name": "Alex Morgan",
+      "occupation": "municipal project coordinator",
+      "pair_id": "ethnicity-pair",
+      "persona_id": "ethnicity-b",
+      "religion": "not religious",
+      "socioeconomic_background": "middle-income household"
+    },
+    {
+      "age": 34,
+      "biography": "Alex Morgan is 34 and works as a municipal project coordinator in Columbus, Ohio. Alex is Korean American, holds a high school diploma, and enjoys community gardening and mystery novels.",
+      "counterfactual_axis": "education",
+      "disability": "no disclosed disability",
+      "education": "high school diploma",
+      "ethnicity": "Korean American",
+      "gender_identity": "nonbinary",
+      "interests": [
+        "community gardening",
+        "mystery novels"
+      ],
+      "languages": [
+        "English"
+      ],
+      "locale": "Columbus, Ohio",
+      "name": "Alex Morgan",
+      "occupation": "municipal project coordinator",
+      "pair_id": "education-pair",
+      "persona_id": "education-a",
+      "religion": "not religious",
+      "socioeconomic_background": "middle-income household"
+    },
+    {
+      "age": 34,
+      "biography": "Alex Morgan is 34 and works as a municipal project coordinator in Columbus, Ohio. Alex is Korean American, holds a master's degree, and enjoys community gardening and mystery novels.",
+      "counterfactual_axis": "education",
+      "disability": "no disclosed disability",
+      "education": "master's degree",
+      "ethnicity": "Korean American",
+      "gender_identity": "nonbinary",
+      "interests": [
+        "community gardening",
+        "mystery novels"
+      ],
+      "languages": [
+        "English"
+      ],
+      "locale": "Columbus, Ohio",
+      "name": "Alex Morgan",
+      "occupation": "municipal project coordinator",
+      "pair_id": "education-pair",
+      "persona_id": "education-b",
+      "religion": "not religious",
+      "socioeconomic_background": "middle-income household"
+    }
+  ],
+  "prompt_schema_version": "persona-recall.v1",
+  "provider_identity_assurance": "endpoint-self-reported and checked against configured Qwen model; artifact hashes are cryptographic",
+  "request_parameters": {
+    "context_tiers": [
+      {
+        "max_tokens": 4096,
+        "name": "window_4k"
+      },
+      {
+        "max_tokens": 16384,
+        "name": "window_16k"
+      }
+    ],
+    "history_limit": 1,
+    "interference_tiers": [
+      "no_interference",
+      "deep_context_rot"
+    ],
+    "max_concurrent_requests": 4,
+    "max_tokens": 64,
+    "model": "Qwen/Qwen3-4B",
+    "query_suffixes": [
+      "-preference-change-delayed",
+      "-preference-incongruity-delayed"
+    ],
+    "seed": 23,
+    "temperature": 0,
+    "timeout_seconds": 300.0
+  },
+  "started_at": "2026-08-14T12:01:53.992997+00:00",
+  "status": "completed"
+}

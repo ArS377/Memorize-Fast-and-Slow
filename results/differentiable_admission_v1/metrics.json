@@ -1,0 +1,272 @@
+{
+  "dataset": {
+    "feature_names": [
+      "candidate_confidence_score",
+      "candidate_source_authority",
+      "candidate_has_supersedes",
+      "active_conflict_count",
+      "max_active_conflict_confidence_score",
+      "equal_evidence_conflict",
+      "resolves_ambiguity"
+    ],
+    "hard_gate_counts": {
+      "dev": {
+        "authority_conflict_without_supersession": 150,
+        "direct_correction_resolves_ambiguity": 150,
+        "direct_correction_supersedes": 300,
+        "hard_constraint_violation": 150,
+        "no_hard_gate": 450,
+        "tombstone_resurrection": 150
+      },
+      "test": {
+        "authority_conflict_without_supersession": 150,
+        "direct_correction_resolves_ambiguity": 150,
+        "direct_correction_supersedes": 300,
+        "hard_constraint_violation": 150,
+        "no_hard_gate": 450,
+        "tombstone_resurrection": 150
+      },
+      "train": {
+        "authority_conflict_without_supersession": 700,
+        "direct_correction_resolves_ambiguity": 700,
+        "direct_correction_supersedes": 1400,
+        "hard_constraint_violation": 700,
+        "no_hard_gate": 2100,
+        "tombstone_resurrection": 700
+      }
+    },
+    "split_counts": {
+      "dev": 1350,
+      "test": 1350,
+      "train": 6300
+    }
+  },
+  "models": {
+    "differentiable_scallop": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "training": {
+        "final_loss": 7.620082023571567e-06,
+        "initial_loss": 0.3915182221361569
+      }
+    },
+    "fixed_symbolic_scallop": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      }
+    },
+    "logistic_regression": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "training": {
+        "final_loss": 0.0016295126402041031,
+        "initial_loss": 0.7073204796654837
+      }
+    },
+    "mlp": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "training": {
+        "final_loss": 1.4316079758005106e-05,
+        "initial_loss": 0.3975126547259944
+      }
+    },
+    "oracle_soft_upper_bound": {
+      "dev": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      },
+      "test": {
+        "accuracy": 1.0,
+        "by_label": {
+          "accept": {
+            "count": 300,
+            "recall": 1.0
+          },
+          "reject": {
+            "count": 750,
+            "recall": 1.0
+          },
+          "replace": {
+            "count": 300,
+            "recall": 1.0
+          }
+        },
+        "count": 1350,
+        "hard_gate_violations": 0,
+        "hard_rejected_count": 450
+      }
+    }
+  },
+  "runtime": {
+    "scallopy": "0.2.4",
+    "torch": "2.5.1+cpu"
+  }
+}

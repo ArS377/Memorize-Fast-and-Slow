@@ -1,0 +1,22 @@
+{
+  "generation": {
+    "parent_dir_env": "PERSONA_SURFACE_PARENT_DIR",
+    "output_a_env": "PERSONA_SURFACE_A_OUTPUT_DIR",
+    "output_b_env": "PERSONA_SURFACE_B_OUTPUT_DIR",
+    "gate_path_env": "PERSONA_SURFACE_PAIR_GATE_PATH",
+    "endpoint_env": "KIMI_BASE_URL",
+    "api_key_env": "KIMI_API_KEY",
+    "model_env": "KIMI_MODEL",
+    "timeout_seconds": 600.0,
+    "mapping_max_tokens": 32768,
+    "dialogue_max_tokens": 16384,
+    "mapping_histories_per_request": 1,
+    "dialogue_assignment_concurrency": 2,
+    "events_per_request": 2,
+    "turn_pairs_per_event": 1,
+    "minimum_words_per_turn": 12,
+    "max_validation_attempts": 3,
+    "resume_existing": true,
+    "enable_thinking": false
+  }
+}

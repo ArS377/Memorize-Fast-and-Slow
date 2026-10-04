@@ -1,0 +1,288 @@
+{
+  "conditions": {
+    "lexical": {
+      "accept_all": {
+        "candidate_accept_count": 200,
+        "candidate_decision_accuracy": 0.5,
+        "candidate_reject_count": 0,
+        "dense_metadata": {
+          "embedding": {
+            "max_sequence_length": 512,
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "5.3.0",
+            "vector_dimension": 384
+          },
+          "embedding_batch_size": 32,
+          "embedding_device": "cpu",
+          "embedding_requested_model": "BAAI/bge-small-en-v1.5",
+          "embedding_requested_revision": null,
+          "query_fields": [
+            "kind",
+            "subject",
+            "date",
+            "scope",
+            "candidate",
+            "fact_id",
+            "query_text"
+          ],
+          "query_template": "bge_query.v1",
+          "retrieval_k": 5,
+          "retrieval_unit": "raw_event_support_text"
+        },
+        "query_accuracy": {
+          "bm25": 1.0,
+          "dense": 0.8,
+          "full_history": 0.8,
+          "no_history": 0.0,
+          "recency": 0.0
+        },
+        "query_accuracy_by_kind": {
+          "bm25": {
+            "ambiguity": 1.0,
+            "preference": 1.0,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "dense": {
+            "ambiguity": 1.0,
+            "preference": 0.5,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "full_history": {
+            "ambiguity": 1.0,
+            "preference": 0.5,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "no_history": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          },
+          "recency": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          }
+        }
+      },
+      "scallop_fail_closed": {
+        "candidate_accept_count": 100,
+        "candidate_decision_accuracy": 1.0,
+        "candidate_reject_count": 100,
+        "dense_metadata": {
+          "embedding": {
+            "max_sequence_length": 512,
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "5.3.0",
+            "vector_dimension": 384
+          },
+          "embedding_batch_size": 32,
+          "embedding_device": "cpu",
+          "embedding_requested_model": "BAAI/bge-small-en-v1.5",
+          "embedding_requested_revision": null,
+          "query_fields": [
+            "kind",
+            "subject",
+            "date",
+            "scope",
+            "candidate",
+            "fact_id",
+            "query_text"
+          ],
+          "query_template": "bge_query.v1",
+          "retrieval_k": 5,
+          "retrieval_unit": "raw_event_support_text"
+        },
+        "query_accuracy": {
+          "bm25": 1.0,
+          "dense": 1.0,
+          "full_history": 1.0,
+          "no_history": 0.0,
+          "recency": 0.0
+        },
+        "query_accuracy_by_kind": {
+          "bm25": {
+            "ambiguity": 1.0,
+            "preference": 1.0,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "dense": {
+            "ambiguity": 1.0,
+            "preference": 1.0,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "full_history": {
+            "ambiguity": 1.0,
+            "preference": 1.0,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "no_history": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          },
+          "recency": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          }
+        }
+      }
+    },
+    "paraphrase": {
+      "accept_all": {
+        "candidate_accept_count": 200,
+        "candidate_decision_accuracy": 0.5,
+        "candidate_reject_count": 0,
+        "dense_metadata": {
+          "embedding": {
+            "max_sequence_length": 512,
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "5.3.0",
+            "vector_dimension": 384
+          },
+          "embedding_batch_size": 32,
+          "embedding_device": "cpu",
+          "embedding_requested_model": "BAAI/bge-small-en-v1.5",
+          "embedding_requested_revision": null,
+          "query_fields": [
+            "kind",
+            "subject",
+            "date",
+            "scope",
+            "candidate",
+            "fact_id",
+            "query_text"
+          ],
+          "query_template": "bge_query.v1",
+          "retrieval_k": 5,
+          "retrieval_unit": "raw_event_support_text"
+        },
+        "query_accuracy": {
+          "bm25": 0.8,
+          "dense": 0.836,
+          "full_history": 0.8,
+          "no_history": 0.0,
+          "recency": 0.0
+        },
+        "query_accuracy_by_kind": {
+          "bm25": {
+            "ambiguity": 1.0,
+            "preference": 0.5,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "dense": {
+            "ambiguity": 1.0,
+            "preference": 0.605,
+            "private_recall": 0.99,
+            "recommendation": 0.98
+          },
+          "full_history": {
+            "ambiguity": 1.0,
+            "preference": 0.5,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "no_history": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          },
+          "recency": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          }
+        }
+      },
+      "scallop_fail_closed": {
+        "candidate_accept_count": 100,
+        "candidate_decision_accuracy": 1.0,
+        "candidate_reject_count": 100,
+        "dense_metadata": {
+          "embedding": {
+            "max_sequence_length": 512,
+            "model_name": "BAAI/bge-small-en-v1.5",
+            "requested_revision": null,
+            "resolved_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+            "sentence_transformers_version": "5.3.0",
+            "vector_dimension": 384
+          },
+          "embedding_batch_size": 32,
+          "embedding_device": "cpu",
+          "embedding_requested_model": "BAAI/bge-small-en-v1.5",
+          "embedding_requested_revision": null,
+          "query_fields": [
+            "kind",
+            "subject",
+            "date",
+            "scope",
+            "candidate",
+            "fact_id",
+            "query_text"
+          ],
+          "query_template": "bge_query.v1",
+          "retrieval_k": 5,
+          "retrieval_unit": "raw_event_support_text"
+        },
+        "query_accuracy": {
+          "bm25": 1.0,
+          "dense": 0.838,
+          "full_history": 1.0,
+          "no_history": 0.0,
+          "recency": 0.0
+        },
+        "query_accuracy_by_kind": {
+          "bm25": {
+            "ambiguity": 1.0,
+            "preference": 1.0,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "dense": {
+            "ambiguity": 1.0,
+            "preference": 0.605,
+            "private_recall": 1.0,
+            "recommendation": 0.98
+          },
+          "full_history": {
+            "ambiguity": 1.0,
+            "preference": 1.0,
+            "private_recall": 1.0,
+            "recommendation": 1.0
+          },
+          "no_history": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          },
+          "recency": {
+            "ambiguity": 0.0,
+            "preference": 0.0,
+            "private_recall": 0.0,
+            "recommendation": 0.0
+          }
+        }
+      }
+    }
+  }
+}

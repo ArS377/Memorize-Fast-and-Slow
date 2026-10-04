@@ -1,0 +1,36 @@
+annotated-types==0.7.0
+anyio==4.13.0
+certifi==2026.2.25
+colorama==0.4.6
+distro==1.9.0
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.11
+jiter==0.14.0
+# rlms>=0.1.1 requires the OpenAI 2.x SDK (>=2.14.0).  Keep the major version
+# bounded so dependency resolution cannot silently cross another breaking API
+# boundary.
+openai>=2.14.0,<3.0.0
+pydantic==2.13.0
+pydantic_core==2.46.0
+pytz==2026.1.post1
+sniffio==1.3.1
+socksio>=1.0.0,<2.0.0
+tqdm==4.67.3
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+# FIX 2: neo4j==6.1.0 does not exist; the driver is on the 5.x line.
+neo4j>=5.0.0,<6.0.0
+numpy==2.2.6
+rank-bm25==0.2.2
+sentence-transformers==3.4.1
+# rlms 0.0.1a1 is an empty placeholder wheel. The first real release (0.1.0)
+# and current latest (0.1.1) both require Python >=3.11. scallopy 0.2.4 only
+# ships a cp310 wheel, so a single env cannot satisfy both. Either:
+#   (a) keep one env on Python 3.10 and `pip install --ignore-requires-python rlms==0.1.1`
+#       (works if rlms source is 3.10-compatible), or
+#   (b) split into two envs: a py3.10 env with scallopy for KG build / flat cells,
+#       and a py3.11+ env with rlms for the RLM cells (4, 5, 6).
+rlms>=0.1.1
+scallopy @ https://github.com/scallop-lang/scallop/releases/download/0.2.4/scallopy-0.2.4-cp310-cp310-manylinux_2_27_x86_64.whl

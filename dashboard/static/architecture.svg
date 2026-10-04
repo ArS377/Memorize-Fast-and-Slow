@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 620" role="img" aria-labelledby="title description">
+  <title id="title">NeuroSym experiment evidence flow</title>
+  <description id="description">Experiments produce live result artifacts, the dashboard server scans and normalizes provenance, and the browser displays dynamic research state.</description>
+  <defs>
+    <style>
+      .label { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1.8px; fill: #ef6435; }
+      .heading { font: 400 26px Georgia, serif; fill: #10231d; }
+      .body { font: 400 14px Inter, Arial, sans-serif; fill: #60706a; }
+      .small { font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #60706a; }
+      .box { fill: #f3f0e7; stroke: #10231d; stroke-width: 2; }
+      .dark { fill: #0e2d24; }
+      .dark-heading { font: 400 26px Georgia, serif; fill: #ffffff; }
+      .dark-body { font: 400 14px Inter, Arial, sans-serif; fill: #a8dfc6; }
+      .flow { fill: none; stroke: #ef6435; stroke-width: 3; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#ef6435"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="44" class="label">EXECUTION PLANE</text>
+  <rect x="40" y="70" width="280" height="170" rx="2" class="box"/>
+  <text x="66" y="108" class="heading">Experiment runners</text>
+  <text x="66" y="139" class="body">Temporal benchmark</text>
+  <text x="66" y="163" class="body">Cell orchestration</text>
+  <text x="66" y="187" class="body">Inference and training work</text>
+  <text x="66" y="219" class="small">CONTINUES INDEPENDENTLY</text>
+
+  <path d="M320 155 C365 155 370 155 414 155" class="flow" marker-end="url(#arrow)"/>
+
+  <text x="425" y="44" class="label">EVIDENCE PLANE</text>
+  <rect x="425" y="70" width="310" height="170" rx="2" class="box"/>
+  <text x="451" y="108" class="heading">results/**</text>
+  <rect x="451" y="130" width="80" height="34" fill="#ffd8c8"/>
+  <rect x="540" y="130" width="86" height="34" fill="#a8dfc6"/>
+  <rect x="635" y="130" width="73" height="34" fill="#e6e1d5"/>
+  <text x="464" y="151" class="small">METRICS</text>
+  <text x="552" y="151" class="small">MANIFEST</text>
+  <text x="647" y="151" class="small">REPORT</text>
+  <text x="451" y="194" class="body">Files may arrive in any order.</text>
+  <text x="451" y="218" class="body">Missing and malformed stay visible.</text>
+
+  <path d="M735 155 C780 155 785 155 829 155" class="flow" marker-end="url(#arrow)"/>
+
+  <text x="840" y="44" class="label">OBSERVATION PLANE</text>
+  <rect x="840" y="70" width="300" height="170" rx="2" class="dark"/>
+  <text x="866" y="108" class="dark-heading">Dashboard server</text>
+  <text x="866" y="139" class="dark-body">Scan on every API request</text>
+  <text x="866" y="163" class="dark-body">Normalize state + provenance</text>
+  <text x="866" y="187" class="dark-body">Serve safe local file links</text>
+  <text x="866" y="219" class="small" fill="#ffffff">PYTHON STDLIB / LOCAL HTTP</text>
+
+  <path d="M990 240 L990 310 C990 338 960 350 930 350 L254 350 C224 350 194 364 194 392" class="flow" marker-end="url(#arrow)"/>
+
+  <rect x="40" y="402" width="1100" height="170" rx="2" fill="#e6e1d5" stroke="#10231d" stroke-width="2"/>
+  <text x="66" y="442" class="heading">Browser research surface</text>
+  <text x="66" y="473" class="body">KPIs and current state</text>
+  <text x="66" y="497" class="body">Run comparison with metric paths</text>
+  <text x="410" y="473" class="body">Artifact and code references</text>
+  <text x="410" y="497" class="body">Incomplete-run warnings</text>
+  <text x="770" y="473" class="body">15-second automatic refresh</text>
+  <text x="770" y="497" class="body">No build step or external CDN</text>
+  <line x1="66" y1="530" x2="1114" y2="530" stroke="#10231d" stroke-opacity="0.2"/>
+  <text x="66" y="553" class="small">DECLARED STATE + EXACT FILE + EXACT METRIC PATH = AUDITABLE CLAIM</text>
+</svg>

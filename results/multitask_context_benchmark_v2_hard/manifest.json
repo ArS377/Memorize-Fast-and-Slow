@@ -1,0 +1,136 @@
+{
+  "artifact_sha256": {
+    "cases.jsonl": "c8684efb01bbfa6b2881eab24d5c2e78870bd148befb88ec2ac4999e53648a95",
+    "metrics.json": "2b957d44cc43e9c05479d03e9045671299eeb53bf5a25f3574d14fe0873114d5",
+    "predictions.jsonl": "6205763fce2480154a1b8c39e330930b7162adff54f1a18aad66e28271526170",
+    "report.md": "561cdffd0c607d33fc2c8463a6167828235e67a88ebbf264d51bd69082b4868d"
+  },
+  "artifacts": [
+    "cases.jsonl",
+    "predictions.jsonl",
+    "metrics.json",
+    "report.md"
+  ],
+  "benchmark_version": "synthetic_multitask_context.v1",
+  "completed_at": "2026-08-11T19:30:30.735782+00:00",
+  "config": {
+    "benchmark_version": "synthetic_multitask_context.v1",
+    "context_tiers": [
+      {
+        "hard_lexical_distractors": 1,
+        "max_tokens": 4096,
+        "name": "compact_4k",
+        "target_thread_percent": 10.0
+      },
+      {
+        "hard_lexical_distractors": 3,
+        "max_tokens": 16384,
+        "name": "standard_16k",
+        "target_thread_percent": 2.0
+      },
+      {
+        "hard_lexical_distractors": 5,
+        "max_tokens": 65536,
+        "name": "long_64k",
+        "target_thread_percent": 0.5
+      },
+      {
+        "hard_lexical_distractors": 7,
+        "max_tokens": 131072,
+        "name": "extended_128k",
+        "target_thread_percent": 0.25
+      }
+    ],
+    "context_window_tiers": [
+      {
+        "max_tokens": 4096,
+        "name": "window_4k"
+      },
+      {
+        "max_tokens": 16384,
+        "name": "window_16k"
+      },
+      {
+        "max_tokens": 65536,
+        "name": "window_64k"
+      },
+      {
+        "max_tokens": 131072,
+        "name": "window_128k"
+      }
+    ],
+    "distractor_block_tokens": 64,
+    "distractor_mix_percent_by_block": {
+      "lexical_overlap": 20.0,
+      "obsolete_task": 10.0,
+      "same_user_other_task": 30.0,
+      "unrelated_task": 40.0
+    },
+    "evidence_positions_percent": [
+      10.0,
+      50.0,
+      90.0
+    ],
+    "history_limit": 30,
+    "model_parameter_tiers": [
+      {
+        "max_billions": 4.0,
+        "min_billions": 1.0,
+        "name": "small_local"
+      },
+      {
+        "max_billions": 14.0,
+        "min_billions": 4.0,
+        "name": "mid_local"
+      },
+      {
+        "max_billions": 72.0,
+        "min_billions": 14.0,
+        "name": "large_open"
+      },
+      {
+        "max_billions": null,
+        "min_billions": 72.0,
+        "name": "frontier_scale"
+      }
+    ],
+    "retrieval_k": 5,
+    "seed": 23,
+    "source_split": "test",
+    "tokenizer": {
+      "local_files_only": true,
+      "name": "Qwen/Qwen3-4B",
+      "revision": "1cfa9a7208912126459214e8b04321603b3df60c"
+    }
+  },
+  "dataset": "results/synthetic_temporal_preferences_1000_v2",
+  "dataset_sha256": {
+    "events.jsonl": "99b387fb08927dc7d3684694c43090e91e0e026ddfc031916e774a070f48dbd2",
+    "queries.jsonl": "88a707a869ef90028b3a7f82036ebcd4b1ab59d091ffae8ecd37080897cde9c4"
+  },
+  "git_dirty": true,
+  "git_sha": "a0678d85304b9ccca3604bcbdefc65753cd1170e",
+  "run_id": "multitask_context_benchmark_v2_hard",
+  "runtime": {
+    "numpy": "2.2.6",
+    "python": "3.12.9",
+    "rank_bm25": "0.2.2",
+    "tokenizers": "0.22.2"
+  },
+  "source_sha256": {
+    "configs/multitask_context_benchmark.json": "bda065a10c4858f83f6e46e796b81a2294c8d6ae3bbf83a9120bffbc7bb8c42f",
+    "experiments/multitask_context_benchmark.py": "141463787a336453a19b592d7394c48daebb161c1c392bf0fb5abe6cdbc0b669",
+    "experiments/synthetic_temporal_baselines.py": "8e1a5debc07bf28a96356daebf5bc47cd5dbb03e39ffc9137689424260f8dc05",
+    "experiments/synthetic_temporal_preferences.py": "1dc07543f687b165379f5ebe79c1d6d9942ce540c68c27e9bd92b50eb39ffb5e"
+  },
+  "started_at": "2026-08-11T19:23:40.067381+00:00",
+  "status": "completed",
+  "tokenizer": {
+    "add_special_tokens": false,
+    "implementation": "Qwen2TokenizerFast",
+    "requested_name": "Qwen/Qwen3-4B",
+    "requested_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "resolved_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "transformers_version": "4.57.6"
+  }
+}

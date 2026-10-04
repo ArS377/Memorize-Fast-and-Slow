@@ -1,0 +1,1805 @@
+{
+  "arms": [
+    {
+      "kind": "sliding_context",
+      "name": "sliding_context_4096",
+      "prompt_token_cap": 4096
+    },
+    {
+      "kind": "sliding_context",
+      "name": "sliding_context_16384",
+      "prompt_token_cap": 16384
+    },
+    {
+      "kind": "structured_memory",
+      "name": "structured_memory_4096",
+      "prompt_token_cap": 4096
+    },
+    {
+      "kind": "structured_memory",
+      "name": "structured_memory_16384",
+      "prompt_token_cap": 16384
+    },
+    {
+      "kind": "hybrid_kg_memory",
+      "name": "hybrid_kg_memory_4096",
+      "prompt_token_cap": 4096
+    },
+    {
+      "kind": "hybrid_kg_memory",
+      "name": "hybrid_kg_memory_16384",
+      "prompt_token_cap": 16384
+    },
+    {
+      "kind": "graphiti_memory",
+      "name": "graphiti_memory_4096",
+      "prompt_token_cap": 4096
+    },
+    {
+      "kind": "graphiti_memory",
+      "name": "graphiti_memory_16384",
+      "prompt_token_cap": 16384
+    }
+  ],
+  "artifact_sha256": {
+    "generation_manifest.json": "b4c3e979a2f75cb3306b6e0edefaf7d9ec32bef9273912c7148fd3dd95d71a1f",
+    "generations.jsonl": "095f7e9678c960f83cd4a0375676bebe3de3b75f3b7c65802a0e2fa0f15cdb21",
+    "graphiti_retrievals.json": "48f1a89ca52367878ef47e1a5058f2c97eb1282f4bdc41731957c09f0fcd1d59",
+    "graphiti_store_states.json": "eb758ac8f4e754151d6fd6a8c10cc302f2e6b569fe4ad29fdd3c4d12aa9c7782",
+    "hybrid_admission_ledgers.json": "5b55e2676506bca5932927ae0e177b6e77a084a158b10b097cd9a6baf0f8a16d",
+    "hybrid_condition_facts.json": "95db97d9c3ac51f581a3a23f4be02fb804dce6d46f4445ce0318305272b97cfe",
+    "hybrid_retrievals.json": "5c1a9d6c72338744c1caf85356413ff2f43dab1165250c36c69bfebbb89a4022",
+    "metrics.json": "b45078d37ebb7f736e78f42663d88e30a4a4fd7a6ad6760d67bab6369edf2bea",
+    "predictions.jsonl": "af62c3a1e5c670e123838ff446784ca74b13a60751cd4e8d53412ca70e000b2f"
+  },
+  "condition_count": 120,
+  "config_sha256": "4844cda74158dcfd877ee621da6f531dda8be90bc05ec21eb4e987525cadc10e",
+  "dataset": {
+    "artifact_sha256": {
+      "candidate_updates.jsonl": "1dafe53395d0cbbc5867dfc1ee60b32eafffa54740e43212b00a8da99e28e51f",
+      "dialogue.jsonl": "dc90ff5ffddadf71ead7895885fd389ae386ae2ecb5cad990a08c32b2bbf7ca9",
+      "events.jsonl": "2bdcd86c5c4e7be0987fca6f02a85e18d9edd9ee52c424a4f385c4058caf8c39",
+      "examples.jsonl": "46e6d621f6d849b5fff92f925c0660b936e70dfe722e1f3b10b66f97a71b374f",
+      "facts.jsonl": "19d5844f55183f9aa3bf9aba26eee74876860f8c54a9e8948ab4621ec990c05f",
+      "queries.jsonl": "688cc5d4bdd1b7b20dd0a99dbef780aa6650fac323f7e3e0d33461db8fc0ee02",
+      "source_documents.jsonl": "7d70459a3bb02932b54444e790842abba8f97835f51199ba3b3cad471d40ec7c"
+    },
+    "assignment": "B",
+    "checkpoint_policy": "authenticated_parent_exact_indices",
+    "generation_manifest_sha256": "986cbe8ce306e19169626d5b8729b92e120f45831a76b328cfa1e32401dfd121",
+    "generation_model": "kimi-k3",
+    "method": "kimi-pair-conditioned-surface-and-dialogue.v2",
+    "pair_gate_sha256": "d03540a6575c9d2967d8bfade7fef4e38a0951d98cb702420c06113dd228fb5b",
+    "parent_generation_manifest_sha256": "49247f1c361319cba951b21362ffa4920b2633eb394c6aeee59765dada252fc3",
+    "parent_path": "/home/kylezheng/NeuroSym-integration/results/persona_conflict_conversations_v1",
+    "path": "/home/kylezheng/NeuroSym-integration/results/persona_conflict_conversations_surface_b",
+    "seed": 911
+  },
+  "decoding": {
+    "batch_size": 1,
+    "do_sample": false,
+    "enable_thinking": false,
+    "max_new_tokens": 32
+  },
+  "evaluator_script_sha256": "2990098392c6ebdea77869c83a87ba4b4ecb8ef62fc955ff9dd0b7758ea6c15f",
+  "evaluator_version": "persona_end_to_end_qwen.v2",
+  "generation_count": 960,
+  "generation_manifest_sha256": "b4c3e979a2f75cb3306b6e0edefaf7d9ec32bef9273912c7148fd3dd95d71a1f",
+  "git": {
+    "dirty": true,
+    "dirty_diff_sha256": "55ee005fa63ca4d7a559144af0451e30f3370ae0fab970331cdb71f35b7761f8",
+    "git_head": "6a114c8d55ec74d05a2673c8fbd622824acbdf26",
+    "untracked_file_count": 1
+  },
+  "graphiti_memory": {
+    "arm_label": "Graphiti ingestion with benchmark-matched retrieval",
+    "backend": "graphiti_core",
+    "build_id": "kimi_ab__a100-build1__surface_b__7201209a2310",
+    "database": "neo4j",
+    "deviations_from_default": [
+      "embedder replaced with the benchmark's pinned bge revision so the dense branch matches every other arm",
+      "cross-encoder replaced with a stub that raises; the default RRF search recipe never invokes it, so this only prevents an accidental call to a remote reranker",
+      "search applies an explicit bi-temporal filter; graphiti's default applies none and would let the generator adjudicate validity",
+      "neo4j driver subclassed to pass database_ as the driver control argument, which graphiti 0.29.3 places in Cypher parameters",
+      "llm max_tokens clamped at the client boundary; graphiti's callers pass their own budget and 'max_tokens or self.max_tokens' lets it win, so LLMConfig.max_tokens alone is never enforced",
+      "query embeddings are encoded with the document path; graphiti's embedder interface cannot distinguish query from document, so the query-side instruction our dense branch applies is not used",
+      "point-in-time retrieval filters world time only; graphiti derives expired_at from invalid_at, so requiring expired_at IS NULL would exclude naturally bounded facts including the gold"
+    ],
+    "embedding_batch_size": 32,
+    "embedding_device": "cpu",
+    "embedding_model_id": "BAAI/bge-small-en-v1.5",
+    "embedding_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "episode_count": 312,
+    "episode_failure_count": 0,
+    "episode_failures": [],
+    "episode_variant": "e2e",
+    "graph_endpoint_database_sha256": "a75087dfbc4a30ae9a88da6541f40fb57641b947919a09e360b1a70f75303c0a",
+    "graphiti_core_version": "0.29.3",
+    "history_count": 12,
+    "ingestion_mode": "incremental_per_account",
+    "ingestion_note": "each account stream is ingested once in stream order and snapshotted at every checkpoint; checkpoints are nested prefixes, so each sees the same causal content as an isolated rebuild while sharing one store",
+    "llm_base_url_sha256": "0506a4c93bbdf9382c621756ad2561d7b362cfe87c0b6925697be0dbd1e40226",
+    "llm_max_tokens": 4096,
+    "llm_model": "Qwen/Qwen3-4B",
+    "llm_small_model": "Qwen/Qwen3-4B",
+    "max_concurrent_histories": 4,
+    "memory_store_combined_sha256": "e23b4e6951d484c94eee576db47603062a8c7e986addcb8f9205e5ffb69fa967",
+    "memory_store_sha256": {
+      "history-005:116": "dcf9c2c87f9fbbd4801501e8304a7cb6b392898fa4fac22867728d1cb886af89",
+      "history-005:117": "98e852789eee97147f318f63b387863e200234f0e46febe0fa7b51c8850ac3de",
+      "history-005:143": "5febd2fd7308312d7af6e6a43e460376750fc8c13639ab895850fa01db665abd",
+      "history-005:168": "8cfb676d2d3a41ff04f2dee1f35e4d48be4c35ae61759913424bc1fc457fddf0",
+      "history-005:283": "6c5549315a6c74e49972a4631106c4c6930bacb309fe91cb07a116195901a566",
+      "history-005:284": "882092b2e3a69c629a828aab442ad26535e7a513f9e0bbee482c8936dd7759c6",
+      "history-005:32": "480fa187cf178a73fab551e6e6d85282f30cf5d9bf80ea4557fc83b9ea9c182d",
+      "history-005:33": "c95992bb24be854eae84ac7dcd67037ab917e04e6b3d1403944a0aae5c5136c9",
+      "history-005:58": "7ce188a73e1073a01bc8625b4c4573252eb1881de3c0f9340dfdea19b4a88ca5",
+      "history-005:82": "1576a108c03148b92cbead69e94bbbad78f182b9e74825f81a1b9e31da0ad3b9",
+      "history-006:182": "4ce1c90152627fa47a80e5e7dca817e2a4506dc28199bf212250d4ad382baefe",
+      "history-006:183": "b1514e405335b80114ea75bc5ee97a4482e74938cc6644695d679946eced779e",
+      "history-006:209": "cc5c8b47a1521bff126929c869827a5f3315584486e9da215425bf9a6f6ceba1",
+      "history-006:212": "44782a905edd00ab9c9cb81133b77467ee64306b4360154181123e0f8dca5d89",
+      "history-006:213": "3cd27e6b6b098c3466f271d28743d96ce845f373456e4435acd561885dfc67a9",
+      "history-006:233": "3cd27e6b6b098c3466f271d28743d96ce845f373456e4435acd561885dfc67a9",
+      "history-006:236": "3cd27e6b6b098c3466f271d28743d96ce845f373456e4435acd561885dfc67a9",
+      "history-006:261": "63fead794ea59f68aa27e501f8a274b97ef2561d94097f20517b994dbff321cc",
+      "history-006:311": "5fc2d38b5f676689b35c6fa9f0227b619b3900feca1a2826458d937f86bd494a",
+      "history-006:312": "364aedf7d6b2480dff978fd2164278b42198710549173ef701c6788899c556e4",
+      "history-007:144": "ce1fe941a730ad03e1164dcbbb01e83163915bd483c84033cf2a8e7c822b28a9",
+      "history-007:145": "bc1b5d0a36cb4060a90a5aecd9863ddc7a33829f4a36064c21fce9339f31b978",
+      "history-007:170": "526c8b749d9e895059f1d2c86cc45b28dfe822036bc8a3871bcee653483f246d",
+      "history-007:195": "8087d392bfd5bb023197c572bc812483336f08842a788be42b7c6d925bf0dce3",
+      "history-007:225": "9d4d6d57c75ac45690c8389cbc48fc01ac214c071a7126e2df95a1f2be5f6678",
+      "history-007:226": "b67c9d4dde3b823cb66cd5a17d4683b26e821c2a18d4bc9366fa88cbcbbadea7",
+      "history-007:250": "4cbe9c4f301dda6518160e78f2f78c78afa72bb5377c8172730b67532a59b274",
+      "history-007:274": "92c14e43a79a34bbc7ec8f6213656c4436442550b70ba3b8c7ccbcdc5dfce879",
+      "history-007:299": "f170f0681de27e0d4715c887eeb993a54fa659031054e420b8ee88b43c12646c",
+      "history-007:300": "3791b0c22da060ef74558c56070332c65453684121b224218ab3c36070d430ee",
+      "history-008:186": "19621b9b94256519e77d240a3ae54df7f2316633415d445b8bdb9118b60c5872",
+      "history-008:187": "33e827154bfa18a1c4a2a2b77cc5232aa4a7a4c1911aeefe39044f142a040616",
+      "history-008:213": "3052b8670ee1e3bb62d1e8f959ae2d4a00bcc6b8d909555dfafad7093770f690",
+      "history-008:236": "c17db523dc12759428c6a8d9330e2d8e791802276930ad4a8adb0f8b5748860d",
+      "history-008:237": "f378e98104cb580df0300a91b781a80b8015eb71b0ada2b7df38f9aabb04f01b",
+      "history-008:238": "690618e3ea2ae0d3dd06be696ac7909f3887171683c040fc0058d3ccc888ab14",
+      "history-008:262": "6ca8408dbf8105633acdc6867ed1fbf367dd24025bc58abd4c880d08f6730da0",
+      "history-008:288": "ce70a2084e542ccfa22fb81990923639f424879fa7b47ed5e113c2cfeba9bd27",
+      "history-008:307": "859f94e631e74b22381a00ea48915772bf24b7630a3e52be8604b9559c267526",
+      "history-008:308": "b56a1a5034fbc1a5e7ef88b83e56a0cb493bfdd7578ea35a9405bf262a93afda",
+      "history-009:109": "4cd3f7b03c8b82e72265e1c39d984fb40a9e3e346808613e35e11da75d236924",
+      "history-009:134": "4cd3f7b03c8b82e72265e1c39d984fb40a9e3e346808613e35e11da75d236924",
+      "history-009:201": "752b4f5a249d7dabc8b31a9edbd1ebfd604b639ea285e707a0ae6523131fc845",
+      "history-009:202": "4c7c15c865760418a790c06b06d791dbc3b87bc33a299c8fb3b85ae24b88c66c",
+      "history-009:227": "7ca57332ee143afa4d701a3335e281e52e670192935f1dab166b7d2bf0c450ec",
+      "history-009:250": "758c6dfeeea01e228b708f93b34d42adbcf1b321f4c32b25148c84f9262f958b",
+      "history-009:303": "9b3134ec97dadf438ce74e070b8ec28df2ea835585049de1d0a65b5a2ff34f41",
+      "history-009:304": "948b81e6d77182c1dd7db29eb67b7dde83bac2cdeae8041eeaca0dd875c2afab",
+      "history-009:83": "a9138115e68a7b71f63270c0570a07f7536e122f42a355838eeb7e1ba3a4a6c4",
+      "history-009:84": "c166e2f2da76ac77b9af6736f5d685f49bff364bdc3461b988b2c0c8aad9dccd",
+      "history-010:1": "2d47f5b4daf65787a0a579a5f09f3cce1fb2969bae90f5e74cb750030d437267",
+      "history-010:101": "3a41b740442ae3dd864d02b4d588eeea52852f7c124f8e8c6032b7a52121c12b",
+      "history-010:137": "ccf5f945f72cf8d8ca5f8f41644ecfb85decb3c9dd22e52e312d4b0024977040",
+      "history-010:138": "11aa71a9ed8837da4a75eb648df4d435665e33bcc9919ff67994418e141a5cc5",
+      "history-010:2": "825883339378d4eca43b4fa504e5557d86ce53dd1bfec51569ffe2aff13988c1",
+      "history-010:28": "e39f176adc33c3ec75efadea9f554dccfd76e33eaaa32177f570232837c79b74",
+      "history-010:51": "87322c6e033020f755ea0eb68eef6fe51df87deed0b553cfaef846fa34c58e91",
+      "history-010:52": "585c60f710f9186b8f7633e971d1b2c899552293285985c9fd9bfd8cb5cd1a56",
+      "history-010:76": "3a41b740442ae3dd864d02b4d588eeea52852f7c124f8e8c6032b7a52121c12b",
+      "history-011:117": "426ac0bf353a0b5c41375c944ba3c9b4fd850122baa0bcbfdc692e03e81e80c7",
+      "history-011:129": "2d4a93be52fdb4332700b9eeb86dc972d73cd4db1b3934a54a02ff278744ebe0",
+      "history-011:130": "0576b16e5dee44b5484c7ca6c3d45331885f50b642797e3d4c01a4f9df98ac77",
+      "history-011:17": "2abc7d61bee20fe37d4f847ffa5b7928fb0b3db7747b6bdad8a51c1da452c399",
+      "history-011:18": "4443ff2e4ac2b982820b52260ab3578b9a02ed1cb54e911aefa892a361cebf50",
+      "history-011:43": "cc7e858b7472fa7c7bd68940ef34e84b2f44219a730c781d2a49dd74cec4c626",
+      "history-011:66": "54e667a361d88f1ff09feb0cb479e539839a203a099f61c9dbf76e3b7b2eaf99",
+      "history-011:67": "c6cb048bd18744789b3ee41b094c9ef4586b80134dc510a70977212c1545c805",
+      "history-011:93": "426ac0bf353a0b5c41375c944ba3c9b4fd850122baa0bcbfdc692e03e81e80c7",
+      "history-012:12": "d12c6f4e85c3ef649918d4b7d6dab8bd87fc0529435bb5fb8ae12486c9f2d533",
+      "history-012:13": "e5415bffbadebb8ac33f690b33eab4844caf0d14445425457894daefa81965c1",
+      "history-012:133": "cd577a3eb45da3eb3e352993602af25310a43ee605e2a04724ce984ac04a5e5e",
+      "history-012:134": "5bfa5647b8b625e1c8357adc92be560b794aa58f93b8ebc306e7e688ebd8be31",
+      "history-012:37": "7b3c5bd644514d8e31fa3ce31b108644393ac923e8d16fdc6d2b42811d5af116",
+      "history-012:38": "c30049c95cf0dd9ead1068a0bf1860ede29a550015c10c2aaccfae2513c66e36",
+      "history-012:39": "95c892a8fd7b20b86b3d46a3008f99992b3a2b07fd627a2ef194415215e5c37b",
+      "history-012:62": "f09ae5bc88431e5feba523046a9b2dbe7a02cf3d2bb92d2b601b8f972ff77c72",
+      "history-012:63": "f09ae5bc88431e5feba523046a9b2dbe7a02cf3d2bb92d2b601b8f972ff77c72",
+      "history-012:87": "f09ae5bc88431e5feba523046a9b2dbe7a02cf3d2bb92d2b601b8f972ff77c72",
+      "history-013:122": "0a87055e70d88dcf5d5bec28538ebcd15ca83bbbb331d94adcc4e177a07e5600",
+      "history-013:148": "5fb3ae760cf0059d63887a4eccf6ec1ac22ec3dc5f054fd453b05bd3eb1dcb18",
+      "history-013:180": "6407e10a8fcc29fd25234472635aa62ef4638772f8f3920c87a83b6736733de2",
+      "history-013:181": "354f82e445877d2caf2aba36772b60323841efeecdb31ac93421a88cfd0c169f",
+      "history-013:34": "2eec48767ed29f94e20a35e9db500f2fff55afa85f6cb52af64592cbfdf9ab79",
+      "history-013:59": "9d2a0fdd6465f13794ff593761512e327822352681ab760746583a5444b24dee",
+      "history-013:8": "8ab669ba339f54d13de5ba46c029738c36111e7c1e3df2d5e2a471356e74c762",
+      "history-013:9": "2ec1e09814af6ef1d3706e843fddfcb3ea83d6dcdf4cdb41c888fff79679fdab",
+      "history-013:96": "4b30966352ac965f5b07f0942b32901e09def98ed12b0822c4603305d397095a",
+      "history-013:97": "f2f15c532eda8e2894d121fbdab402170fb9c3af22c105f1cb8ca5296bac457c",
+      "history-014:110": "b30fee9e8d6029fc74ac3897f34e390ccb9c1690104be9a0b072ed25d9a5ddbf",
+      "history-014:111": "ab295cfe4bfd2721d2326517c6e21830e73d8339dcc85b4eedb2cf074e696269",
+      "history-014:137": "ab295cfe4bfd2721d2326517c6e21830e73d8339dcc85b4eedb2cf074e696269",
+      "history-014:162": "ab295cfe4bfd2721d2326517c6e21830e73d8339dcc85b4eedb2cf074e696269",
+      "history-014:291": "a8b7442fcf9f53543a195786dbdc6c2660f3688e3f1b329a9e0b904f6f621f90",
+      "history-014:292": "17bc385e69a155f4c9b84294733721183e41a14c763560f3902eaf2a4b073852",
+      "history-014:42": "76f16af603a2ec452190db65c52a5dd5021d9020f987b483f37f78d90a343089",
+      "history-014:43": "db91ee4bd141875680644ad15dbf26311aaabde54f19cd85910e2f7e70c521a5",
+      "history-014:67": "c315b9ed6f957c1e81e9f239f38e641345cfbfd72bd570aa6b34c8e2a73fa8dd",
+      "history-014:92": "c315b9ed6f957c1e81e9f239f38e641345cfbfd72bd570aa6b34c8e2a73fa8dd",
+      "history-015:103": "54a0f7f0d09872258d22f2252cd3a5de13a8be81dabe5e0caf047544131124af",
+      "history-015:128": "54a0f7f0d09872258d22f2252cd3a5de13a8be81dabe5e0caf047544131124af",
+      "history-015:168": "4adbaf700fd4e096be3bd0bca268e758767fb0f5fcb8a846aa11ddaf59c21f0e",
+      "history-015:169": "7e2c8580d1ad25a11db89d8704773b6a888d554365e524fd53ea6f1b39dff836",
+      "history-015:195": "d0087cca69e793079593849115ab4bc0423850c8b1ebfe5341f16ee0aacd741d",
+      "history-015:219": "d0087cca69e793079593849115ab4bc0423850c8b1ebfe5341f16ee0aacd741d",
+      "history-015:287": "9492214798507846935531dcbcd35a35add4371d3bb9c5a131be0b19939ff084",
+      "history-015:288": "1b6212a06d86b077d720260d81879eaac50024e5497d86b95f7708b6911660c8",
+      "history-015:77": "b2803f15d2280062f9a6a12350be4b94018618d03713f46eec78fe7769aaa6cd",
+      "history-015:78": "b5993c0ee62024960e551dc84bf259ac390078dcb3b9428c43406dc979a95908",
+      "history-016:163": "de428f4e980258815351e53ab30f5dd7ec1098c81b33ced444aa036e0e7d7d6b",
+      "history-016:164": "25917d1680302cff5cf8479ba129166d501ea55868c6a00ff22e01e0750d75c3",
+      "history-016:190": "62ebc76430b16f61b1ddeabec7937d5e0185c2a29894c3f6470bdd14ae66e22f",
+      "history-016:215": "62ebc76430b16f61b1ddeabec7937d5e0185c2a29894c3f6470bdd14ae66e22f",
+      "history-016:220": "23a80c41193afcda12116599af7db255eea7641d48205a83549d0500fbcee391",
+      "history-016:221": "d8de6269bc3e41410987ff8cb35d5ca48555ecf52f21b816d19af9cbdde82e23",
+      "history-016:244": "170aae013dd501311c048d6c71fd4b0af449b896b8a39c9c0dde5949eb83393c",
+      "history-016:269": "b4fbf41ba3b8248e6754b0e248165fdb4d8fa69b835a2cc945be0ecb0d8da6e4",
+      "history-016:295": "d4f45c814158f92a30beafc416399ea65f48aeccc9718e5e3b9a9d34401bae62",
+      "history-016:296": "88cfb3749e05519786801cbe2d5c03e858b98222705b7ee6e99a34c537d22641"
+    },
+    "num_results": 8,
+    "retrieval_map_sha256": "46994a501d2abc9eede11f904e9de55fc9e5657bc8443a932dd04a86203c9882",
+    "retrieval_state": "point_in_time",
+    "search_recipe": "EDGE_HYBRID_SEARCH_RRF (graphiti default; no LLM at query time)",
+    "session": {
+      "cross_encoder": "disabled",
+      "driver": "Neo4jDriver",
+      "embedder": "SentenceTransformerEmbedder(pinned bge revision)",
+      "graphiti_core_version": "0.29.3",
+      "llm_client": "OpenAIGenericClient",
+      "server_filter_violations_dropped": 1
+    },
+    "store_states_sha256": "b8e322b431d8fbcf2648434752a4f43bb642fce2c87ba55bc3ad913299957af9",
+    "timestamp_mapping": {
+      "base": "2024-01-01T00:00:00+00:00",
+      "in_text_dates": "untouched",
+      "indexing": "global_stream_turn_index",
+      "step_seconds": 60
+    },
+    "valid_fact_total": 3707
+  },
+  "hybrid_memory": {
+    "admission_ledgers_sha256": "611efa31f5019dfa765912fb256ee687c4d1410ce5c3ac2414a3f9f270a6bb42",
+    "backend": "neo4j",
+    "committed_fact_count": 946,
+    "condition_fact_count": 946,
+    "condition_facts_sha256": "838502a4acc362ba2084a017a47197e682ff03e0d483a15cd02585a0eeb3c87e",
+    "database": "neo4j",
+    "embedding_batch_size": 32,
+    "embedding_device": "cpu",
+    "embedding_model_id": "BAAI/bge-small-en-v1.5",
+    "embedding_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "graph_endpoint_database_sha256": "6649a14d7ee0e099e58324317a44c95f1949dc4367766fb7027abc0542be4b15",
+    "graph_traversal_applied": true,
+    "hops_requested": 2,
+    "n_hop_canary": {
+      "cross_condition_path_fact_count": 0,
+      "one_hop_fact_count": 1,
+      "status": "passed",
+      "two_hop_fact_count": 2
+    },
+    "retrieval_map_sha256": "0e2003c1491fb4da7915cf0f24e370ae43291f2c8fe52ac461d3ee957e7fff59",
+    "retrieval_mode": "hybrid",
+    "rrf_k": 60,
+    "session_id": "persona-986cbe8ce306-e95677568300",
+    "sparse_backend": "neo4j_n_hop",
+    "top_k": 8,
+    "validator": {
+      "engine": "scallopy-http",
+      "name": "scallop",
+      "rule_version": "rules.v1",
+      "scallop_available": true
+    },
+    "validator_endpoint_sha256": "68ee74ba248e5f9c16727f09106ee387146fd7ad96d35fb1f70e44fce3fbfa21"
+  },
+  "injection_map_sha256": "bb59a1b066bdf2f560754fe1f320d38095bbfb0434459fd9c2d3dfecaecd205d",
+  "model": {
+    "architecture": "Qwen3_5ForCausalLM",
+    "attention_implementation": "sdpa",
+    "context_capacity": 262144,
+    "device": "cuda:7",
+    "dtype": "bfloat16",
+    "file_sha256": {
+      "chat_template.jinja": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+      "config.json": "ddc63e1c717afa86c865bb5e01313d89d72bb53b97ad4a8a03ba8510c0621670",
+      "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+      "model.safetensors-00001-of-00002.safetensors": "26a93f066e1916adb13453dae5a0c707c0fbc71299ed98779571a907b8e74c61",
+      "model.safetensors-00002-of-00002.safetensors": "cb544bd9bfae93dc59b0f22b292f5933573854a7f9b97835c67060d7d910e188",
+      "model.safetensors.index.json": "cf3f798ee02ba45f9622aa8892a47369ab667d0afbf154ee7c2212de42e6302d",
+      "tokenizer.json": "5f9e4d4901a92b997e463c1f46055088b6cca5ca61a6522d1b9f64c4bb81cb42",
+      "tokenizer_config.json": "316230d6a809701f4db5ea8f8fc862bc3a6f3229c937c174e674ff3ca0a64ac8",
+      "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+    },
+    "model_id": "Qwen/Qwen3.5-4B",
+    "model_type": "qwen3_5_text",
+    "resolved_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "torch_version": "2.6.0+cu124",
+    "transformers_version": "5.15.0"
+  },
+  "ordered_spec_sha256": "e496a0261fa94d9532e72c93ed0dd1854cd3571a137e795ba55ab902fb4d6382",
+  "prompt_instruction_sha256": "400af53cf6036c5686cda14691605aeaf36a19a209ae35b29dfe51bed96ca1cd",
+  "relation_coverage_matrix": [
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-005-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-005-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-005-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-005-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-005-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-005-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-005-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-005-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-005-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-005-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-006-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-006-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-006-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-006-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-006-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-006-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-006-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-006-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-006-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-006-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-007-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-007-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-007-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-007-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-007-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-007-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-007-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-007-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-007-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-007-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-008-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-008-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-008-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-008-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-008-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-008-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-008-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-008-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-008-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-008-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-009-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-009-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-009-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-009-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-009-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-009-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-009-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-009-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-009-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-009-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-010-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-010-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-010-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-010-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-010-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-010-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-010-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-010-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-010-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-010-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-011-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-011-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-011-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-011-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-011-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-011-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-011-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-011-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-011-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-011-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-012-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-012-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-012-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-012-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-012-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-012-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-012-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-012-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-012-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-012-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-013-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-013-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-013-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-013-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-013-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-013-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-013-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-013-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-013-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-013-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-014-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-014-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-014-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-014-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-014-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-014-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-014-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-014-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-014-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-014-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-015-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-015-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-015-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-015-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-015-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-015-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-015-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-015-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-015-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-015-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-016-preference-change-delayed:pre_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-016-preference-change-delayed:post_update",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-016-preference-change-delayed:delayed_probe",
+      "expected_relation": "preference_change",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_change",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-016-preference-change-delayed:token_distance-4096",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-016-preference-change-delayed:token_distance-8192",
+      "expected_relation": "preference_change",
+      "expected_relation_present": false,
+      "phase": "token_distance",
+      "query_family": "preference_change",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "pre_update",
+      "evaluation_input_id": "history-016-preference-incongruity-delayed:pre_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "pre_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "post_update",
+      "evaluation_input_id": "history-016-preference-incongruity-delayed:post_update",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": false,
+      "phase": "post_update",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {},
+      "source_event_count": 0,
+      "zero_sources_allowed": true
+    },
+    {
+      "condition": "delayed_probe",
+      "evaluation_input_id": "history-016-preference-incongruity-delayed:delayed_probe",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "delayed_probe",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_4096",
+      "evaluation_input_id": "history-016-preference-incongruity-delayed:token_distance-4096",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    },
+    {
+      "condition": "token_distance_8192",
+      "evaluation_input_id": "history-016-preference-incongruity-delayed:token_distance-8192",
+      "expected_relation": "preference_incongruity",
+      "expected_relation_present": true,
+      "phase": "token_distance",
+      "query_family": "preference_incongruity",
+      "relation_source_counts": {
+        "preference_change": 3,
+        "preference_incongruity": 3
+      },
+      "source_event_count": 5,
+      "zero_sources_allowed": false
+    }
+  ],
+  "scallop": {
+    "engine": "scallopy",
+    "rule_version": "preference_stream.v1",
+    "version": "0.2.4"
+  },
+  "schedule_sha256": "30e1e3e1b755f4588abfc8b9d15c1504d346bcb6021a9d9473cce6be3a884fdd",
+  "schedule_version": "persona-interference-schedule.v1",
+  "source_provenance": {
+    "git": {
+      "dirty": true,
+      "dirty_diff_sha256": "55ee005fa63ca4d7a559144af0451e30f3370ae0fab970331cdb71f35b7761f8",
+      "git_head": "6a114c8d55ec74d05a2673c8fbd622824acbdf26",
+      "untracked_file_count": 1
+    },
+    "mode": "git"
+  },
+  "status": "completed",
+  "tokenizer": {
+    "add_special_tokens": false,
+    "implementation": "Qwen2Tokenizer",
+    "model_id": "Qwen/Qwen3.5-4B",
+    "resolved_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
+  }
+}

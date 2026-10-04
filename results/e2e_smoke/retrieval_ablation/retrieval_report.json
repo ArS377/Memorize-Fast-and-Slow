@@ -1,0 +1,67 @@
+{
+  "citation_proxy_method": "cross_mode_union_by_cell_and_example",
+  "modes": {
+    "dense": {
+      "branch_candidate_counts": {
+        "dense": 3,
+        "sparse": 0
+      },
+      "branch_overlap_fact_count": 0,
+      "degraded_query_count": 0,
+      "dense_unique_fact_count": 3,
+      "fusion_duplicate_rate": 0.0,
+      "labeled_query_count": 0,
+      "query_count": 1,
+      "recall_at_1": null,
+      "recall_at_10": null,
+      "recall_at_5": null,
+      "relevance_source_counts": {
+        "unlabeled": 1
+      },
+      "sparse_unique_fact_count": 0,
+      "unique_retrieved_fact_count": 3
+    },
+    "hybrid": {
+      "branch_candidate_counts": {
+        "dense": 3,
+        "sparse": 0
+      },
+      "branch_overlap_fact_count": 0,
+      "degraded_query_count": 0,
+      "dense_unique_fact_count": 3,
+      "fusion_duplicate_rate": 0.0,
+      "labeled_query_count": 0,
+      "query_count": 1,
+      "recall_at_1": null,
+      "recall_at_10": null,
+      "recall_at_5": null,
+      "relevance_source_counts": {
+        "unlabeled": 1
+      },
+      "sparse_unique_fact_count": 0,
+      "unique_retrieved_fact_count": 3
+    },
+    "sparse": {
+      "branch_candidate_counts": {
+        "dense": 0,
+        "sparse": 0
+      },
+      "branch_overlap_fact_count": 0,
+      "degraded_query_count": 0,
+      "dense_unique_fact_count": 0,
+      "fusion_duplicate_rate": 0.0,
+      "labeled_query_count": 0,
+      "query_count": 1,
+      "recall_at_1": null,
+      "recall_at_10": null,
+      "recall_at_5": null,
+      "relevance_source_counts": {
+        "unlabeled": 1
+      },
+      "sparse_unique_fact_count": 0,
+      "unique_retrieved_fact_count": 0
+    }
+  },
+  "schema_version": "retrieval_report.v1",
+  "warnings": []
+}

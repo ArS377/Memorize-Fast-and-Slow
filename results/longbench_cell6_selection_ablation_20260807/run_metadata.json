@@ -1,0 +1,36 @@
+{
+  "sample": {
+    "dataset": "LongBench v2",
+    "limit": 50
+  },
+  "model": "Qwen/Qwen3-4B",
+  "server": "serrano",
+  "code": {
+    "no_local_changes_kg_build": "a0678d8 (origin/main)",
+    "no_local_changes_eval_controller": "08f1bc8 (origin/agent-set-rlm-depth-one, unmerged as of this run -- has the intended --max-depth 1; main still defaults to 2)",
+    "local_changes": "uncommitted local working-tree changes at the time of these runs (semantic chunking, per-option query fan-out, relevance-floor filtering, MMR diversity reranking in neurosym/adapters/chunk_selection.py and longbench_kg_pipeline.py), stashed after these runs and not yet pushed"
+  },
+  "kg_fact_counts": {
+    "gitmain_cap3": 1440,
+    "semantic20_flat": 6127,
+    "semantic20_peropt": 5677,
+    "semantic20_relfloor": 5442,
+    "semantic20_mmr": 5863,
+    "semantic20_combined": 5325
+  },
+  "kg_snapshot_sha256": {
+    "gitmain_cell5_hybrid": "f6a16fa1543784871c36bc6e26d0e12a38759e775077d4cd7c688fb0b5c47de9",
+    "gitmain_cell6_hybrid": "f6a16fa1543784871c36bc6e26d0e12a38759e775077d4cd7c688fb0b5c47de9",
+    "gitmain_cell6_dense_ppr": "f6a16fa1543784871c36bc6e26d0e12a38759e775077d4cd7c688fb0b5c47de9",
+    "semantic20_hybrid": "4b27f96e500ceaf1bd8e753a12a66db2320b222ca928eae2c4331c74e48c4fb8",
+    "semantic20_dense_ppr": "4b27f96e500ceaf1bd8e753a12a66db2320b222ca928eae2c4331c74e48c4fb8",
+    "peropt_hybrid": "1947b21f070f4783717a427c3de4f4b92f60d8c239fb125f61ebc085b0c6c3d2",
+    "peropt_dense_ppr": "1947b21f070f4783717a427c3de4f4b92f60d8c239fb125f61ebc085b0c6c3d2",
+    "relfloor_hybrid": "9fdf434a5cb61c609948dcc7d3fc01b37218721395f1d725fb0ee82a004106eb",
+    "relfloor_dense_ppr": "9fdf434a5cb61c609948dcc7d3fc01b37218721395f1d725fb0ee82a004106eb",
+    "mmr_hybrid": "28cf7c349ca9d58745cd7b1836291470f9c0064cea0270f2e72fabcf14f70322",
+    "mmr_dense_ppr": "28cf7c349ca9d58745cd7b1836291470f9c0064cea0270f2e72fabcf14f70322",
+    "combined_hybrid": "cce715d7b33f19029478b1cffbd2034ae397a6ef923674c02e2a458b24999442",
+    "combined_dense_ppr": "cce715d7b33f19029478b1cffbd2034ae397a6ef923674c02e2a458b24999442"
+  }
+}

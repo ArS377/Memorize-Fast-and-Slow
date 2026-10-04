@@ -1,0 +1,117 @@
+{
+  "runtime": {
+    "dataset_dir_env": "PERSONA_SURFACE_A_DATASET_DIR",
+    "output_dir_env": "PERSONA_SURFACE_A_BENCHMARK_OUTPUT_DIR",
+    "model_path_env": "PERSONA_QWEN_MODEL_PATH",
+    "model_id_env": "PERSONA_QWEN_MODEL_ID",
+    "device_env": "PERSONA_QWEN_DEVICE"
+  },
+  "schedule": {
+    "source_split": "test",
+    "source_profile": "anti_shortcut_interleaved_v3",
+    "source_manifest_sha256": "c64c5c4268d93691b9bdf12119fa31a91cc7e9a798182135593c85128fc89c89",
+    "seed": 73,
+    "concurrent_accounts": 8,
+    "min_segment_events": 4,
+    "max_segment_events": 8,
+    "query_suffixes": [
+      "-preference-change-delayed",
+      "-preference-incongruity-delayed"
+    ],
+    "token_distance_thresholds": [
+      4096,
+      8192
+    ]
+  },
+  "arms": [
+    {
+      "name": "sliding_context_4096",
+      "kind": "sliding_context",
+      "prompt_token_cap": 4096
+    },
+    {
+      "name": "sliding_context_16384",
+      "kind": "sliding_context",
+      "prompt_token_cap": 16384
+    },
+    {
+      "name": "structured_memory_4096",
+      "kind": "structured_memory",
+      "prompt_token_cap": 4096
+    },
+    {
+      "name": "structured_memory_16384",
+      "kind": "structured_memory",
+      "prompt_token_cap": 16384
+    },
+    {
+      "name": "graphiti_memory_4096",
+      "kind": "graphiti_memory",
+      "prompt_token_cap": 4096
+    },
+    {
+      "name": "graphiti_memory_16384",
+      "kind": "graphiti_memory",
+      "prompt_token_cap": 16384
+    }
+  ],
+  "prompt_instruction": "Use only the conversation record. Answer with the shortest exact preference value, or UNKNOWN when the record does not establish one. Do not explain your answer.",
+  "scallop": {
+    "endpoint_env": "PERSONA_SCALLOP_ENDPOINT",
+    "timeout_seconds": 30.0
+  },
+  "generation": {
+    "max_new_tokens": 32,
+    "dtype": "bfloat16",
+    "attention_implementation": "sdpa",
+    "local_files_only": true,
+    "use_kernels": false
+  },
+  "analysis": {
+    "bootstrap_samples": 2000,
+    "bootstrap_seed": 73,
+    "paired_comparisons": [
+      [
+        "graphiti_memory_4096",
+        "sliding_context_4096"
+      ],
+      [
+        "graphiti_memory_16384",
+        "sliding_context_16384"
+      ],
+      [
+        "graphiti_memory_4096",
+        "structured_memory_4096"
+      ],
+      [
+        "graphiti_memory_16384",
+        "structured_memory_16384"
+      ]
+    ]
+  },
+  "graphiti": {
+    "graphiti_core_version": "0.29.3",
+    "episode_variant": "e2e",
+    "retrieval_state": "point_in_time",
+    "timestamp_base": "2024-01-01T00:00:00+00:00",
+    "timestamp_step_seconds": 60,
+    "num_results": 8,
+    "llm_max_tokens": 4096,
+    "max_episode_failures": 0,
+    "max_concurrent_histories": 4,
+    "embedding_batch_size": 32,
+    "build_id_env": "PERSONA_GRAPHITI_BUILD_ID",
+    "neo4j_uri_env": "PERSONA_GRAPHITI_NEO4J_URI",
+    "neo4j_user_env": "PERSONA_GRAPHITI_NEO4J_USER",
+    "neo4j_password_env": "PERSONA_GRAPHITI_NEO4J_PASSWORD",
+    "neo4j_database_env": "PERSONA_GRAPHITI_NEO4J_DATABASE",
+    "llm_base_url_env": "PERSONA_GRAPHITI_LLM_BASE_URL",
+    "llm_api_key_env": "PERSONA_GRAPHITI_LLM_API_KEY",
+    "llm_model_env": "PERSONA_GRAPHITI_LLM_MODEL",
+    "llm_small_model_env": "PERSONA_GRAPHITI_LLM_SMALL_MODEL",
+    "embedding_model_id_env": "PERSONA_EMBEDDING_MODEL_ID",
+    "embedding_model_path_env": "PERSONA_EMBEDDING_MODEL_PATH",
+    "embedding_revision_env": "PERSONA_EMBEDDING_REVISION",
+    "embedding_device_env": "PERSONA_EMBEDDING_DEVICE"
+  }
+}
