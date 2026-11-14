@@ -110,6 +110,13 @@ histories and use one stochastic Graphiti ingestion realization per surface;
 see the [surface coverage audit](docs/persona-surface-coverage.md) for scope and
 limitations.
 
+On 250 LongMemEval-S histories with shared extracted facts, the
+[LongMemEval-S comparison](results/longmemeval_s_shared_facts_250_20261114/README.md)
+detected no difference: NeuroSym 53.6% versus Graphiti 52.4%, paired difference +1.2
+points, 95% CI [−3.2, +5.6]. Scoring used the official LongMemEval prompts with a
+local Qwen3.5-4B judge, so accuracies are not directly comparable to published
+LongMemEval numbers; this Graphiti arm does not perform its own extraction.
+
 ### Differentiable admission benchmark
 
 Run the CPU-compatible Python 3.10 Scallop environment with explicit dataset,

@@ -1,0 +1,40 @@
+{
+  "run_id": "longmemeval_s_shared_facts_250_20261114",
+  "histories_evaluated": 250,
+  "arms": {
+    "neurosym": "NeuroSym hybrid KG memory ingesting the shared extracted facts",
+    "graphiti": "Graphiti ingesting the same shared extracted facts (no Graphiti-side extraction from raw dialogue)"
+  },
+  "dataset": {
+    "name": "longmemeval_s_cleaned",
+    "hf_repo": "xiaowu0162/longmemeval-cleaned",
+    "hf_revision": "98d7416c24c778c2fee6e6f3006e7a073259d48f",
+    "sha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+    "question_count": 500,
+    "subset": "the 250 histories that completed shared extraction and both memory arms; not selected by correctness and not a random sample",
+    "redistributed_text": false
+  },
+  "models": {
+    "extraction": {"id": "Qwen/Qwen3.5-4B", "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"},
+    "answer": {"id": "Qwen/Qwen3.5-4B", "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"},
+    "embedding": {"id": "BAAI/bge-small-en-v1.5", "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a"},
+    "graphiti_core_version": "0.29.3",
+    "judge": {
+      "id": "Qwen/Qwen3.5-4B",
+      "revision_recorded": false,
+      "temperature": 0,
+      "max_tokens": 10,
+      "thinking": "disabled",
+      "official_judge": false,
+      "official_judge_model": "gpt-4o-2024-08-06",
+      "prompt_templates": "LongMemEval get_anscheck_prompt, src/evaluation/evaluate_qa.py at d6dc8b50a2d9ac0c99485ea28fa5755c62414c34",
+      "label_rule": "correct iff the judge response contains 'yes' (case-insensitive); a pipeline failure counts as incorrect"
+    }
+  },
+  "statistics": {
+    "accuracy_interval": "two-sided 95% Wilson",
+    "paired_interval": "95% percentile bootstrap over histories, 10000 resamples, seed 20261114",
+    "paired_test": "exact two-sided McNemar"
+  },
+  "regenerate": "python3 results/longmemeval_s_shared_facts_250_20261114/analyze_results.py --markdown"
+}

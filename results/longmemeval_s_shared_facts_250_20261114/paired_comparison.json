@@ -1,0 +1,16 @@
+{
+  "n": 250,
+  "both_correct": 116,
+  "neurosym_only_correct": 18,
+  "graphiti_only_correct": 15,
+  "both_wrong": 101,
+  "difference_neurosym_minus_graphiti": 0.012,
+  "bootstrap95": [
+    -0.032,
+    0.056
+  ],
+  "bootstrap_seed": 20261114,
+  "bootstrap_reps": 10000,
+  "bootstrap_method": "percentile; resamples histories with replacement",
+  "mcnemar_exact_two_sided_p": 0.7283324808813632
+}

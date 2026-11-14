@@ -1,3 +1,9 @@
+# LongMemEval-S Shared-Facts Comparison - November 14, 2026
+
+### Results
+- Added `results/longmemeval_s_shared_facts_250_20261114/`: NeuroSym versus Graphiti on 250 LongMemEval-S histories with shared extracted facts (53.6% versus 52.4%; +1.2 points, 95% CI [-3.2, +5.6]; no difference detected), with a per-history label table and a standard-library analysis script.
+- Linked the result from `README.md` and `docs/recent-results.md`.
+
 # Project Consolidation - April 17, 2026
 
 ## Latest Changes
