@@ -1,0 +1,3 @@
+arm,n,correct,accuracy,ci95_low,ci95_high,task_averaged_accuracy,population_weighted_accuracy
+neurosym,500,251,0.5020,0.4583,0.5456,0.5041,0.5020
+graphiti,500,241,0.4820,0.4385,0.5258,0.4806,0.4820

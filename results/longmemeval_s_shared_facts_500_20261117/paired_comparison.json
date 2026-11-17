@@ -1,0 +1,71 @@
+{
+  "n": 500,
+  "both_correct": 207,
+  "neurosym_only_correct": 44,
+  "graphiti_only_correct": 34,
+  "both_wrong": 215,
+  "difference_neurosym_minus_graphiti": 0.02,
+  "bootstrap95": [
+    -0.014,
+    0.056
+  ],
+  "bootstrap_seed": 20261114,
+  "bootstrap_reps": 10000,
+  "bootstrap_method": "percentile; resamples histories with replacement",
+  "mcnemar_exact_two_sided_p": 0.30816823194368076,
+  "cohort_type_mix": {
+    "published_n": 250,
+    "later_n": 250,
+    "published_stratum_counts": {
+      "single-session-user": 42,
+      "single-session-assistant": 42,
+      "single-session-preference": 22,
+      "multi-session": 39,
+      "knowledge-update": 41,
+      "temporal-reasoning": 45,
+      "abstention": 19
+    },
+    "later_stratum_counts": {
+      "single-session-user": 22,
+      "single-session-assistant": 14,
+      "single-session-preference": 8,
+      "multi-session": 82,
+      "knowledge-update": 31,
+      "temporal-reasoning": 82,
+      "abstention": 11
+    },
+    "neurosym": {
+      "published_accuracy": 0.536,
+      "later_accuracy": 0.468,
+      "published_standardized": 0.4952209631475357,
+      "later_standardized": 0.4924475001788141,
+      "raw_difference": -0.068,
+      "raw_bootstrap95": [
+        -0.14800000000000002,
+        0.01200000000000001
+      ],
+      "standardized_difference": -0.0027734629687216072,
+      "standardized_bootstrap95": [
+        -0.09019829824819259,
+        0.08289335656590618
+      ]
+    },
+    "graphiti": {
+      "published_accuracy": 0.524,
+      "later_accuracy": 0.44,
+      "published_standardized": 0.4868877863542818,
+      "later_standardized": 0.47488999356269224,
+      "raw_difference": -0.08400000000000002,
+      "raw_bootstrap95": [
+        -0.16400000000000003,
+        -0.0040000000000000036
+      ],
+      "standardized_difference": -0.011997792791589579,
+      "standardized_bootstrap95": [
+        -0.09915368269240471,
+        0.0728837215379391
+      ]
+    },
+    "method": "later minus published; standardized = population-weighted accuracy (full-500 stratum mix); bootstrap resamples histories within cohort and stratum, 10000 resamples, seed 20261114"
+  }
+}

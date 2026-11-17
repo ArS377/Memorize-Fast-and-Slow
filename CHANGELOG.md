@@ -1,3 +1,10 @@
+# LongMemEval-S Shared-Facts Comparison, All 500 Histories - November 17, 2026
+
+### Results
+- Added `results/longmemeval_s_shared_facts_500_20261117/`: NeuroSym versus Graphiti on all 500 LongMemEval-S histories with shared extracted facts (50.2% versus 48.2%; +2.0 points, 95% CI [-1.4, +5.6]; no difference detected), with a per-history label table, a per-history group table for the sensitivity analyses, and a standard-library analysis script.
+- Kept `results/longmemeval_s_shared_facts_250_20261114/` as the earlier 250-history snapshot; its per-history labels are included unchanged in the 500-history table.
+- Linked the result from `README.md` and `docs/recent-results.md`.
+
 # LongMemEval-S Shared-Facts Comparison - November 14, 2026
 
 ### Results
